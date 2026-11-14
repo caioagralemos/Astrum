@@ -4,7 +4,7 @@ ESP32 DevKit (ESP32-D0WD-V3) on a RoboCore expansion board, connected to the hub
 
 ## Wiring
 
-The full drawing, three sheets (board as built, schematic, pin table): [wiring-blueprint.pdf](wiring-blueprint.pdf). The board was wired and its parts tested on 12 Nov 2026; the firmware was written on 14 Nov.
+The full drawing, four sheets (board as built, schematic, pin table, slots with no part): [wiring-blueprint.pdf](wiring-blueprint.pdf). The board was wired and its parts tested on 12 Nov 2026; the firmware and the fourth sheet were made on 14 Nov.
 
 | Part | Reads | Pins |
 |---|---|---|
