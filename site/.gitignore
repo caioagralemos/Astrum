@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# The hub interface, built by "npm run demo". Build output, never committed.
+public/demo/

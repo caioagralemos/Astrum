@@ -1,0 +1,24 @@
+/* The brand lives here and only here. Neutral placeholders until the real
+   mark, colours and type land; nothing else in the site names a colour,
+   a font or a radius. */
+
+:root {
+  --font-display: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --bg: #0b0c0e;
+  --surface: #15171a;
+  --line: #2a2d32;
+  --text: #f2f3f5;
+  --text-muted: #9aa0a8;
+  --accent: #e8e8e8;
+  --accent-ink: #0b0c0e;
+  --alert: #ff6b4a;
+
+  --radius: 14px;
+  --measure: 62ch;
+  --page: 1120px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --section-gap: clamp(80px, 12vw, 160px);
+}
