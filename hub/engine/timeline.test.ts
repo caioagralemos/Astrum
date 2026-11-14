@@ -80,3 +80,12 @@ test('a reading stamped slightly ahead of the screen still counts, further ahead
   assert.equal(current([row({ t: 11_500 })], 10_000).length, 1);
   assert.equal(current([row({ t: 12_500 })], 10_000).length, 0);
 });
+
+test('the model is named Astra on every screen: "Ask Astra", and no string still says "Ask Astrum"', () => {
+  assert.equal(t('ask.title', 'en'), 'Ask Astra');
+  assert.equal(t('ask.title', 'pt'), 'Pergunte à Astra');
+  assert.equal(t('ask.name', 'en'), 'Astra');
+  assert.equal(t('bench.ask.title', 'en'), t('ask.title', 'en'));
+  assert.equal(t('bench.ask.title', 'pt'), t('ask.title', 'pt'));
+  for (const [key, entry] of Object.entries(allStrings())) assert.ok(!/Ask Astrum|Pergunte ao Astrum/.test(entry.en + entry.pt), key);
+});

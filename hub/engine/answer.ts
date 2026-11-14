@@ -25,7 +25,7 @@ export type AnswerLang = 'en' | 'pt';
  * Person words are filled in by `render`, so one template serves "you" (the
  * crewmate asking about themselves) and a crewmate asking about someone else
  * (the name in the first sentence, then the profile's pronoun):
- *   EN {You} {you} subject · {Your} {your} possessive · {them} object
+ *   EN {You} {you} subject · {are} its verb · {Your} {your} possessive · {them} object
  *   PT {Voce} {voce} subject · {de_voce} possessive ("de você", "dela", "de Reyes")
  */
 export const ANSWER_STRINGS = {
@@ -56,6 +56,61 @@ export const ANSWER_STRINGS = {
   'answer.danger.over': {
     en: "The {signal} in {your} cabin is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
     pt: 'O {signal} na cabine {de_voce} está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
+  },
+  // The room the person is in now, when it is not their quarters: named, never called "your cabin".
+  'answer.limitHere.under': {
+    en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
+  },
+  'answer.limitHere.at': {
+    en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
+  },
+  'answer.limitHere.over': {
+    en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}. The steps card for this applies.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica.',
+  },
+  'answer.limitHere.plain': {
+    en: 'The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}).',
+    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}).',
+  },
+  'answer.dangerHere.under': {
+    en: "The {signal} in {room}, where {you} {are} now, is under NASA's limit: {value} {unit} ({window}), {diff} {unit} below {limit} {unit}.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}.',
+  },
+  'answer.dangerHere.at': {
+    en: "The {signal} in {room}, where {you} {are} now, is at NASA's limit: {value} {unit} ({window}); the limit is {limit} {unit}.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}.',
+  },
+  'answer.dangerHere.over': {
+    en: "The {signal} in {room}, where {you} {are} now, is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
+    pt: 'O {signal} em {room}, onde {voce} está agora, está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
+  },
+  // Another room the evidence card points to, not the person's quarters and not where they are.
+  'answer.limitThere.under': {
+    en: "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
+    pt: 'O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
+  },
+  'answer.limitThere.at': {
+    en: "The {signal} in {room} reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
+    pt: 'O {signal} em {room} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
+  },
+  'answer.limitThere.over': {
+    en: "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}.",
+    pt: 'O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}.',
+  },
+  'answer.limitThere.plain': {
+    en: 'The {signal} in {room} reads {value} {unit} ({window}).',
+    pt: 'O {signal} em {room} está em {value} {unit} ({window}).',
+  },
+  // The place's gravity, a plain fact of the place. Said only when the question or a card turns on it.
+  'answer.gravity.none': {
+    en: 'You are weightless here.',
+    pt: 'Aqui você está sem peso.',
+  },
+  'answer.gravity.partial': {
+    en: "Gravity here is {g} of Earth's.",
+    pt: 'A gravidade aqui é {g} da gravidade da Terra.',
   },
   'answer.normal.inside': {
     en: '{Your} {signal} is inside {your} normal ({value} {unit}).',
@@ -225,6 +280,14 @@ export interface ComposeInput {
   /** How to name rooms and crewmates in sentences. Default: their ids. */
   roomName?: (id: string) => string;
   personName?: (id: string) => string;
+  /** The place's gravity, in g. Stated (label 'hub') only when the question or a card turns on it. */
+  gravity?: number | null;
+  /** A steps card for this person depends on gravity. */
+  gravityMatters?: boolean;
+  /** The person's own quarters: only that room is ever called their cabin. */
+  quarters?: string | null;
+  /** Current readings against NASA's limits in a room, for the room the evidence card points to. */
+  roomReadings?: (room: string) => Extract<Reading, { type: 'limit' }>[];
 }
 
 const HOUR = 3_600_000;
@@ -233,6 +296,8 @@ const LEVEL_LIMIT = CO2_LEVELS[CO2_LEVELS.length - 1].level;
 
 /** What a question is about, from its words. Only chooses which facts to show; never changes a fact. */
 const AIR = /\b(co2|c02|carbon dioxide|air|room|quarters|cabin|stuffy|breath\w*|head\w*|sick|ill|unwell|wrong with (me|her|him|them)|somewhere else|sleep somewhere|move)\b/i;
+/** A question about gravity or floating. Only decides whether the place's gravity is stated. */
+const GRAVITY = /\b(gravity|weightless\w*|microgravity|zero[- ]?g|float\w*|g[- ]?force)\b/i;
 /** A yes/no question about an action ("Should I sleep somewhere else?"), not "How much should I exercise?". */
 const ADVICE = /^\W*(should|shall|can|could|must|may) (i|we|she|he|they)\b|^\W*(do|does) (i|we|she|he|they) need to\b|^\W*(would|will) it help\b|^\W*is it better\b|^\W*what should (i|we|she|he|they) do\b/i;
 const DIAGNOSIS = /\b((am i|is (she|he)|are they) (sick|ill|unwell)|(do i|does (she|he)|do they) have|what('?s| is) wrong with (me|her|him|them)|is something wrong with (me|her|him|them))\b/i;
@@ -264,16 +329,27 @@ function minus(a: number, b: number): number {
   return Number(Math.abs(a - b).toFixed(d));
 }
 
-function limitItem(r: Extract<Reading, { type: 'limit' }>, danger: boolean): FactItem {
-  const vars = { signal: r.name.replace(/^cabin\s+/i, ''), value: r.value, unit: r.unit, window: r.window ?? 'latest', limit: r.limit ?? '', diff: r.limit === undefined ? 0 : minus(r.value, r.limit) };
-  if (r.limit === undefined) return { key: 'answer.limit.plain', vars, label: r.label };
+/** Which sentence family names the room: the legacy "your cabin" ones only for the person's own quarters (or a reading with no room). */
+function familyOf(r: Extract<Reading, { type: 'limit' }>, quarters: string | null | undefined): 'own' | 'here' | 'there' {
+  if (r.room === undefined || r.room === quarters) return 'own';
+  return r.here ? 'here' : 'there';
+}
+
+function limitItem(r: Extract<Reading, { type: 'limit' }>, danger: boolean, quarters?: string | null, roomName: (id: string) => string = (id) => id): FactItem {
+  const vars = { signal: r.name.replace(/^cabin\s+/i, ''), value: r.value, unit: r.unit, window: r.window ?? 'latest', limit: r.limit ?? '', diff: r.limit === undefined ? 0 : minus(r.value, r.limit), room: r.room ? roomName(r.room) : '' };
+  const family = familyOf(r, quarters);
+  const plain = family === 'own' ? 'answer.limit.plain' : family === 'here' ? 'answer.limitHere.plain' : 'answer.limitThere.plain';
+  if (r.limit === undefined) return { key: plain, vars, label: r.label };
   const side = r.value > r.limit ? 'over' : r.value < r.limit ? 'under' : 'at';
-  const key = danger ? (`answer.danger.${side}` as const) : (`answer.limit.${side}` as const);
+  if (family === 'there') return { key: `answer.limitThere.${side}`, vars, label: r.label };
+  const key = family === 'own'
+    ? (danger ? (`answer.danger.${side}` as const) : (`answer.limit.${side}` as const))
+    : (danger ? (`answer.dangerHere.${side}` as const) : (`answer.limitHere.${side}` as const));
   return { key, vars, label: r.label };
 }
 
-function readingItem(r: Reading): FactItem | null {
-  if (r.type === 'limit') return limitItem(r, false);
+function readingItem(r: Reading, quarters?: string | null, roomName?: (id: string) => string): FactItem | null {
+  if (r.type === 'limit') return limitItem(r, false, quarters, roomName);
   if (r.type === 'note') return null; // free text: not repeated by the hub
   if (r.type === 'value') return { key: 'answer.value', vars: { signal: r.name, value: r.value, unit: r.unit }, label: r.label };
   if (r.type === 'series') return { key: 'answer.series', vars: { signal: r.name, window: r.window, values: r.values.join(', '), unit: r.unit }, label: r.label };
@@ -315,10 +391,9 @@ function exposureLabels(co2: Kind | null, location: Kind | null): Pick<FactItem,
 }
 
 /**
- * The highest 1-hour CO2 average over the window, if the evidence card
- * carries it. engine/evidence.ts does not yet: it needs a field on
- * PersonExposure, e.g. `maxHourAverage: number | null` (the highest
- * time-weighted 1-hour average while the person was there). Until it exists,
+ * The highest 1-hour CO2 average over the window, from the evidence card
+ * (PersonExposure.maxHourAverage: the highest time-weighted 1-hour average of
+ * the room the person was in, while they were there). Where a card has none,
  * the 1-hour sentence is left out rather than guessed.
  */
 export function maxHourAverage(person: object | undefined): number | null {
@@ -402,12 +477,12 @@ const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
  * uses the name every time.
  */
 export function personWords(who: Who, first: boolean): Record<string, string> {
-  if (who.self) return { You: 'You', you: 'you', Your: 'Your', your: 'your', them: 'you', Voce: 'Você', voce: 'você', de_voce: 'de você' };
+  if (who.self) return { You: 'You', you: 'you', are: 'are', Your: 'Your', your: 'your', them: 'you', Voce: 'Você', voce: 'você', de_voce: 'de você' };
   const named = first || who.pronouns === 'they';
   const p = who.pronouns;
   const en = first
-    ? { You: who.name, you: who.name, Your: `${who.name}'s`, your: `${who.name}'s`, them: who.name }
-    : { You: cap(SUBJECT[p]), you: SUBJECT[p], Your: cap(POSSESSIVE[p]), your: POSSESSIVE[p], them: OBJECT[p] };
+    ? { You: who.name, you: who.name, are: 'is', Your: `${who.name}'s`, your: `${who.name}'s`, them: who.name }
+    : { You: cap(SUBJECT[p]), you: SUBJECT[p], are: p === 'they' ? 'are' : 'is', Your: cap(POSSESSIVE[p]), your: POSSESSIVE[p], them: OBJECT[p] };
   const pt = named || p === 'they'
     ? { Voce: who.name, voce: who.name, de_voce: `de ${who.name}` }
     : { Voce: cap(PT_SUBJECT[p]), voce: PT_SUBJECT[p], de_voce: PT_POSSESSIVE[p] };
@@ -417,7 +492,7 @@ export function personWords(who: Who, first: boolean): Record<string, string> {
 const SELF: Who = { name: '', pronouns: 'they', self: true };
 
 /** Uses a person word ({You}, {your}, …)? The first such sentence names the person. */
-const PERSON_BLANK = /\{(You|you|Your|your|them|Voce|voce|de_voce)\}/;
+const PERSON_BLANK = /\{(You|you|are|Your|your|them|Voce|voce|de_voce)\}/;
 
 export function render(item: FactItem, lang: AnswerLang, who: Who = SELF, first = true): string {
   const template = ANSWER_STRINGS[item.key][lang];
@@ -453,7 +528,7 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
   const readings = input.readings?.readings ?? [];
 
   // A danger question is answered from the numbers first.
-  if (input.danger) items.push(limitItem(input.danger.reading, true));
+  if (input.danger) items.push(limitItem(input.danger.reading, true, input.quarters, roomName));
 
   const air = AIR.test(q) || input.passages.some((p) => /co2/i.test(p.name))
     || (input.evidence?.reported.runs ?? []).some((r) => q.includes(reportedName(r.signal).toLowerCase()));
@@ -465,8 +540,19 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
     if (input.danger && r === input.danger.reading) continue;
     const named = r.type !== 'note' && mentions(q, r.name);
     if (!named && !(r.type === 'limit' && air)) continue;
-    const item = readingItem(r);
+    const item = readingItem(r, input.quarters, roomName);
     if (item) items.push(item);
+  }
+  // The room the evidence card points to, when it is not the room the person is in now (her quarters, say): its own reading too.
+  const here = readings.find((r): r is Extract<Reading, { type: 'limit' }> => r.type === 'limit' && !!r.here)?.room;
+  const focus = input.evidence?.focusRoom;
+  if (air && focus && focus !== here && input.roomReadings) {
+    for (const r of input.roomReadings(focus)) items.push(limitItem({ ...r, room: focus, here: false }, false, input.quarters, roomName));
+  }
+
+  // The place's gravity, only when the question or a card turns on it. A fact of the place, nothing more.
+  if (typeof input.gravity === 'number' && (GRAVITY.test(q) || input.gravityMatters)) {
+    items.push(input.gravity === 0 ? { key: 'answer.gravity.none', vars: {}, label: 'hub' } : { key: 'answer.gravity.partial', vars: { g: input.gravity }, label: 'hub' });
   }
 
   // The evidence card, when the question is about the air, the room, how they are, or what to do.

@@ -37,8 +37,15 @@ export const LIMITS: Limit[] = [
 export function windowAverage(rows: Row[], room: string, signal: string, now: number, windowMs: number): { value: number; source: string; kind: Kind } | null {
   const from = now - windowMs;
   const bySource = new Map<string, Row[]>();
+  /** Each source's reading in force when the window opens, if the rows reach back that far. */
+  const before = new Map<string, Row>();
   for (const row of rows) {
-    if (row.room !== room || row.person || row.signal !== signal || row.value === null || row.t > now || row.t < from) continue;
+    if (row.room !== room || row.person || row.signal !== signal || row.value === null || row.t > now) continue;
+    if (row.t < from) {
+      const held = before.get(row.source);
+      if (!held || row.t > held.t) before.set(row.source, row);
+      continue;
+    }
     const list = bySource.get(row.source) ?? [];
     list.push(row);
     bySource.set(row.source, list);
@@ -48,6 +55,12 @@ export function windowAverage(rows: Row[], room: string, signal: string, now: nu
     list.sort((a, b) => a.t - b.t);
     let weighted = 0;
     let covered = 0;
+    // The reading in force at the window's start holds into it, until the next one (at most 10 minutes from when it was read).
+    const opening = before.get(source);
+    if (opening) {
+      const held = Math.min(list[0].t, opening.t + 600_000) - from;
+      if (held > 0) { weighted += opening.value! * held; covered += held; }
+    }
     for (let i = 0; i < list.length; i++) {
       const until = i + 1 < list.length ? list[i + 1].t : now;
       // A reading stands for at most 10 minutes; longer than that is a gap.
@@ -62,6 +75,68 @@ export function windowAverage(rows: Row[], room: string, signal: string, now: nu
   return best;
 }
 
+/**
+ * windowAverage at many moments at once, for the highest 1-hour average a
+ * person breathed (evidence.ts). `times` must be in ascending order; `rows`
+ * in time order, as the store returns them. Each answer is windowAverage's
+ * for that moment (equal up to float rounding: tested): the same reading held
+ * until the next for at most 10 minutes, the reading in force when the window
+ * opens, three quarters of the window covered, one source of the best kind.
+ * It walks each source once instead of once per moment.
+ */
+export function windowAverages(rows: Row[], room: string, signal: string, times: number[], windowMs: number): ({ value: number; source: string; kind: Kind } | null)[] {
+  const HOLD = 600_000;
+  const bySource = new Map<string, { t: number[]; v: number[]; kind: Kind[]; order: number[] }>();
+  rows.forEach((row, i) => {
+    if (row.room !== room || row.person || row.signal !== signal || row.value === null) return;
+    const s = bySource.get(row.source) ?? bySource.set(row.source, { t: [], v: [], kind: [], order: [] }).get(row.source)!;
+    s.t.push(row.t); s.v.push(row.value); s.kind.push(row.kind); s.order.push(i);
+  });
+  // Per source: each reading's stretch [t, end), and the running sums of value x time and time before each one.
+  const sources = [...bySource.entries()].map(([source, s]) => {
+    const idx = s.t.map((_, i) => i);
+    if (s.t.some((x, i) => i > 0 && x < s.t[i - 1])) idx.sort((a, b) => s.t[a] - s.t[b] || a - b);
+    const t = idx.map((i) => s.t[i]);
+    const v = idx.map((i) => s.v[i]);
+    const kind = idx.map((i) => s.kind[i]);
+    const order = idx.map((i) => s.order[i]);
+    const end = t.map((x, i) => Math.min(i + 1 < t.length ? t[i + 1] : Infinity, x + HOLD));
+    const sumW = [0];
+    const sumC = [0];
+    for (let i = 0; i < t.length; i++) { sumW.push(sumW[i] + v[i] * (end[i] - t[i])); sumC.push(sumC[i] + (end[i] - t[i])); }
+    return { source, t, v, kind, order, end, sumW, sumC, upTo: 0, before: 0, atFrom: 0 };
+  });
+  type Src = (typeof sources)[number];
+  // Value x time and time covered from the first reading up to x. k: readings at or before x.
+  const integral = (s: Src, k: number, x: number): [number, number] => {
+    if (k === 0) return [0, 0];
+    const held = Math.max(0, Math.min(x, s.end[k - 1]) - s.t[k - 1]);
+    return [s.sumW[k - 1] + s.v[k - 1] * held, s.sumC[k - 1] + held];
+  };
+  const out: ({ value: number; source: string; kind: Kind } | null)[] = [];
+  for (const now of times) {
+    const from = now - windowMs;
+    let best: { value: number; source: string; kind: Kind; order: number } | null = null;
+    for (const s of sources) {
+      while (s.upTo < s.t.length && s.t[s.upTo] <= now) s.upTo++;
+      while (s.before < s.t.length && s.t[s.before] < from) s.before++;
+      while (s.atFrom < s.t.length && s.t[s.atFrom] <= from) s.atFrom++;
+      if (s.upTo - s.before <= 0) continue; // no reading inside the window
+      const [w1, c1] = integral(s, s.upTo, now);
+      const [w0, c0] = integral(s, s.atFrom, from);
+      const covered = c1 - c0;
+      if (covered < windowMs * 0.75) continue;
+      const kind = s.kind[s.upTo - 1];
+      const order = s.order[s.before];
+      if (!best || KIND_RANK[kind] < KIND_RANK[best.kind] || (KIND_RANK[kind] === KIND_RANK[best.kind] && order < best.order)) {
+        best = { value: (w1 - w0) / covered, source: s.source, kind, order };
+      }
+    }
+    out.push(best && { value: best.value, source: best.source, kind: best.kind });
+  }
+  return out;
+}
+
 export interface RoomAlarm {
   room: string;
   signal: string;
@@ -71,10 +146,21 @@ export interface RoomAlarm {
   over?: number;
   unit: string;
   limit: number;
+  /**
+   * Where the limit comes from: NASA's words and document for a NASA limit,
+   * or 'crew' for a level the crew set on one of their own sensors
+   * (engine/sensors.ts judgeCrewRooms). The two are never mixed: a room can
+   * have both, as two alarms.
+   */
   limitSource: string;
   kind: Kind;
   source: string;
   since: number;
+  /** A crew level only: which side it was passed on (`over` is then how far past), its window, the sensor, and the string key to word it. */
+  direction?: 'above' | 'below';
+  windowMinutes?: number | null;
+  sensor?: string;
+  textKey?: string;
   /** Someone has silenced it. It stays listed until the room is back under the limit. */
   acknowledged: boolean;
   /**
@@ -163,7 +249,7 @@ export function judgeRooms(rooms: string[], rowsOf: (room: string) => Row[], now
   for (const room of rooms) {
     const rows = rowsOf(room);
     for (const limit of LIMITS) {
-      const held = before.find((a) => a.room === room && a.signal === limit.signal);
+      const held = before.find((a) => a.room === room && a.signal === limit.signal && a.limitSource !== 'crew');
       const newestOf = (source: string | null) => {
         let best: Row | null = null;
         for (const r of rows) {

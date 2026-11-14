@@ -120,3 +120,59 @@ test('more matched signs wins, then the higher level', () => {
   const fact = { signal: 'cabin_co2', direction: 'high' as const, basis: 'nasa_limit' as const, value: 4, unit: 'mmHg' };
   assert.equal(pickCard(cards, { readings: [fact], answers: [] })?.card.id, 'high-co2', 'same count: dangerous beats concerning');
 });
+
+// Gravity. Placeholder cards again: she named cardiac arrest as one card with two versions, so the
+// test uses two versions of one marker card, one per gravity. The steps are markers, not content.
+const arrestWeightless = card('arrest-weightless', {
+  applies_in: ['weightless'],
+  signs: { readings: [], answers: [], words: { en: ['not breathing'], pt: ['não respira'] } },
+});
+const arrestGround = card('arrest-ground', {
+  applies_in: ['partial_gravity', 'earth_gravity'],
+  signs: { readings: [], answers: [], words: { en: ['not breathing'], pt: ['não respira'] } },
+});
+
+test('gravity classes: 0 is weightless, under 0.9 g is partial gravity, the rest is Earth\'s', async () => {
+  const { gravityClass } = await import('./cards.ts');
+  assert.deepEqual([0, 0.166, 0.38, 0.89, 0.9, 1].map(gravityClass), ['weightless', 'partial_gravity', 'partial_gravity', 'partial_gravity', 'earth_gravity', 'earth_gravity']);
+  assert.equal(gravityClass(null), null);
+  assert.equal(gravityClass(-1), null);
+});
+
+test('a card written for one gravity is picked only there; the other version is picked elsewhere', () => {
+  const { cards } = parseCards([arrestWeightless, arrestGround, none]);
+  assert.deepEqual(cards.find((c) => c.id === 'arrest-ground')?.applies_in, ['partial_gravity', 'earth_gravity']);
+  assert.equal(cards.find((c) => c.id === NO_CARD_FITS)?.applies_in, undefined, 'no field: applies everywhere');
+  const said = { readings: [], answers: [], text: 'he is not breathing' };
+  assert.equal(pickCard(cards, said, 0)?.card.id, 'arrest-weightless');
+  assert.equal(pickCard(cards, said, 0.38)?.card.id, 'arrest-ground');
+  assert.equal(pickCard(cards, said, 0.166)?.card.id, 'arrest-ground');
+  assert.equal(pickCard(cards, said, 1)?.card.id, 'arrest-ground');
+});
+
+test('when her signs match only a card for another gravity, the result says so and shows her "no card fits" card', () => {
+  const { cards } = parseCards([arrestWeightless, none, co2]);
+  const said = { readings: [], answers: [], text: 'he is not breathing' };
+  const onMars = pickCard(cards, said, 0.38)!;
+  assert.equal(onMars.card.id, NO_CARD_FITS, 'never the weightless card on Mars');
+  assert.equal(onMars.fallback, true);
+  assert.equal(onMars.reason, 'no-card-for-this-gravity');
+  // Nothing matched at all: the "no card fits" card, with no gravity reason.
+  assert.equal(pickCard(cards, { readings: [], answers: [], text: 'hello' }, 0.38)?.reason, undefined);
+  // Gravity unknown: only cards that apply everywhere count.
+  assert.equal(pickCard(cards, said)?.reason, 'no-card-for-this-gravity');
+  // A card with no field still applies everywhere.
+  assert.equal(pickCard(cards, { readings: [{ signal: 'cabin_co2', direction: 'high', basis: 'nasa_limit', value: 3.4, unit: 'mmHg' }], answers: [] }, 0.38)?.card.id, 'high-co2');
+  // Without her "no card fits" card for this gravity, nothing is shown rather than the wrong version.
+  assert.equal(pickCard(parseCards([arrestWeightless]).cards, said, 0.38), null);
+});
+
+test('applies_in with unknown values is reported, and the card waits', () => {
+  const parsed = parseCards([card('arrest', { applies_in: ['zero_g', 'weightless'] }), card('empty', { applies_in: [] }), card('draft', { status: 'draft', applies_in: ['moon'] }), none]);
+  assert.deepEqual(parsed.cards.map((c) => c.id), [NO_CARD_FITS]);
+  assert.ok(parsed.problems.some((p) => p.includes('"arrest"') && p.includes('"zero_g"')), parsed.problems.join(' | '));
+  assert.ok(parsed.problems.some((p) => p.includes('"empty"') && p.includes('applies_in must list')));
+  assert.ok(parsed.problems.some((p) => p.includes('"draft"') && p.includes('"moon"')), 'reported on a draft too, so she can fix it before approving');
+  const view = cardView(parseCards([arrestGround]).cards[0], 'en')!;
+  assert.deepEqual(view.appliesIn, ['partial_gravity', 'earth_gravity']);
+});

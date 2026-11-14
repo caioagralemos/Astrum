@@ -16,6 +16,7 @@ import { CO2_LEVELS, exposure } from './exposure.ts';
 import { sourceProblems } from './quality.ts';
 import type { SourceProblem, Stuck } from './quality.ts';
 import type { RoomAlarm } from './cabin.ts';
+import { LIMITS, windowAverages } from './cabin.ts';
 import { CHECKIN_PREFIX } from './checkin.ts';
 import type { Kind, Row, Stay } from './types.ts';
 import { KIND_RANK } from './types.ts';
@@ -94,6 +95,12 @@ export interface PersonExposure {
   gap: number;
   kind: Kind | null;
   stayKind: Kind | null;
+  /**
+   * The highest 1-hour CO2 average (cabin.ts windowAverage, the rule the room
+   * alarm judges by) of the room the person was in, at any minute they were
+   * there in this window. Null when no hour could be averaged.
+   */
+  maxHourAverage: number | null;
 }
 
 export interface ExposureWindow {
@@ -147,7 +154,46 @@ function weakest(kinds: (Kind | null | undefined)[]): Kind | null {
   return out;
 }
 
-function personExposure(person: string, stays: Stay[], byRoom: Map<string, Row[]>, all: Row[], from: number, to: number): PersonExposure {
+/** Each room's 1-hour CO2 average at every whole minute of the longest window, worked out once per card. */
+type HourlyByRoom = (room: string) => { start: number; values: (number | null)[] };
+
+function hourlyAverages(rows: Row[], from: number, to: number): HourlyByRoom {
+  const windowMs = LIMITS.find((l) => l.signal === 'co2')?.windowMs ?? 3600_000;
+  const start = Math.ceil(from / 60_000) * 60_000;
+  const times: number[] = [];
+  for (let t = start; t <= to; t += 60_000) times.push(t);
+  const memo = new Map<string, { start: number; values: (number | null)[] }>();
+  let byRoom: Map<string, Row[]> | null = null;
+  return (room) => {
+    let held = memo.get(room);
+    if (!held) {
+      if (!byRoom) {
+        byRoom = new Map();
+        for (const row of rows) if (row.room && !row.person && row.signal === 'co2') (byRoom.get(row.room) ?? byRoom.set(row.room, []).get(row.room)!).push(row);
+      }
+      memo.set(room, held = { start, values: windowAverages(byRoom.get(room) ?? [], room, 'co2', times, windowMs).map((a) => (a ? a.value : null)) });
+    }
+    return held;
+  };
+}
+
+/** The highest of those averages over the minutes this person spent in each room between from and to. */
+function highestHour(mine: Stay[], hourly: HourlyByRoom, from: number, to: number): number | null {
+  let max: number | null = null;
+  for (const stay of mine) {
+    const a = Math.max(stay.from, from);
+    const b = Math.min(stay.until ?? to, to);
+    if (b <= a) continue;
+    const { start, values } = hourly(stay.room);
+    for (let i = Math.max(0, Math.ceil((a - start) / 60_000)); i < values.length && start + i * 60_000 <= b; i++) {
+      const v = values[i];
+      if (v !== null && (max === null || v > max)) max = v;
+    }
+  }
+  return max === null ? null : Number(max.toFixed(2));
+}
+
+function personExposure(person: string, stays: Stay[], byRoom: Map<string, Row[]>, all: Row[], from: number, to: number, hourly: HourlyByRoom): PersonExposure {
   const levels = CO2_LEVELS.map((l) => l.level);
   const mine = stays.filter((s) => s.person === person && s.from < to && (s.until === null || s.until > from));
   const whole = exposure(mine, all, person, 'co2', from, to, levels);
@@ -161,6 +207,7 @@ function personExposure(person: string, stays: Stay[], byRoom: Map<string, Row[]
   return {
     person, rooms, average: whole.average, above: whole.above, covered: whole.covered, gap: whole.gap,
     kind: weakest(whole.sources.map((s) => s.kind)), stayKind: weakest(mine.map((s) => s.kind)),
+    maxHourAverage: highestHour(mine, hourly, from, to),
   };
 }
 
@@ -199,9 +246,10 @@ export function evidenceFor(person: string, inputs: EvidenceInputs): Evidence {
   const byRoom = new Map<string, Row[]>();
   for (const row of inputs.cabinRows) if (row.room && !row.person) (byRoom.get(row.room) ?? byRoom.set(row.room, []).get(row.room)!).push(row);
   const order = [person, ...inputs.crew.filter((p) => p !== person)];
+  const hourly = hourlyAverages(inputs.cabinRows, now - longest, now);
   const windows: ExposureWindow[] = WINDOWS_MS.map((ms) => ({
     ms, from: now - ms, to: now,
-    people: order.map((p) => personExposure(p, inputs.stays, byRoom, inputs.cabinRows, now - ms, now)),
+    people: order.map((p) => personExposure(p, inputs.stays, byRoom, inputs.cabinRows, now - ms, now, hourly)),
   }));
   const long = windows.find((w) => w.ms === longest)!;
   const me = long.people[0];

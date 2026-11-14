@@ -14,6 +14,10 @@
 //     everyone in those rooms goes straight to level 3 with no countdown,
 //     because there may be nobody left unaffected to come and help. The alerts
 //     share one message to Earth and name the room with the lowest reading.
+//   - A room past an "alarm" level the crew set on one of their sensors
+//     (limitSource 'crew'): the same levels as a NASA limit, kept apart from
+//     NASA's (its own alert, its own station-wide count), worded as set by the
+//     crew, and with no steps card unless her cards have one for that signal.
 //   - A reading unusual for the person (baseline): level 1.
 //   - Someone who walks into a room where another person's alert is already at
 //     level 3 (most likely to help) is asked too, since they now breathe the
@@ -94,6 +98,8 @@ export interface Alert {
   earth: { sentAt: number; arrivesAt: number; replyAt: number } | null;
   /** The id of that message in the hub's list of messages to Earth. */
   earthId?: string | null;
+  /** A crew level only: the string key it is worded with, which says the level was set by the crew. NASA's alerts have none. */
+  textKey?: string;
   /** Level 3: someone said "I've seen it". Silences the board's buzzer for this alert; the level stays. */
   seenBy?: string | null;
   seenAt?: number | null;
@@ -107,15 +113,36 @@ export interface Alert {
   earthInTime?: boolean | null;
 }
 
-/** A message to Earth. Listed on its own, so it outlives the alert it was about. */
+/**
+ * A message to Earth. Listed on its own, so it outlives the alert it was about.
+ * Two kinds share the list: 'alert', sent by a level 3 alert (below), and
+ * 'crew', written by a crewmate (engine/earth.ts).
+ */
 export interface EarthMessage {
   id: string;
-  /** The alert that sent it. For a station-wide event, the first person in it. */
-  about: { person: string; room: string | null; signal: string; level: Level; stationWide: boolean };
+  kind: 'alert' | 'crew';
+  /**
+   * The alert that sent it (for a station-wide event, the first person in it).
+   * A crew message is about its sender: no room, the signal "earth.message", no level.
+   */
+  about: { person: string; room: string | null; signal: string; level: Level | null; stationWide: boolean };
+  /** A crew message only: who wrote it, and what they wrote. */
+  from?: string;
+  text?: string;
   sentAt: number;
   arrivesAt: number;
+  /** The earliest a reply can be back: sent plus twice the one-way delay. */
   replyAt: number;
-  /** When the last alert it was about ended. Null while one lasts. */
+  /** True once it has reached Earth (the hub's clock is past arrivesAt). */
+  delivered: boolean;
+  /**
+   * Earth's reply. The hub has no ground station, so the only reply there can
+   * be is the fixed, labelled one demo mode puts on a crew message
+   * (engine/earth.ts). Always null in production and on alert messages.
+   * `key` names its text in the string table, for a screen in Portuguese.
+   */
+  reply: { text: string; at: number; simulated: true; key?: string } | null;
+  /** When the last alert it was about ended. Null while one lasts, and always for a crew message. */
   resolvedAt: number | null;
 }
 
@@ -138,7 +165,14 @@ export interface AlertInputs {
   asleep: string[];
   /** How soon each steps card says to act, in seconds, by card id. Only cards whose file gives a time. */
   actWithin?: Record<string, number>;
+  /** For a crew level: her steps card for that signal, by id, or null when she has none. */
+  cardFor?: (signal: string) => string | null;
 }
+
+/** The string keys a crew-level alert is worded with ('.above' or '.below'). They say the level was set by the crew. */
+export const CREW_ALERT_KEY = 'alert.crewLevel';
+
+const isCrew = (a: { limitSource: string | null }) => a.limitSource === 'crew';
 
 /**
  * Compares when Earth's reply can be back with how soon the card says to act.
@@ -170,7 +204,8 @@ function toLevel(alert: Alert, level: Level, inputs: AlertInputs, rescuer = fals
   }
   if (level === 3) {
     next.toldTo = 'everyone';
-    next.card = CARD_FOR[alert.signal] ?? null;
+    // A crew level has a card only if hers covers the signal; NASA's limit has its own.
+    next.card = isCrew(alert) ? inputs.cardFor?.(alert.signal) ?? null : CARD_FOR[alert.signal] ?? null;
     next.earth = { sentAt: now, arrivesAt: now + delayToEarthMs, replyAt: now + 2 * delayToEarthMs };
     next.earthId = `earth|${alert.id}|${now}`;
   }
@@ -185,10 +220,11 @@ export function stepAlerts(before: Alert[], inputs: AlertInputs): { alerts: Aler
   const events: AlertEvent[] = [];
   const blank = { askedAt: null, answerBy: null, answer: null, askKey: null, held: false, card: null, earth: null, earthId: null, seenBy: null, seenAt: null, stationWide: false, lowestRoom: null } as const;
 
-  // A limit broken in two or more rooms is a station-wide event.
+  // A limit broken in two or more rooms is a station-wide event. NASA's limits and the crew's levels are counted apart.
+  const keyOf = (a: { signal: string; limitSource: string | null }) => (isCrew(a) ? `crew|${a.signal}` : a.signal);
   const roomsOver = new Map<string, Set<string>>();
-  for (const alarm of inputs.roomAlarms) roomsOver.set(alarm.signal, (roomsOver.get(alarm.signal) ?? new Set()).add(alarm.room));
-  const wide = (signal: string) => (roomsOver.get(signal)?.size ?? 0) >= 2;
+  for (const alarm of inputs.roomAlarms) roomsOver.set(keyOf(alarm), (roomsOver.get(keyOf(alarm)) ?? new Set()).add(alarm.room));
+  const wide = (key: string) => (roomsOver.get(key)?.size ?? 0) >= 2;
   const lowest = (signal: string, limit: number): Alert['lowestRoom'] => {
     let best: Alert['lowestRoom'] = null;
     for (const [room, value] of Object.entries(inputs.roomAverages?.[signal] ?? {})) {
@@ -198,36 +234,40 @@ export function stepAlerts(before: Alert[], inputs: AlertInputs): { alerts: Aler
   };
   // One message to Earth for the whole event: reuse one already sent about a
   // room that is over the limit now, by this step or the one before.
-  const sentAlready = (signal: string): Pick<Alert, 'earth' | 'earthId'> | null => {
-    const sent = [...alerts, ...before].find((a) => a.reason === 'room-limit' && a.signal === signal && a.earth && a.room !== null && roomsOver.get(signal)?.has(a.room));
+  const sentAlready = (key: string): Pick<Alert, 'earth' | 'earthId'> | null => {
+    const sent = [...alerts, ...before].find((a) => a.reason === 'room-limit' && keyOf(a) === key && a.earth && a.room !== null && roomsOver.get(key)?.has(a.room));
     return sent ? { earth: sent.earth, earthId: sent.earthId ?? null } : null;
   };
   // A level 3 already active for someone else in this room: whoever walks in now is most likely helping.
-  const levelThreeIn = (room: string, signal: string, person: string) =>
-    before.some((a) => a.level === 3 && a.reason === 'room-limit' && a.room === room && a.signal === signal && a.person !== person);
+  const levelThreeIn = (room: string, key: string, person: string) =>
+    before.some((a) => a.level === 3 && a.reason === 'room-limit' && a.room === room && keyOf(a) === key && a.person !== person);
 
   // Rooms over a limit, for each person in them.
   for (const alarm of inputs.roomAlarms) {
+    const key = keyOf(alarm);
+    const crew = isCrew(alarm);
     for (const person of inputs.occupants[alarm.room] ?? []) {
-      const id = `${person}|room-limit|${alarm.room}|${alarm.signal}`;
+      const id = `${person}|room-limit|${alarm.room}|${alarm.signal}${crew ? `|${alarm.source}` : ''}`;
       let alert = held.get(id);
       if (!alert) {
-        alert = toLevel({
+        const fresh: Alert = {
           id, person, level: 2, reason: 'room-limit', room: alarm.room, signal: alarm.signal, value: alarm.value, over: alarm.over ?? null, unit: alarm.unit,
-          limit: alarm.limit, limitSource: alarm.limitSource, direction: 'high', kind: alarm.kind, since: now, levelSince: now, toldTo: [person], ...blank,
-        }, 2, inputs, levelThreeIn(alarm.room, alarm.signal, person));
+          limit: alarm.limit, limitSource: alarm.limitSource, direction: alarm.direction === 'below' ? 'low' : 'high', kind: alarm.kind, since: now, levelSince: now, toldTo: [person], ...blank,
+        };
+        if (crew) fresh.textKey = `${CREW_ALERT_KEY}.${alarm.direction === 'below' ? 'below' : 'above'}`;
+        alert = toLevel(fresh, 2, inputs, levelThreeIn(alarm.room, key, person));
         events.push({ type: 'raised', alert });
       } else {
         alert = { ...alert, value: alarm.value, over: alarm.over ?? null, kind: alarm.kind };
       }
-      if (wide(alarm.signal)) {
+      if (wide(key)) {
         if (alert.level !== 3) {
-          const sent = sentAlready(alarm.signal);
+          const sent = sentAlready(key);
           alert = toLevel({ ...alert, stationWide: true }, 3, inputs);
           if (sent) Object.assign(alert, sent);
           events.push({ type: 'escalated', alert });
         }
-        alert = withEarthCheck({ ...alert, stationWide: true, lowestRoom: lowest(alarm.signal, alarm.limit) }, inputs);
+        alert = withEarthCheck({ ...alert, stationWide: true, lowestRoom: crew ? null : lowest(alarm.signal, alarm.limit) }, inputs);
       } else {
         alert = { ...alert, stationWide: false, lowestRoom: null };
         const unanswered = alert.answer === null && alert.answerBy !== null && now >= alert.answerBy;
@@ -287,15 +327,16 @@ export function stepEarth(before: EarthMessage[], alerts: Alert[], events: Alert
     if (e.type !== 'escalated' || a.level !== 3 || !a.earth || !a.earthId || listed.has(a.earthId)) continue;
     listed.add(a.earthId);
     before = [...before, {
-      id: a.earthId, about: { person: a.person, room: a.room, signal: a.signal, level: a.level, stationWide: a.stationWide },
-      ...a.earth, resolvedAt: null,
+      id: a.earthId, kind: 'alert', about: { person: a.person, room: a.room, signal: a.signal, level: a.level, stationWide: a.stationWide },
+      ...a.earth, delivered: false, reply: null, resolvedAt: null,
     }];
   }
   const live = new Set(alerts.map((a) => a.earthId).filter(Boolean));
   for (const m of before) {
     const resolvedAt = m.resolvedAt ?? (live.has(m.id) ? null : now);
     if (resolvedAt !== null && now >= m.replyAt + EARTH_KEEP_MS) continue;
-    out.push(resolvedAt === m.resolvedAt ? m : { ...m, resolvedAt });
+    const delivered = now >= m.arrivesAt;
+    out.push(resolvedAt === m.resolvedAt && delivered === m.delivered ? m : { ...m, resolvedAt, delivered });
   }
   return out;
 }

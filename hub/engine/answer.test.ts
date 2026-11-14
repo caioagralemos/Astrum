@@ -12,7 +12,7 @@ const H = 3_600_000;
 /** An evidence card shaped like Reyes's on the demo data (values from the live hub, 14 Nov). */
 function reyesCard(over: Partial<Evidence> = {}): Evidence {
   const person = (id: string, above28: number, above3: number, room: string) => ({
-    person: id, average: 2.3, above: [{ level: 2.8, ms: above28 * H }, { level: 3, ms: above3 * H }], covered: 72 * H, gap: 0,
+    person: id, average: 2.3, above: [{ level: 2.8, ms: above28 * H }, { level: 3, ms: above3 * H }], covered: 72 * H, gap: 0, maxHourAverage: null as number | null,
     kind: 'replayed' as Kind, stayKind: 'simulated' as Kind,
     rooms: [{ room, ms: 30 * H, stayKind: 'simulated' as Kind, average: 2.6, above: [{ level: 2.8, ms: above28 * H }, { level: 3, ms: above3 * H }], covered: 30 * H, kind: 'replayed' as Kind }],
   });
@@ -98,7 +98,7 @@ test('nothing relevant: no facts and no passage', () => {
 test('every key has English and Portuguese; Portuguese renders', () => {
   for (const [key, v] of Object.entries(ANSWER_STRINGS)) {
     assert.ok(v.en && v.pt, key);
-    const data = (t: string) => [...new Set([...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((b) => !/^(You|you|Your|your|them|Voce|voce|de_voce)$/.test(b)))].sort();
+    const data = (t: string) => [...new Set([...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((b) => !/^(You|you|are|Your|your|them|Voce|voce|de_voce)$/.test(b)))].sort();
     assert.deepEqual(data(v.en), data(v.pt), `${key}: same data blanks`);
   }
   const a = composeAnswer({ name: 'Reyes', question: 'Is it my room?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'pt', roomName });
@@ -220,4 +220,42 @@ test('property: over 3000 generated cards, readings and questions, no output sta
     }
   }
   assert.equal(reportedName('checkin.chest_pain'), 'chest pain');
+});
+
+test('the cabin sentence names the room the person is in now, and "your cabin" only for their own quarters', () => {
+  const galleyCo2: Extract<Reading, { type: 'limit' }> = { type: 'limit', name: 'cabin CO2', value: 2.4, unit: 'mmHg', label: 'replayed', window: '1-hour average', limit: 3, room: 'galley', here: true };
+  const inGalley: PersonReadings = { name: 'Reyes', pronoun: 'her', readings: [galleyCo2] };
+  const names: Record<string, string> = { galley: 'the Galley', 'quarters-2': 'Quarters 2' };
+  const quartersNow = [{ type: 'limit' as const, name: 'cabin CO2', value: 2.7, unit: 'mmHg', label: 'replayed' as const, window: '1-hour average', limit: 3 }];
+  const base = { name: 'Reyes', question: 'Why do I keep waking up with a headache?', evidence: reyesCard(), passages: [], lang: 'en' as const, roomName: (id: string) => names[id] ?? id, quarters: 'quarters-2', roomReadings: (room: string) => (room === 'quarters-2' ? quartersNow : []) };
+  const self = renderItems(composeAnswer({ ...base, readings: inGalley }).items, 'en', { name: 'Reyes', pronouns: 'she', self: true });
+  assert.equal(self[0], "The CO2 in the Galley, where you are now, reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.equal(self[1], "The CO2 in your cabin reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)", 'the room the card points to, her quarters, as its own sentence');
+  const other = composeAnswer({ ...base, readings: inGalley, who: { name: 'Reyes', pronouns: 'she', self: false } });
+  const lines = renderItems(other.items, 'en', other.who);
+  assert.equal(lines[0], "The CO2 in the Galley, where Reyes is now, reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.equal(lines[1], "The CO2 in her cabin reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.match(renderItems(other.items, 'pt', other.who)[0], /^O CO2 em the Galley, onde Reyes está agora, está em 2\.4 mmHg/);
+  // Nobody's cabin but theirs: a focus room that is not her quarters is named plainly.
+  const lab = composeAnswer({ ...base, readings: inGalley, evidence: reyesCard({ focusRoom: 'lab' }), roomReadings: () => quartersNow });
+  const labLines = renderItems(lab.items, 'en', lab.who);
+  assert.equal(labLines[1], "The CO2 in lab reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.ok(labLines.every((l) => !/your cabin/.test(l)), labLines.join('\n'));
+  // In her own quarters now: the cabin sentence, once, and nothing added.
+  const home = composeAnswer({ ...base, readings: { name: 'Reyes', readings: [{ ...galleyCo2, room: 'quarters-2' }] } });
+  assert.deepEqual(home.items.filter((i) => i.key.startsWith('answer.limit')).map((i) => i.key), ['answer.limit.under']);
+  // A danger question about the room she is in now names it too.
+  const danger = composeAnswer({ ...base, readings: inGalley, question: 'Is the CO2 in my room dangerous?', danger: dangerCheck('Is the CO2 in my room dangerous?', inGalley) });
+  assert.equal(render(danger.items[0], 'en'), "The CO2 in the Galley, where you are now, is under NASA's limit: 2.4 mmHg (1-hour average), 0.6 mmHg below 3 mmHg.");
+});
+
+test('gravity is stated as a plain fact, only when the question or a card turns on it', () => {
+  const ask = (question: string, gravity: number | null, gravityMatters = false) =>
+    composeAnswer({ name: 'Reyes', question, readings: reyes, evidence: null, passages: [], lang: 'en', gravity, gravityMatters }).items.filter((i) => i.key.startsWith('answer.gravity'));
+  assert.deepEqual(ask('Why do my legs feel weak when I float?', 0).map((i) => render(i, 'en')), ['You are weightless here.']);
+  const mars = ask('Does the gravity here change my bones?', 0.38);
+  assert.deepEqual(mars.map((i) => [render(i, 'en'), render(i, 'pt'), i.label]), [["Gravity here is 0.38 of Earth's.", 'A gravidade aqui é 0.38 da gravidade da Terra.', 'hub']]);
+  assert.deepEqual(ask('How did I sleep?', 0.38), [], 'not about gravity: not said');
+  assert.equal(ask('How did I sleep?', 0.166, true).length, 1, 'a card that depends on gravity: said');
+  assert.deepEqual(ask('Am I floating?', null), [], 'unknown gravity: nothing said');
 });

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { builtInSignals, checkSensor, crewLimitsOf, judgeCrewLimits, nasaLimitOf, outOfBounds, sensorIdOf, sourceOf } from './sensors.ts';
+import { builtInSignals, checkSensor, crewLimitsOf, isHubSignal, judgeCrewLimits, judgeCrewRooms, nasaLimitOf, outOfBounds, sensorIdOf, sourceOf } from './sensors.ts';
+import type { RoomAlarm } from './cabin.ts';
 import type { SignalSpec } from './sensors.ts';
 import type { Row } from './types.ts';
 
@@ -141,4 +142,52 @@ test('the built-in signals come from the string table, with NASA\'s limits marke
   assert.equal(co2.nasaLimit!.max, 3);
   assert.equal(list.find((b) => b.signal === 'radiation')!.nasaLimit, null);
   assert.deepEqual(list.find((b) => b.signal === 'humidity')!.bound, { unit: '%', min: 0, max: 100 });
+});
+
+test('a crew alarm level broken in a room is a room alarm of its own, labelled as the crew\'s', () => {
+  const spec: SignalSpec = { signal: 'radiation', name: 'Radiation', unit: 'uSv/h', group: 'cabin', decimals: 2, note: '', limits: { warnAbove: 10, alarmAbove: 20 } };
+  const sensor = { id: 'rad-1', room: 'lab' };
+  const at = (value: number, t: number): Row => ({ t, signal: 'radiation', value, unit: 'uSv/h', kind: 'measured', source: 'sensor:rad-1', room: 'lab' });
+  const judge = (rows: Row[], now: number, before: RoomAlarm[] = [], stuck = false) =>
+    judgeCrewRooms([{ sensor, spec, rows }], now, before, stuck ? [{ room: 'lab', signal: 'radiation', source: 'sensor:rad-1', kind: 'measured', value: 25, from: 0, to: now, count: 40 } as never] : []);
+
+  const raised = judge([at(25, 1000)], 1000);
+  assert.equal(raised.alarms.length, 1);
+  const a = raised.alarms[0];
+  assert.deepEqual(
+    [a.room, a.signal, a.value, a.over, a.limit, a.limitSource, a.direction, a.kind, a.source, a.since, a.acknowledged, a.stale, a.textKey],
+    ['lab', 'radiation', 25, 5, 20, 'crew', 'above', 'measured', 'sensor:rad-1', 1000, false, false, 'alarm.crewLevel.above'],
+  );
+  assert.deepEqual(raised.watch, []);
+
+  // Still over: the first `since` and the acknowledgement are kept.
+  const later = judge([at(26, 5000)], 5000, [{ ...a, acknowledged: true }]);
+  assert.deepEqual([later.alarms[0].since, later.alarms[0].acknowledged, later.alarms[0].value], [1000, true, 26]);
+
+  // The sensor goes quiet: the alarm stays, marked stale. It never clears by silence.
+  const quiet = judge([at(25, 1000)], 1000 + 700_000, [a]);
+  assert.deepEqual([quiet.alarms.length, quiet.alarms[0].stale, quiet.alarms[0].lastReading], [1, true, { value: 25, t: 1000 }]);
+
+  // A stuck sensor under the level does not clear it either.
+  assert.equal(judge([at(5, 9000)], 9000, [a], true).alarms.length, 1);
+  assert.equal(judge([at(25, 9000)], 9000, [], true).alarms[0].stuck, true, 'over the level on a stuck sensor still alarms, marked');
+
+  // Back within the levels: it clears.
+  assert.deepEqual(judge([at(5, 9000)], 9000, [a]), { alarms: [], watch: [] });
+
+  // Past "warn" only: the room is marked watch, nothing else.
+  const warn = judge([at(12, 9000)], 9000);
+  assert.deepEqual(warn.alarms, []);
+  assert.deepEqual([warn.watch[0].room, warn.watch[0].value, warn.watch[0].limit, warn.watch[0].direction, warn.watch[0].limitSource], ['lab', 12, 10, 'above', 'crew']);
+
+  // A body sensor's levels never make a room alarm; a NASA alarm in the same room is never taken for the crew's.
+  assert.deepEqual(judgeCrewRooms([{ sensor: { id: 'hr-1', room: undefined }, spec: { ...spec, group: 'body' }, rows: [] }], 1000, [], []), { alarms: [], watch: [] });
+  const nasa: RoomAlarm = { room: 'lab', signal: 'radiation', value: 99, unit: 'uSv/h', limit: 1, limitSource: 'NASA', kind: 'measured', source: 'sensor:rad-1', since: 0, acknowledged: true };
+  assert.equal(judge([at(5, 9000)], 9000, [nasa]).alarms.length, 0, 'only its own alarm is carried over');
+});
+
+test('the hub\'s own signals are known by namespace: check-ins, messages to Earth, blood results', () => {
+  assert.deepEqual(['checkin.headache', 'checkin.anything', 'earth.message', 'blood.glucose', 'radiation', 'co2'].map(isHubSignal), [true, true, true, true, false, false]);
+  const named = builtInSignals().map((b) => b.signal);
+  for (const signal of ['checkin.headache', 'checkin.mood', 'checkin.stress', 'checkin.fatigue', 'earth.message']) assert.ok(named.includes(signal), signal);
 });

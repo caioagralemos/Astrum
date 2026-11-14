@@ -241,3 +241,34 @@ test('how far over the limit is rounded up, never to 0', () => {
   assert.equal(overBy(3.456, 3), 0.46);
   assert.equal(overBy(3.45, 3), 0.45);
 });
+
+test('a crew level broken in a room alerts like a NASA limit, worded as the crew\'s, with no card unless hers covers it', () => {
+  const crewAlarm: RoomAlarm = { ...alarm, signal: 'radiation', value: 25, unit: 'uSv/h', limit: 20, limitSource: 'crew', kind: 'measured', source: 'sensor:rad-1', direction: 'above', textKey: 'alarm.crewLevel.above' };
+  // Both a NASA alarm and a crew alarm in the same room: two alerts, never merged.
+  let s = run([], [], at(1000, { roomAlarms: [alarm, crewAlarm] }));
+  assert.deepEqual(s.alerts.map((a) => [a.signal, a.limitSource, a.level, a.textKey]), [['co2', 'NASA', 2, undefined], ['radiation', 'crew', 2, 'alert.crewLevel.above']]);
+  assert.deepEqual(s.alerts[1].toldTo, ['reyes', 'okafor'], 'the same order of telling');
+  s = run(s.alerts, s.earth, at(1000 + COUNTDOWN_MS, { roomAlarms: [alarm, crewAlarm] }));
+  const [nasaAlert, crewAlert] = s.alerts;
+  assert.equal(nasaAlert.card, 'high-co2');
+  assert.equal(crewAlert.level, 3);
+  assert.equal(crewAlert.card, null, 'no steps card of her own for this signal');
+  assert.ok(crewAlert.earth, 'Earth is messaged at level 3');
+  assert.equal(s.earth.length, 2, 'one message per alert, not one merged event');
+  const withCard = run([], [], at(1000, { roomAlarms: [crewAlarm], cardFor: (signal) => (signal === 'radiation' ? 'her-radiation-card' : null) }));
+  assert.equal(run(withCard.alerts, withCard.earth, at(1000 + COUNTDOWN_MS, { roomAlarms: [crewAlarm], cardFor: () => 'her-radiation-card' })).alerts[0].card, 'her-radiation-card');
+  // Two rooms past the crew's level is the crew's station-wide event, counted apart from NASA's.
+  const other: RoomAlarm = { ...crewAlarm, room: 'lab' };
+  const wide = run([], [], at(1000, { roomAlarms: [alarm, crewAlarm, other] }));
+  assert.deepEqual(wide.alerts.map((a) => [a.signal, a.room, a.level, a.stationWide]), [['co2', 'quarters-2', 2, false], ['radiation', 'quarters-2', 3, true], ['radiation', 'lab', 3, true], ['radiation', 'lab', 3, true]]);
+  assert.equal(boardSounds(['quarters-2'], [crewAlarm], []), true, 'it sounds the board in its room under the same rule');
+});
+
+test('messages to Earth from alerts carry their kind and whether they have arrived', () => {
+  let s = run([], [], at(1000));
+  s = run(s.alerts, s.earth, at(1000 + COUNTDOWN_MS));
+  assert.deepEqual([s.earth[0].kind, s.earth[0].delivered, s.earth[0].reply], ['alert', false, null]);
+  s = run(s.alerts, s.earth, at(s.earth[0].arrivesAt));
+  assert.equal(s.earth[0].delivered, true);
+  assert.equal(s.earth[0].reply, null, 'an alert message never gets a reply from the hub');
+});

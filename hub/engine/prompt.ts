@@ -167,8 +167,12 @@ export type Reading =
   | { type: 'normal'; name: string; value: number; unit: string; label: ReadingLabel; normal: Normal; judged?: 'above' | 'below' | 'inside' }
   /** Several values over time, oldest first, e.g. "last 6 days". */
   | { type: 'series'; name: string; values: number[]; unit: string; window: string; label: ReadingLabel; normal?: Normal }
-  /** A reading against a NASA limit the hub keeps, e.g. cabin CO2. No limit: the value alone. */
-  | { type: 'limit'; name: string; value: number; unit: string; label: ReadingLabel; window?: string; limit?: number }
+  /**
+   * A reading against a NASA limit the hub keeps, e.g. cabin CO2. No limit: the value alone.
+   * `room` is the room it was read in and `here` whether the person is there now; the hub's
+   * own sentences (answer.ts) use them to name the room. The model's line is the same either way.
+   */
+  | { type: 'limit'; name: string; value: number; unit: string; label: ReadingLabel; window?: string; limit?: number; room?: string; here?: boolean }
   /** A value with no normal and no limit, e.g. a dose so far. */
   | { type: 'value'; name: string; value: number; unit: string; label: ReadingLabel }
   /** Words, e.g. a symptom the person reported in a check-in. */

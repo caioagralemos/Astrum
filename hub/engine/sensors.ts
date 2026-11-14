@@ -11,7 +11,9 @@
 
 import type { Kind, Profile, Row } from './types.ts';
 import { KIND_RANK } from './types.ts';
-import { LIMITS } from './cabin.ts';
+import { LIMITS, overBy } from './cabin.ts';
+import type { RoomAlarm } from './cabin.ts';
+import type { Stuck } from './quality.ts';
 import { BOUNDS } from './quality.ts';
 import { allStrings } from './strings.ts';
 
@@ -339,6 +341,99 @@ function timeAverage(sorted: Row[], now: number, windowMs: number): { value: num
   }
   if (!covered || covered < windowMs * 0.75) return null;
   return { value: weighted / covered, kind };
+}
+
+/**
+ * A room past a "warn" level the crew set on one of their sensors. The room
+ * is marked "watch"; nothing sounds and nobody is alerted. Always the crew's level.
+ */
+export interface CrewWatch {
+  room: string;
+  signal: string;
+  sensor: string;
+  source: string;
+  value: number;
+  unit: string;
+  limit: number;
+  direction: 'above' | 'below';
+  limitSource: 'crew';
+  basis: 'latest' | 'average';
+  windowMinutes: number | null;
+  kind: Kind;
+  at: number;
+}
+
+/** One registered room sensor's signal with levels the crew set, and that sensor's own rows of it. */
+export interface CrewLevelInput {
+  sensor: Pick<SensorSpec, 'id' | 'room'>;
+  spec: SignalSpec;
+  rows: Row[];
+}
+
+/** The string-table keys a crew-level room alarm is worded with ('.above' or '.below'). They say the level was set by the crew. */
+export const CREW_ALARM_KEY = 'alarm.crewLevel';
+
+/**
+ * The live judgement of the levels the crew set on their room sensors, kept
+ * apart from NASA's (cabin.ts judgeRooms). Same rules as a NASA limit:
+ * - past an "alarm" level: a room alarm with limitSource 'crew', carried over
+ *   with its first `since` and acknowledgement, marked stuck if its source may be;
+ * - back within the levels on a source that is not stuck: it clears;
+ * - no recent reading, or only a stuck one: an alarm already raised stays,
+ *   marked stale once its sensor has gone quiet. A sensor going quiet never clears it.
+ * Past a "warn" level only: the room is listed as "watch", nothing more.
+ */
+export function judgeCrewRooms(inputs: CrewLevelInput[], now: number, before: RoomAlarm[], stuck: Stuck[]): { alarms: RoomAlarm[]; watch: CrewWatch[] } {
+  const alarms: RoomAlarm[] = [];
+  const watch: CrewWatch[] = [];
+  for (const { sensor, spec, rows } of inputs) {
+    const room = sensor.room;
+    if (!room || spec.group !== 'cabin') continue;
+    const source = sourceOf(sensor.id);
+    const mine = rows.filter((r) => r.source === source && r.room === room && !r.person && r.signal === spec.signal && r.unit === spec.unit && r.value !== null && r.t <= now);
+    const judgement = judgeCrewLimits(spec, mine, now);
+    if (!judgement) continue;
+    const held = before.find((a) => a.limitSource === 'crew' && a.room === room && a.signal === spec.signal && a.source === source);
+    const isStuck = stuck.some((x) => x.room === room && x.signal === spec.signal && x.source === source);
+    const newest = mine.reduce<Row | null>((a, b) => (!a || b.t > a.t ? b : a), null);
+    const lastReading = newest ? { value: newest.value!, t: newest.t } : null;
+    const stale = !newest || now - newest.t > QUIET_MS;
+    const value = judgement.value === null ? null : Number(judgement.value.toFixed(Math.max(2, spec.decimals)));
+
+    if (judgement.level === 'alarm' && value !== null && judgement.limit !== null && judgement.direction) {
+      const past = judgement.direction === 'above' ? overBy(judgement.value!, judgement.limit) : overBy(judgement.limit, judgement.value!);
+      alarms.push({
+        room, signal: spec.signal, value, over: past, unit: spec.unit, limit: judgement.limit, limitSource: 'crew', kind: judgement.kind ?? 'measured', source,
+        since: held?.since ?? now, acknowledged: held?.acknowledged ?? false, stale, lastReading, stuck: isStuck,
+        direction: judgement.direction, windowMinutes: judgement.windowMinutes, sensor: sensor.id, textKey: `${CREW_ALARM_KEY}.${judgement.direction}`,
+      });
+      continue;
+    }
+    const judged = judgement.level === 'ok' || judgement.level === 'warn';
+    const clears = judged && !isStuck && (!held || KIND_RANK[judgement.kind ?? 'simulated'] <= KIND_RANK[held.kind]);
+    if (clears) {
+      if (judgement.level === 'warn' && value !== null && judgement.limit !== null && judgement.direction) {
+        watch.push({
+          room, signal: spec.signal, sensor: sensor.id, source, value, unit: spec.unit, limit: judgement.limit, direction: judgement.direction,
+          limitSource: 'crew', basis: judgement.basis, windowMinutes: judgement.windowMinutes, kind: judgement.kind ?? 'measured', at: judgement.at ?? now,
+        });
+      }
+      continue;
+    }
+    if (held) alarms.push({ ...held, stale, lastReading: lastReading ?? held.lastReading ?? null, stuck: isStuck });
+  }
+  return { alarms, watch };
+}
+
+/**
+ * Signals the hub makes itself: check-in answers, messages to Earth, blood
+ * results typed in. They never come from a device, so they are never listed
+ * as "arriving but not described".
+ */
+export const HUB_NAMESPACES: readonly string[] = ['checkin.', 'earth.', 'blood.'];
+
+export function isHubSignal(signal: string): boolean {
+  return HUB_NAMESPACES.some((ns) => signal.startsWith(ns));
 }
 
 /** A signal the hub knows without anyone registering it: it has a name in the string table. */

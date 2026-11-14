@@ -77,6 +77,29 @@ export interface Person {
   pronouns?: 'she' | 'he' | 'they';
 }
 
+/**
+ * What the hub tells screens about the mission it runs (engine/mission.ts):
+ * where the place is, its gravity and how long the mission lasts. Facts of
+ * the place, with no medical meaning.
+ */
+export interface MissionFacts {
+  /** The mission file's own id (the ship's is "mars-orbit"). */
+  id: string;
+  /** The file it was read from, without ".json": what ASTRUM_MISSION names. */
+  file: string;
+  kind: 'ship' | 'station' | 'base';
+  where: { body: 'earth' | 'moon' | 'mars' | null; situation: 'orbit' | 'transit' | 'surface' };
+  /** In g. 0 means everyone floats. */
+  gravity: number;
+  plannedDays: number;
+  /** Key in the string table, if the mission has one (text the crew typed, on a mission they made). */
+  destination?: string;
+  /** The name the crew typed for a mission they made; shown instead of the profile's place key. */
+  nameText?: string;
+  /** True for a mission the crew made from another (engine/custom.ts). */
+  custom?: boolean;
+}
+
 /** The environment this hub is installed in. One settings file per place. */
 export interface Profile {
   id: string;
@@ -90,6 +113,8 @@ export interface Profile {
   crew: Person[];
   /** Which room each chip sits in, by the id the chip announces. */
   chips: Record<string, string>;
+  /** Present when the hub runs a mission file. Older profiles and recordings have none. */
+  mission?: MissionFacts;
 }
 
 /** What a sensor source says about itself when it connects. */
@@ -105,8 +130,11 @@ export interface SourceStatus {
 }
 
 import type { RoomAlarm, Unjudged } from './cabin.ts';
+import type { CrewWatch } from './sensors.ts';
 import type { Alert, EarthMessage } from './alerts.ts';
 import type { Stuck } from './quality.ts';
+import type { Evidence } from './evidence.ts';
+import type { Activity } from './activity.ts';
 
 /** Readings refused at ingest because no working sensor could give them (quality.ts BOUNDS). */
 export interface Rejected {
@@ -147,22 +175,37 @@ export interface ScenarioFlag {
  * - state.now and clock.now are the hub's clock: a screen ticks on its own
  *   clock plus the difference (timeline.ts clockOffset). The hub sends "clock"
  *   every 10 seconds.
- * - asleep: crew ids the hub counts as asleep, sent when it changes.
+ * - asleep: crew ids the hub counts as asleep, sent when it changes. Always
+ *   the sleepers of `activity`, so the two never disagree.
+ * - activity: what each crewmate is doing as far as the hub knows (sleeping,
+ *   exercising, eating or none), labelled with how it is known
+ *   (engine/activity.ts), sent when it changes. Absent from older hubs and recordings.
  * - earth: every message to Earth still listed, sent when the list changes.
+ * - evidence: one crewmate's evidence card, sent when it changes in substance
+ *   (and at least every few minutes). state.evidence holds every card so far,
+ *   by crew id, so a screen can show anyone's card without asking.
+ * - crewWatch: rooms past a "warn" level the crew set on one of their own
+ *   sensors (engine/sensors.ts). Not an alarm: the room is marked "watch".
+ *   Sent with every alarms message; absent from older hubs and recordings.
  */
 export type HubMessage = (
   | {
     type: 'state'; now: number; profile: Profile; latest: Row[]; stays: Stay[]; sources: SourceStatus[]; alarms: RoomAlarm[]; alerts: Alert[]; quality?: Quality;
-    asleep?: string[]; earthMessages?: EarthMessage[];
+    asleep?: string[]; earthMessages?: EarthMessage[]; evidence?: Record<string, Evidence & { computedAt?: number }>; crewWatch?: CrewWatch[];
+    activity?: Record<string, Activity>;
   }
-  | { type: 'alarms'; alarms: RoomAlarm[]; unjudged?: Unjudged[]; stuck?: Stuck[] }
+  | { type: 'alarms'; alarms: RoomAlarm[]; unjudged?: Unjudged[]; stuck?: Stuck[]; crewWatch?: CrewWatch[] }
   | { type: 'alerts'; alerts: Alert[] }
   | { type: 'earth'; earthMessages: EarthMessage[] }
   | { type: 'asleep'; asleep: string[] }
+  | { type: 'activity'; activity: Record<string, Activity> }
   | { type: 'clock'; now: number }
   | { type: 'rows'; rows: Row[] }
   | { type: 'stay'; stays: Stay[] }
   | { type: 'sources'; sources: SourceStatus[] }
+  | { type: 'evidence'; person: string; evidence: Evidence & { computedAt?: number } }
+  /** The hub is about to restart on another mission (`to`, a mission file): screens wait for its new state. */
+  | { type: 'restarting'; to: string }
 ) & { scenario?: ScenarioFlag };
 
 /** What a recording says about itself. Every field is optional for older files. */

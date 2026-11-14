@@ -66,3 +66,58 @@ test('the backstory: Reyes wakes with a headache each morning, marked simulated 
   assert.ok(rows.every((r) => r.person === 'reyes' && r.value === 1 && r.kind === 'simulated' && r.source === CREW_SOURCE && r.room === 'quarters-2'));
   assert.deepEqual(rows.map((r) => (r.t - start) / 3600_000), [6, 30, 54], 'three mornings at 06:00');
 });
+
+// ---------- anyone else in a crew ----------
+
+test('a fifth and sixth crewmate get full simulated readings, centred on one STS-40 subject\'s in-flight row each', async () => {
+  const { SUBJECT_ROWS, subjectOf, usualOf, placesOf } = await import('./crew.ts');
+  const { simulatedDoing } = await import('./activity.ts');
+  const { readFileSync } = await import('node:fs');
+  const ship = JSON.parse(readFileSync(new URL('../profiles/missions/ship-mars-orbit.json', import.meta.url), 'utf8'));
+  ship.crew.push({ id: 'marcos', name: 'Marcos', role: 'role.engineer', pronouns: 'they', quarters: 'quarters-1', work: 'lab' });
+  ship.crew.push({ id: 'valentina', name: 'Valentina', role: 'role.scientist', pronouns: 'they', quarters: 'quarters-3', work: 'command' });
+  const places = placesOf(ship);
+  assert.deepEqual(SUBJECT_ROWS.map((r) => [r.subject, r.heartRate, `${r.systolic}/${r.diastolic}`]),
+    [[1, 66, '127/74'], [2, 52, '106/56'], [3, 58, '112/61'], [4, 57, '117/74'], [5, 54, '108/72'], [6, 59, '108/66']], 'the six in-flight rows as printed');
+
+  const days = 5;
+  const { rows } = crewPeriod([...people, 'marcos', 'valentina'], start, start + days * DAY, 300_000, 0, places);
+  for (const person of ['marcos', 'valentina']) {
+    const row = subjectOf(person);
+    assert.ok(SUBJECT_ROWS.includes(row));
+    assert.deepEqual(subjectOf(person), row, 'the same id always takes the same row');
+    const u = usualOf(person, places);
+    assert.equal(u.heartRate, row.heartRate);
+    assert.ok([15.5, 17].includes(u.gymHour));
+    const mine = rows.filter((r) => r.person === person);
+    assert.ok(mine.every((r) => r.kind === 'simulated' && r.source === CREW_SOURCE));
+    const signals = new Set(mine.map((r) => r.signal));
+    for (const s of ['heart_rate', 'sleep_duration', 'sleep_efficiency', 'sleep_awakenings', 'blood_pressure_systolic', 'blood_pressure_diastolic', 'mood.stress', 'mood.fatigue', 'mood.sleepy', 'exercise_minutes']) {
+      assert.ok(signals.has(s), `${person} has ${s}`);
+    }
+    const work = places[person].work;
+    const awake = mine.filter((r) => r.signal === 'heart_rate' && r.room === work).map((r) => r.value!);
+    const mean = awake.reduce((a, b) => a + b, 0) / awake.length;
+    assert.ok(Math.abs(mean - (row.heartRate + 6)) < 2, `${person} awake mean ${mean} near subject ${row.subject}`);
+    const sys = mine.filter((r) => r.signal === 'blood_pressure_systolic').map((r) => r.value!);
+    assert.ok(Math.abs(sys.reduce((a, b) => a + b, 0) / sys.length - row.systolic) <= 4, `${person} systolic near ${row.systolic}`);
+    assert.ok(mine.filter((r) => r.signal === 'heart_rate' && r.room === 'gym').some((r) => r.value! > row.heartRate + 40), 'exercise raises it');
+    assert.equal(simulatedDoing(person, 3, places[person].quarters, places[person]), 'sleeping');
+  }
+  // The four are untouched by the newcomers.
+  assert.deepEqual(rows.filter((r) => people.includes(r.person!)), crewPeriod(people, start, start + days * DAY, 300_000, 0, places).rows);
+  const stays = crewStays(['marcos'], start, start + DAY, 0, places);
+  assert.equal(stays[0].room, places.marcos.quarters, 'asleep in their own quarters at midnight');
+});
+
+test('the four on the ship: byte for byte the generator\'s output before anyone else could have readings', async () => {
+  const { createHash } = await import('node:crypto');
+  const { readFileSync } = await import('node:fs');
+  const { placesOf } = await import('./crew.ts');
+  const out: unknown[] = [crewPeriod(people, start, start + 3 * DAY, 300_000, 0), crewPeriod(people, start, start + DAY, 5000, -180), crewStays(people, start, start + 2 * DAY, 60)];
+  for (const f of ['iss', 'base-mars', 'base-moon', 'ship-mars-orbit']) {
+    const m = JSON.parse(readFileSync(new URL(`../profiles/missions/${f}.json`, import.meta.url), 'utf8'));
+    out.push(crewPeriod(people, start, start + 2 * DAY, 60_000, 60, placesOf(m)));
+  }
+  assert.equal(createHash('sha256').update(JSON.stringify(out)).digest('hex'), 'f1de9ab3b4518b3d69030b393ef3e991ed3ca886776244b0bf392a6a1a4a7599');
+});

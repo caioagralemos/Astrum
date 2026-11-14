@@ -44,10 +44,17 @@ export interface Exposure {
 
 interface Piece { from: number; until: number; value: number }
 
-/** The stretches one source covers inside [from, to), each reading held until the next, capped at HOLD_MS. */
+/** The stretches one source covers inside [from, to), each reading held until the next, capped at HOLD_MS. `list` is in time order. */
 function pieces(list: Row[], from: number, to: number): Piece[] {
   const out: Piece[] = [];
-  for (let i = 0; i < list.length; i++) {
+  // Rows that end before `from` add nothing: start at the last one read at or before it.
+  let lo = 0;
+  let hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (list[mid].t <= from) lo = mid + 1; else hi = mid;
+  }
+  for (let i = Math.max(0, lo - 1); i < list.length && list[i].t < to; i++) {
     const start = list[i].t;
     const next = i + 1 < list.length ? list[i + 1].t : Infinity;
     const end = Math.min(next, start + HOLD_MS);
@@ -58,17 +65,29 @@ function pieces(list: Row[], from: number, to: number): Piece[] {
   return out;
 }
 
-/** One room's readings of one signal, grouped by source and sorted by time. */
+/**
+ * Every room's readings of one signal, grouped by source and sorted by time.
+ * Worked out once per list of rows: the evidence card asks about the same rows
+ * for every crewmate and window.
+ */
+const grouped = new WeakMap<Row[], Map<string, Map<string, Map<string, Row[]>>>>();
+
 function bySource(rows: Row[], room: string, signal: string): Map<string, Row[]> {
-  const out = new Map<string, Row[]>();
-  for (const row of rows) {
-    if (row.room !== room || row.person || row.signal !== signal || row.value === null) continue;
-    const list = out.get(row.source) ?? [];
-    list.push(row);
-    out.set(row.source, list);
+  let bySignal = grouped.get(rows);
+  if (!bySignal) grouped.set(rows, bySignal = new Map());
+  let byRoom = bySignal.get(signal);
+  if (!byRoom) {
+    byRoom = new Map();
+    for (const row of rows) {
+      if (!row.room || row.person || row.signal !== signal || row.value === null) continue;
+      const sources = byRoom.get(row.room) ?? byRoom.set(row.room, new Map()).get(row.room)!;
+      const list = sources.get(row.source) ?? sources.set(row.source, []).get(row.source)!;
+      list.push(row);
+    }
+    for (const sources of byRoom.values()) for (const list of sources.values()) list.sort((a, b) => a.t - b.t);
+    bySignal.set(signal, byRoom);
   }
-  for (const list of out.values()) list.sort((a, b) => a.t - b.t);
-  return out;
+  return byRoom.get(room) ?? new Map();
 }
 
 /** The stays of one person clipped to [from, to), in time order. */
