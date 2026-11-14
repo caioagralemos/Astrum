@@ -1,0 +1,18 @@
+node_modules/
+dist/
+target/
+.DS_Store
+*.log
+
+# The hub's database and anything recorded from real people stay on the machine.
+hub/data/
+*.sqlite
+*.sqlite-*
+
+# Model files are too big for git; they go in Releases.
+*.gguf
+
+# Xcode
+xcuserdata/
+DerivedData/
+build/
