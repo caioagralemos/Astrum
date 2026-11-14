@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Astrum",
+  "version": "0.1.0",
+  "identifier": "space.astrum.hub",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [{ "title": "Astrum", "width": 1440, "height": 900, "minWidth": 900, "minHeight": 600 }],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": false, "icon": [] }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "astrum-hub",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "core": "node core/main.ts",
+    "ui": "vite ui",
+    "dev": "concurrently -k -n core,ui \"npm run core\" \"npm run ui\"",
+    "build": "vite build ui",
+    "app": "tauri dev",
+    "test": "node --test \"engine/*.test.ts\" \"core/*.test.ts\"",
+    "check": "tsc --noEmit",
+    "scenario": "node core/scenario.ts"
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^13.0.0",
+    "@types/three": "^0.187.0",
+    "bonjour-service": "^1.4.4",
+    "nodemon": "^3.1.14",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "serialport": "^13.0.0",
+    "three": "^0.187.0",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "mars-orbit",
+  "place": "place.mars-orbit",
+  "missionStart": "2026-04-18T00:00:00Z",
+  "delayToEarthSeconds": 1200,
+  "rooms": [
+    {
+      "id": "command",
+      "name": "room.command"
+    },
+    {
+      "id": "quarters-1",
+      "name": "room.quarters-1"
+    },
+    {
+      "id": "quarters-2",
+      "name": "room.quarters-2"
+    },
+    {
+      "id": "quarters-3",
+      "name": "room.quarters-3"
+    },
+    {
+      "id": "quarters-4",
+      "name": "room.quarters-4"
+    },
+    {
+      "id": "lab",
+      "name": "room.lab"
+    },
+    {
+      "id": "galley",
+      "name": "room.galley"
+    },
+    {
+      "id": "gym",
+      "name": "room.gym"
+    }
+  ],
+  "crew": [
+    {
+      "id": "reyes",
+      "name": "Reyes",
+      "role": "role.engineer",
+      "pronouns": "she"
+    },
+    {
+      "id": "leo",
+      "name": "Leo",
+      "role": "role.scientist",
+      "pronouns": "he"
+    },
+    {
+      "id": "okafor",
+      "name": "Okafor",
+      "role": "role.cmo"
+    },
+    {
+      "id": "tanaka",
+      "name": "Tanaka",
+      "role": "role.commander"
+    }
+  ],
+  "chips": {
+    "cabin-1": "galley"
+  }
+}
