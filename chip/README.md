@@ -18,12 +18,24 @@ The full drawing, three sheets (board as built, schematic, pin table): [wiring-b
 
 The ESP32 is a 3.3 V board. The jumper on the expansion board stays on V + 3.3V.
 
+## Slots with no part fitted
+
+The design has three more readings than the board can make today. The chip names each one as missing every second, so the hub always knows what it lacks.
+
+| Reading | Why it is missing | What would fill it |
+|---|---|---|
+| CO2 | The ENS160 on this board does not answer, and it only estimates CO2 from other gases | A true CO2 sensor (SCD41 or similar) on the air board's pins |
+| Oxygen | No part fitted | An electrochemical O2 sensor |
+| Radiation | No part fitted | A Geiger tube or solid-state dosimeter on a free pin |
+
+In demo mode the hub fills these from NASA's records or with simulated values, and labels them. In production they show as missing.
+
 ## What it sends
 
 One line of JSON a second, at 115200 baud:
 
 ```json
-{"chip":"cabin-1","fw":"0.1","r":[["pressure",1009.2,"hPa","m"],["noise",312,"raw","m"]],"missing":["co2","air_quality"]}
+{"chip":"cabin-1","fw":"0.1","r":[["pressure",1009.2,"hPa","m"],["noise",312,"raw","m"]],"missing":["co2","air_quality","oxygen","radiation"]}
 ```
 
 Each reading is `[signal, value, unit, kind]`. Kind is `m` (measured) or `e` (estimated). The chip never invents a value: a part that does not answer is listed in `missing` and probed again every second, so it is picked up when it answers. In demo mode the hub fills a missing signal with a simulated value and labels it; in production it shows the signal as missing.

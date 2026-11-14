@@ -6,6 +6,10 @@
 // The chip never invents a value. A part that does not answer is listed in
 // "missing" and probed again every cycle, so it is picked up the moment it answers.
 //
+// Slots with no part fitted on this board: oxygen and radiation. They are
+// always listed in "missing", so the hub knows the chip is built to carry them
+// and has nothing to report. A driver goes in when a part does.
+//
 // The hub can send a line back:
 //   {"buzz":"alarm"}  repeating alarm tone, stops by itself after 60 s unless sent again
 //   {"buzz":"beep"}   one short beep
@@ -14,7 +18,7 @@
 #include <Wire.h>
 
 const char *CHIP_ID = "cabin-1";
-const char *FW = "0.1";
+const char *FW = "0.2";
 
 const int PIN_MIC = 34, PIN_LDR = 35, PIN_BUZZER = 25;
 const int BMP_SDA = 16, BMP_SCL = 15;   // pressure
@@ -266,6 +270,10 @@ void loop() {
     float variance = sumSq / samples - mean * mean;
     add("vibration", sqrtf(variance > 0 ? variance : 0), 4, "g", "m");
   } else miss("vibration");
+
+  // Slots with no part fitted.
+  miss("oxygen");
+  miss("radiation");
 
   Serial.print("{\"chip\":\"");
   Serial.print(CHIP_ID);
