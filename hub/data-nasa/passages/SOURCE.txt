@@ -1,0 +1,98 @@
+NASA passage library (passages.json)
+
+Every passage is NASA's own text from the public NASA pages below, quoted unchanged:
+no rewording, no summarising, and no passage joins text from two sections. Only
+whitespace was normalised (HTML) and PDF line wraps and typographic ligatures (fi, ff)
+were joined. Photo captions, menus, related-article teasers and chart labels were left out.
+
+All pages fetched 2026-11-14 with curl from www.nasa.gov.
+Pages 1 to 24 are the NASA pages linked from the challenge's Resources tab
+(5 Hazards of Human Spaceflight, Risks of Human Spaceflight, and the pages they list).
+Pages 25 and 26 are NASA-STD-3001 technical briefs from NASA's Office of the Chief Health
+and Medical Officer (OCHMO); the bone brief is linked from the bone-changes risk page.
+
+90 passages from 26 pages.
+
+ 1. 5 Hazards of Human Spaceflight
+    https://www.nasa.gov/hrp/hazards/
+    fetched 2026-11-14, 2 passages
+ 2. Risks of Human Spaceflight
+    https://www.nasa.gov/hrp/risks/
+    fetched 2026-11-14, 2 passages
+ 3. Hazard: Distance From Earth
+    https://www.nasa.gov/hrp/hazard-distance-from-earth/
+    fetched 2026-11-14, 1 passage
+ 4. Hazard: Gravity Fields
+    https://www.nasa.gov/hrp/hazard-gravity-fields/
+    fetched 2026-11-14, 2 passages
+ 5. Hazard: Hostile/Closed Environments
+    https://www.nasa.gov/hrp/hazard-hostile-closed-environments/
+    fetched 2026-11-14, 1 passage
+ 6. Hazard: Isolation and Confinement
+    https://www.nasa.gov/hrp/hazard-isolation-and-confinement/
+    fetched 2026-11-14, 1 passage
+ 7. Hazard: Space Radiation
+    https://www.nasa.gov/hrp/hazard-space-radiation/
+    fetched 2026-11-14, 4 passages
+ 8. Risk from Inadequate Sleep and Irregular Schedules
+    https://www.nasa.gov/reference/risk-from-inadequate-sleep-and-irregular-schedules/
+    fetched 2026-11-14, 3 passages
+ 9. Risk of Altered Immune System Responses
+    https://www.nasa.gov/reference/risk-of-altered-immune-system-responses/
+    fetched 2026-11-14, 3 passages
+10. Risk of Altered Sensorimotor and Vestibular Function
+    https://www.nasa.gov/reference/risk-of-altered-sensorimotor-and-vestibular-function/
+    fetched 2026-11-14, 3 passages
+11. Risk of Behavioral Changes and Psychiatric Disorders
+    https://www.nasa.gov/reference/risk-of-behavioral-conditions-and-psychiatric-disorders/
+    fetched 2026-11-14, 3 passages
+12. Risk of Cardiovascular Adaptations
+    https://www.nasa.gov/reference/risk-of-cardiovascular-adaptations/
+    fetched 2026-11-14, 3 passages
+13. Risk of Decompression Sickness
+    https://www.nasa.gov/reference/risk-of-decompression-sickness/
+    fetched 2026-11-14, 4 passages
+14. Risk of Host-Microorganism Interactions
+    https://www.nasa.gov/reference/risk-of-host-microorganism-interactions/
+    fetched 2026-11-14, 3 passages
+15. Risk of Hypoxia
+    https://www.nasa.gov/reference/risk-of-hypoxia/
+    fetched 2026-11-14, 3 passages
+16. Risk of Inadequate Food and Nutrition
+    https://www.nasa.gov/reference/risk-of-inadequate-food-and-nutrition/
+    fetched 2026-11-14, 3 passages
+17. Risk of Inadequate Systems Operations Support
+    https://www.nasa.gov/reference/risk-of-inadequate-systems-operations-support/
+    fetched 2026-11-14, 3 passages
+18. Risk of Inadequate Teamwork
+    https://www.nasa.gov/reference/risk-of-inadequate-teamwork/
+    fetched 2026-11-14, 3 passages
+19. Risk of Injury and Compromised Performance from Spacewalks
+    https://www.nasa.gov/reference/risk-of-injury-and-compromised-performance-from-extravehicular-activity-eva/
+    fetched 2026-11-14, 3 passages
+20. Risk of Injury from Dynamic Loads
+    https://www.nasa.gov/reference/risk-of-injury-from-dynamic-loads/
+    fetched 2026-11-14, 3 passages
+21. Risk of Radiation-Induced Cancers
+    https://www.nasa.gov/reference/risk-of-radiation-induced-cancers/
+    fetched 2026-11-14, 3 passages
+22. Risk of Reduced Cardiorespiratory and Musculoskeletal Fitness
+    https://www.nasa.gov/reference/risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/
+    fetched 2026-11-14, 3 passages
+23. Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS)
+    https://www.nasa.gov/reference/risk-of-spaceflight-associated-neuro-ocular-syndrome-sans/
+    fetched 2026-11-14, 3 passages
+24. Risk of Spaceflight-Induced Bone Changes
+    https://www.nasa.gov/reference/risk-of-spaceflight-induced-bone-changes/
+    fetched 2026-11-14, 3 passages
+25. NASA-STD-3001 CO2 Technical Brief
+    OCHMO-TB-004 Carbon Dioxide (CO2), Revision D, dated 10-Mar-26 (PDF)
+    https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf
+    fetched 2026-11-14, 22 passages
+26. NASA-STD-3001 Bone Loss Technical Brief
+    Bone Loss, OCHMO-MTB-013 Revision D, dated 11-Feb-26 (PDF; the address still says tb-030)
+    https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-030-bone-loss.pdf
+    fetched 2026-11-14, 3 passages
+
+Fields: id, source (page title, or the brief's short name), url, fetched, heading
+(the section heading on the page), text, and page (PDF page number, briefs only).
