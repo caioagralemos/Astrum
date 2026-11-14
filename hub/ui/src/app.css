@@ -1,0 +1,126 @@
+/* Placeholder look for the hub until the real design lands. Colours live in
+   these variables and nowhere else; the station view reads them too. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --surface: #15171a;
+  --line: #2a2d32;
+  --text: #f2f3f5;
+  --text-muted: #9aa0a8;
+
+  --scene-line: #f2f3f5;
+  --scene-grid: #cfd6df;          /* the moving grid behind the station */
+  --scene-grid-strength: 0.06;    /* its strength at the brightest; 0 turns it off */
+  --status-ok: #5b9dff;      /* good */
+  --status-watch: #f2c14e;   /* alert */
+  --status-over: #ff5a4a;    /* danger */
+  --status-unknown: #8a9099; /* no reading */
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+main { padding: 16px clamp(16px, 4vw, 40px) 64px; }
+button { font: inherit; }
+
+/* The wordmark: sized in rem so it grows with the reader's text size. */
+.brand { margin: 0 0 4px; line-height: 0; }
+.brand img { height: 2rem; width: auto; display: block; }
+
+.station {
+  position: relative;
+  height: min(62vh, 640px);
+  min-height: 320px;
+  margin: 8px 0 24px;
+  overflow: hidden;
+  touch-action: none;
+}
+/* On a tall, narrow screen the station stands upright and gets more height. */
+@media (max-aspect-ratio: 4/5) {
+  .station { height: min(72vh, 760px); }
+}
+/* Full screen: the browser's own, or (where there is none) covering the window. */
+.station:fullscreen,
+.station[data-full] { height: 100dvh; min-height: 0; margin: 0; background: var(--bg); }
+.station[data-full] { position: fixed; inset: 0; z-index: 10; }
+.station-full {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+.station-full:hover { border-color: var(--text); }
+.station-full:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.station canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Names over people and rooms. Real buttons, placed by the scene every frame:
+   the button is a 44 x 44 px (or wider) hit area, the pill inside it is what shows. */
+.tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  color: var(--text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tag-pill {
+  display: block;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  transition: opacity 0.2s;
+}
+.tag-room .tag-pill { color: var(--text-muted); border-radius: 999px; }
+.tag-person .tag-pill { font-weight: 600; color: var(--text); border-color: color-mix(in srgb, var(--text) 22%, transparent); }
+.tag-status { font-weight: 600; }
+.tag[data-status='watch'] .tag-pill { border-color: var(--status-watch); color: var(--status-watch); }
+.tag[data-status='over'] .tag-pill { border-color: var(--status-over); color: var(--status-over); font-weight: 700; border-width: 2px; }
+.tag-room[data-status='unknown'] .tag-pill { color: var(--status-unknown); }
+.tag[data-dim] .tag-pill { opacity: 0.45; }
+.tag[aria-pressed='true'] .tag-pill { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
+.tag:hover .tag-pill { border-color: var(--text); }
+.tag:focus-visible { outline: none; }
+.tag:focus-visible .tag-pill { outline: 2px solid var(--text); outline-offset: 2px; opacity: 1; }
+.station-home:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .tag-pill { transition: none; }
+}
+
+.station-home {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
+  min-height: 44px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
