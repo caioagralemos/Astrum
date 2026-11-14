@@ -8,10 +8,53 @@
   --line: #2a2d32;
   --text: #f2f3f5;
   --text-muted: #9aa0a8;
+  --hairline: color-mix(in srgb, var(--text) 10%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--text) 20%, transparent);
+  --fill: color-mix(in srgb, var(--text) 5%, transparent);
+  --fill-strong: color-mix(in srgb, var(--text) 12%, transparent);
+  --sheet: color-mix(in srgb, var(--bg) 90%, transparent);
+  --frame-line: color-mix(in srgb, var(--scene-line) 34%, transparent);
+  /* A soft, washed-out tint per reading, so each is known by colour and icon before its name. */
+  --tint-co2: #a9bccf;
+  --tint-oxygen: #93c2dc;
+  --tint-temperature: #dcae95;
+  --tint-humidity: #94cfc8;
+  --tint-pressure: #b6abda;
+  --tint-air_quality: #a8d0a4;
+  --tint-radiation: #d9cd94;
+  --tint-noise: #d0a4c2;
+  --tint-light: #e2d49f;
+  --tint-vibration: #adb6c6;
+  /* Colours inside the pictures (Apple-style: colour lives in the data, not the cards). */
+  --viz-cool: #8ec5ff;
+  --viz-warm: #ffcf8a;
+  --viz-water-top: #9fdcff;
+  --viz-water-bottom: #4f8fd8;
+  /* The status colours, washed the same way, for the panels (the station keeps the full ones). */
+  --soft-ok: color-mix(in srgb, var(--status-ok) 62%, #9aa3ad);
+  --soft-watch: color-mix(in srgb, var(--status-watch) 66%, #9aa3ad);
+  --soft-over: color-mix(in srgb, var(--status-over) 66%, #9aa3ad);
 
   --scene-line: #f2f3f5;
-  --scene-grid: #cfd6df;          /* the moving grid behind the station */
-  --scene-grid-strength: 0.06;    /* its strength at the brightest; 0 turns it off */
+  --scene-grid: #7d8da3;          /* the moving grid behind the station */
+  --scene-grid-strength: 0.03;    /* its strength at the brightest; 0 turns it off */
+  --scene-sky-style: pixel;       /* the sky's look: pixel (8-bit) or soft; off for plain stars */
+  --scene-sky: #132138;           /* the faint blue lift towards the middle of the sky */
+  --scene-nebula: #55657c;        /* the occasional nebula */
+  --scene-nebula-strength: 0.18;  /* 0 turns it off */
+  --scene-planet: #3b322b;        /* Mars below the station: dusty, dim, never alarm red */
+  --scene-planet-strength: 0.5;   /* 0 hides it */
+  --scene-planet-cap: #6e6a65;    /* Mars's polar cap */
+  --scene-moon: #48484b;          /* the Moon seen from space: greys, darker seas */
+  --scene-earth-ocean: #2e4259;   /* Earth: dim oceans, */
+  --scene-earth-land: #4e5442;    /* muted land, */
+  --scene-earth-cap: #8a9096;     /* pale caps */
+  --scene-ground-moon: #3c3c3e;   /* the ground under a Moon base: grey regolith */
+  --scene-ground-mars: #32281f;   /* under a Mars base: dusty dark brown, never alarm red */
+  --scene-ground-strength: 0.36;  /* how present the ground is; 0 hides it */
+  --scene-structure-strength: 0.45; /* the rooms' hulls and bulkheads */
+  --scene-extras-strength: 0.12;  /* what cannot be interacted with (truss, wings, radiators, legs, masts); modules that are not rooms sit halfway */
+  --scene-room-fill: #101113;     /* the inside of a room: a neutral lift just above the background, no colour */
   --status-ok: #5b9dff;      /* good */
   --status-watch: #f2c14e;   /* alert */
   --status-over: #ff5a4a;    /* danger */
@@ -25,46 +68,84 @@ body {
   font: 1rem/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-main { padding: 16px clamp(16px, 4vw, 40px) 64px; }
 button { font: inherit; }
 
-/* The wordmark: sized in rem so it grows with the reader's text size. */
-.brand { margin: 0 0 4px; line-height: 0; }
-.brand img { height: 2rem; width: auto; display: block; }
+/* The main screen: the station fills the window; everything else floats over it. */
+.hub { position: fixed; inset: 0; overflow: hidden; }
+.hub button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
-.station {
-  position: relative;
-  height: min(62vh, 640px);
-  min-height: 320px;
-  margin: 8px 0 24px;
-  overflow: hidden;
-  touch-action: none;
-}
-/* On a tall, narrow screen the station stands upright and gets more height. */
-@media (max-aspect-ratio: 4/5) {
-  .station { height: min(72vh, 760px); }
-}
-/* Full screen: the browser's own, or (where there is none) covering the window. */
-.station:fullscreen,
-.station[data-full] { height: 100dvh; min-height: 0; margin: 0; background: var(--bg); }
-.station[data-full] { position: fixed; inset: 0; z-index: 10; }
-.station-full {
+/* Top bar: the wordmark on the left; where and when, the connection and the bell on the right. */
+.topbar {
   position: absolute;
-  top: max(8px, env(safe-area-inset-top));
-  right: max(8px, env(safe-area-inset-right));
-  z-index: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.brand { margin: 0 auto 0 0; line-height: 0; }
+.brand img { height: 2.25rem; width: auto; display: block; }
+.topbar-where { margin: 0 12px 0 0; font-size: 1.125rem; color: var(--text); white-space: nowrap; }
+.topbar-icon {
+  position: relative;
   width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: none;
   color: var(--text);
   cursor: pointer;
 }
-.station-full:hover { border-color: var(--text); }
-.station-full:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.topbar-icon svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.topbar-icon circle { fill: currentColor; stroke: none; }
+/* The open panel's button is marked by a short line under it, like a chosen word. */
+.topbar-icon:hover { color: color-mix(in srgb, var(--text) 75%, transparent); }
+.topbar-icon[aria-expanded='true']::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 4px; height: 1px; background: var(--text); }
+.topbar-icon[data-off] { color: var(--status-over); }
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--status-watch);
+  color: var(--bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+}
+.badge[data-urgent] { background: var(--status-over); }
+/* On a phone the place and day give way to the wordmark and the two buttons. */
+@media (max-width: 520px) {
+  .topbar-where { font-size: 0.875rem; margin-right: 4px; }
+  .brand img { height: 1.75rem; }
+}
+@media (max-width: 380px) {
+  .topbar-where { display: none; }
+}
+
+
+.station {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+/* On a tall, narrow screen the station stands upright below the bar instead of under it. */
+@media (max-aspect-ratio: 4/5) {
+  .station { top: calc(max(20px, env(safe-area-inset-top)) + 52px); }
+}
 .station canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* Names over people and rooms. Real buttons, placed by the scene every frame:
@@ -89,14 +170,14 @@ button { font: inherit; }
 .tag-pill {
   display: block;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 2px 8px;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
   font-size: 0.75rem;
   line-height: 1.35;
   transition: opacity 0.2s;
 }
-.tag-room .tag-pill { color: var(--text-muted); border-radius: 999px; }
+.tag-room .tag-pill { color: var(--text-muted); }
 .tag-person .tag-pill { font-weight: 600; color: var(--text); border-color: color-mix(in srgb, var(--text) 22%, transparent); }
 .tag-status { font-weight: 600; }
 .tag[data-status='watch'] .tag-pill { border-color: var(--status-watch); color: var(--status-watch); }
@@ -112,10 +193,22 @@ button { font: inherit; }
   .tag-pill { transition: none; }
 }
 
+/* Only for keyboards: out of sight until focused (a tap outside the selection does the same). */
+.station-home:not(:focus-visible) {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
 .station-home {
   position: absolute;
-  left: 0;
-  bottom: 0;
+  z-index: 2;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 8px 16px;
@@ -123,4 +216,703 @@ button { font: inherit; }
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+}
+
+/* Every line icon: drawn, never filled. */
+.icon { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- The person view: one composed sheet that never scrolls ---- */
+.person {
+  --inset: 14px;
+  position: absolute;
+  z-index: 3;
+  top: calc(max(20px, env(safe-area-inset-top)) + 64px);
+  bottom: max(24px, env(safe-area-inset-bottom));
+  right: max(24px, env(safe-area-inset-right));
+  width: min(500px, 42vw);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--inset);
+  overflow: hidden;
+}
+.person > * { flex-shrink: 0; }
+.person p { margin: 0; }
+.person-head { padding: 12px 10px 8px; }
+.person h2 { font-size: 2.125rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.person-verdict { margin-top: 6px !important; font-size: 1rem; font-weight: 500; color: var(--soft-ok); }
+.person-verdict[data-tone='watch'] { color: var(--soft-watch); }
+.person-verdict[data-tone='over'] { color: var(--soft-over); }
+.person-level { font-weight: 700; }
+.person-meta { margin-top: 2px !important; font-size: 0.875rem; color: var(--text-muted); }
+.person .mod { border-radius: calc(30px - var(--inset)); }
+
+/* The headline card: the one chart, given the room that is left. */
+.hero { flex: 1 1 auto !important; min-height: 150px; display: flex; flex-direction: column; padding: 14px 16px 10px; }
+.hero[data-unusual] { box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--soft-watch) 35%, transparent); }
+.hero-top { display: flex; align-items: center; justify-content: space-between; }
+.hero-when { font-size: 0.75rem; color: rgb(235 235 245 / 0.5); font-variant-numeric: tabular-nums; }
+.hero-line { display: flex; align-items: baseline; gap: 12px; margin: 8px 0 4px !important; }
+.hero .mod-value { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.04em; }
+.hero-words { font-size: 0.9375rem; font-weight: 500; color: rgb(235 235 245 / 0.75); line-height: 1.25; }
+.hero[data-unusual] .hero-words { color: var(--soft-watch); }
+.odd-mark { width: 6px; height: 6px; border-radius: 50%; background: var(--soft-watch); }
+
+/* The vitals: four readings in one card, quartered by hairlines. Each is a button that makes it the headline. */
+.vitals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-radius: calc(30px - var(--inset));
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.vitals > .vital {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 12px 16px;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.vitals > .vital:hover { background: rgb(255 255 255 / 0.03); }
+/* An odd one out at the end takes the whole row, so the card never has a hole. */
+.vitals > .vital:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.vitals > .vital:focus-visible { outline: 2px solid var(--text); outline-offset: -4px; }
+.vitals > .vital:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
+.vitals > .vital:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.vitals > .vital:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1), 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.vital .mod-body { margin-top: 8px; min-height: 44px; }
+.vital .mod-value { font-size: 1.625rem; }
+.vital .mod-pic { width: 56px; height: 40px; }
+.slash { margin: 0 1px; color: rgb(235 235 245 / 0.45); font-weight: 200; }
+
+/* Air: one line, the room view's NASA bar. */
+.air { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; }
+.air-body { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; }
+.air .mod-value { font-size: 1.625rem; }
+.air .gauge { padding-top: 12px; }
+
+/* The rest: buttons straight on the sheet. */
+.person-strip { padding: 10px 10px 0; }
+.person-strip .mod-mini { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.person-strip .mod-mini:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 4px; }
+.person-strip .mod-mini[data-unusual] .mod-mini-head { color: var(--soft-watch); }
+.scale { display: block; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.12); overflow: hidden; }
+.scale > span { display: block; height: 100%; background: rgb(255 255 255 / 0.75); border-radius: 2px; }
+.scale-empty { background: none; }
+.person-points { padding: 6px 10px 0; font-size: 0.8125rem; color: rgb(235 235 245 / 0.6); }
+.person-points span { color: var(--text); font-weight: 500; }
+.person .kind-key { margin: 2px 10px 4px !important; }
+
+/* Pictures used here. */
+.ring { width: 40px; height: 40px; }
+.ring-track { fill: none; stroke: rgb(255 255 255 / 0.12); stroke-width: 6; }
+.ring-fill { fill: none; stroke: var(--viz-warm); stroke-width: 6; stroke-linecap: round; }
+.daybars { display: flex; align-items: flex-end; gap: 3px; width: 100%; height: 100%; }
+.daybars span { flex: 1; min-height: 3px; border-radius: 2px; background: rgb(255 255 255 / 0.2); }
+.daybars span[data-last] { background: rgb(255 255 255 / 0.85); }
+.minitrace { width: 100%; height: 100%; }
+.minitrace path { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 1.5; stroke-linejoin: round; }
+
+@media (max-aspect-ratio: 4/5) {
+  .person { --inset: 10px; top: 38dvh; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; overflow: auto; }
+  .person h2 { font-size: 1.625rem; }
+  .hero { min-height: 130px; }
+  .hero .mod-value { font-size: 2.25rem; }
+  .vital .mod-pic { width: 40px; }
+  .vital .mod-value { font-size: 1.375rem; }
+}
+
+/* Charts */
+.chart { flex: 1; min-height: 60px; position: relative; }
+.chart svg { position: absolute; inset: 0; overflow: visible; }
+.chart-empty { display: grid; place-items: center; color: var(--text-muted); font-size: 0.8125rem; }
+.chart text { font: 0.6875rem/1 ui-sans-serif, system-ui, -apple-system, sans-serif; fill: var(--text-muted); }
+.chart .chart-band-label { fill: var(--text); opacity: 0.8; }
+.chart-grid { stroke: rgb(255 255 255 / 0.06); stroke-width: 1; }
+.chart-band { fill: rgb(255 255 255 / 0.07); }
+.chart-level { stroke: var(--status-over); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.7; }
+.chart .chart-level-label { fill: var(--status-over); }
+.chart-line { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart-line-out { stroke: var(--soft-watch); }
+.chart-dot { fill: var(--text); }
+.chart-now { fill: var(--text); }
+.chart-dot.chart-line-out, .chart-now.chart-line-out { fill: var(--soft-watch); stroke: none; }
+
+
+/* ---- The material: Apple-style rounded glass over the station ---- */
+.frame {
+  border: 0;
+  border-radius: 30px;
+  background: rgb(28 28 30 / 0.62);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 40px 90px -30px rgb(0 0 0 / 0.8);
+}
+.panel.frame { border-radius: 24px; }
+@media (prefers-reduced-transparency: reduce) {
+  .frame { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+.panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(max(20px, env(safe-area-inset-top)) + 60px);
+  right: max(16px, env(safe-area-inset-right));
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100dvh - 110px);
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 20px 22px 22px;
+}
+.sheet {
+  position: absolute;
+  z-index: 3;
+  top: calc(max(20px, env(safe-area-inset-top)) + 64px);
+  right: max(24px, env(safe-area-inset-right));
+  width: min(460px, 40vw);
+  max-height: calc(100dvh - 110px);
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 24px 26px 22px;
+}
+@media (max-aspect-ratio: 4/5) {
+  .sheet { top: auto; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; max-height: 62dvh; padding: 18px; overflow: auto; }
+}
+.panel p, .sheet p { margin: 0; }
+
+/* ---- Type ---- */
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 16px; }
+.panel h2, .sheet h2, .person h2 { margin: 0; font-size: 1.375rem; font-weight: 500; letter-spacing: -0.015em; line-height: 1.2; }
+.sheet h2, .person h2 { font-size: 1.75rem; }
+.panel-sub { margin-top: 4px !important; font-size: 0.875rem; color: var(--text-muted); }
+.label { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); }
+.quiet { margin-top: 6px !important; font-size: 0.8125rem; color: var(--text-muted); }
+.muted, small { color: var(--text-muted); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; letter-spacing: -0.01em; }
+.figure { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.rule { padding: 16px 0 2px; border-top: 1px solid var(--hairline); }
+.rule + .rule { margin-top: 14px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- Status and the reading label: words ---- */
+.status-word { color: var(--text-muted); }
+.status-word[data-status='ok'], .status-word[data-status='live'] { color: var(--status-ok); }
+.status-word[data-status='watch'] { color: var(--status-watch); }
+.status-word[data-status='over'], .status-word[data-status='off'] { color: var(--status-over); }
+.kind { font-size: 0.75rem; color: var(--text-muted); }
+.kind[data-kind='measured'] { color: var(--text); }
+
+/* ---- Buttons: rounded, filled with a tint; solid for the one thing to do ---- */
+.btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fill-strong);
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover { background: color-mix(in srgb, var(--text) 18%, transparent); }
+.btn:active { transform: scale(0.98); }
+.btn-solid { background: var(--text); color: var(--bg); font-weight: 600; }
+.btn-solid:hover { background: color-mix(in srgb, var(--text) 86%, var(--bg)); }
+.btn-danger { background: color-mix(in srgb, var(--status-over) 30%, transparent); }
+.btn-danger:hover { background: color-mix(in srgb, var(--status-over) 40%, transparent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+@media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+
+/* A choice between a few: plain words, the chosen one underlined. */
+.choice { display: flex; gap: 20px; }
+.choice button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+.choice button:hover { color: var(--text); }
+.choice button[aria-pressed='true'] { color: var(--text); border-bottom-color: var(--text); }
+.choice button:focus-visible { outline: 1px solid var(--text); outline-offset: 2px; }
+
+.panel-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -12px -14px 0 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.panel-close:hover { color: var(--text); }
+.panel-close:focus-visible { outline: 1px solid var(--text); outline-offset: -6px; }
+.panel-close svg { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+
+/* ---- Sensors ---- */
+.source + .source { margin-top: 14px; }
+.source-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 0.875rem; }
+
+/* ---- Alerts: one per rule, its level as a coloured word ---- */
+.alert { padding: 16px 0 4px; border-top: 1px solid var(--hairline); }
+.alert + .alert { margin-top: 12px; }
+.alert h3 { margin: 0 0 6px; font-size: 0.875rem; font-weight: 500; }
+.alert h3 span:last-child { color: var(--text-muted); font-weight: 400; }
+.alert > p:not(.quiet) { font-size: 0.9375rem; line-height: 1.45; }
+.countdown { margin-top: 12px !important; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ---- Room ---- */
+.room-people { margin-top: 14px !important; font-size: 0.9375rem; }
+.readings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 20px; row-gap: 18px; margin: 4px 0 0; }
+.reading { min-width: 0; }
+.reading dt { font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reading dd { margin: 0; }
+.reading-value { margin-top: 2px !important; font-size: 1.375rem; font-weight: 300; letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.reading-kind { font-size: 0.75rem; }
+
+/* ---- Banner and the story's controls ---- */
+.banner, .story {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  margin: 0;
+}
+.banner { top: calc(max(20px, env(safe-area-inset-top)) + 60px); padding: 10px 18px; color: var(--status-over); }
+.story { bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 0.875rem; color: var(--text-muted); }
+@media (max-width: 520px) {
+  .readings { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+  .reading-value { font-size: 1.25rem; }
+}
+
+/* ---- The room, at a glance ---- */
+.room { width: min(480px, 40vw); padding: 26px 24px 18px; display: flex; flex-direction: column; gap: 10px; }
+.room-head { margin-bottom: 6px; padding: 0 2px; }
+.room h2 { font-size: 2.125rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.room-status { margin-top: 6px !important; font-size: 1rem; font-weight: 500; color: var(--text-muted); }
+.room-status[data-status='ok'] { color: var(--soft-ok); }
+.room-status[data-status='watch'] { color: var(--soft-watch); }
+.room-status[data-status='over'] { color: var(--soft-over); }
+.room-people { margin-top: 2px !important; font-size: 0.875rem; color: var(--text-muted); }
+
+/* A module: Apple's neutral glass card. Colour lives in the data, never in the card. */
+.mod, .mod-co2 {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+}
+.mod p, .mod-mini p { margin: 0; }
+
+/* The module header: a grey glyph and small caps, the way Weather labels its modules. */
+.mod-head { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(235 235 245 / 0.55); }
+.mod-head .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2; }
+.mod-head .kind-mark { margin-left: 3px; }
+.trend-mark { margin-left: auto; color: rgb(235 235 245 / 0.55); display: inline-flex; }
+.trend-mark .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2.2; }
+.mod-value { font-size: 1.875rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; color: #fff; }
+.unit { margin-left: 2px; font-size: 0.875rem; font-weight: 400; letter-spacing: 0; color: rgb(235 235 245 / 0.6); }
+
+/* CO2: the breathing module, wide. */
+.mod-co2 { padding: 14px 16px 0; overflow: hidden; }
+.mod-co2-body { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 22px; margin-top: 12px; }
+.mod-co2 .mod-value { font-size: 3.25rem; font-weight: 200; letter-spacing: -0.04em; }
+.mod-co2 .gauge { padding-top: 14px; }
+.mod-spark { height: 40px; margin: 8px -16px 0; }
+
+/* Comfort: two by two, the number on the left, its picture on the right. */
+.mods-comfort { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mod-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 12px; min-height: 64px; }
+.mod-pic { flex: none; width: 64px; height: 64px; display: grid; place-items: end center; }
+.mod[data-signal='oxygen'] .mod-pic { width: 84px; height: 40px; }
+
+/* The rest: five quiet readings straight on the sheet, no card. */
+.mods-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding: 12px 10px 2px; }
+.mod-mini { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mod-mini-head { display: flex; align-items: center; gap: 5px; color: rgb(235 235 245 / 0.55); }
+.mod-mini-head .icon { width: 0.95rem; height: 0.95rem; stroke-width: 2; }
+.mod-mini-value { font-size: 1.125rem; font-weight: 400; letter-spacing: -0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; color: #fff; }
+.mod-mini-value .unit { margin-left: 1px; font-size: 0.625rem; }
+.mod-mini-name { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Kind marks and their key. */
+.kind-mark { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; opacity: 0.85; }
+.kind-mark[data-kind='measured'] { background: currentColor; }
+.kind-mark[data-kind='replayed'] { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+.kind-mark[data-kind='estimated'] { border-style: dashed; }
+.kind-mark[data-kind='reported'] { border-radius: 1px; background: currentColor; }
+.kind-key { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 4px 0 !important; font-size: 0.6875rem; color: var(--text-muted); }
+.kind-key > span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Gauge: NASA's zones as one capsule, a dot at now, the levels as small numbers under it. */
+.gauge-track { position: relative; height: 6px; border-radius: 3px; }
+.gauge-dot {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 3px solid color-mix(in srgb, var(--surface) 90%, var(--bg));
+  border-radius: 50%;
+  background: var(--text);
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+.gauge-marks { position: relative; height: 16px; margin-top: 6px; }
+.gauge-marks span { position: absolute; font-size: 0.6875rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.gauge-marks span[data-side='before'] { transform: translateX(calc(-100% - 3px)); }
+.gauge-marks span[data-side='after'] { transform: translateX(5px); }
+
+/* Pictures. */
+.spark { display: block; width: 100%; height: 100%; }
+.spark-line { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 1.5; stroke-linejoin: round; }
+.spark-fill { fill: rgb(255 255 255 / 0.06); stroke: none; }
+.spark[data-tone='watch'] .spark-line { stroke: var(--soft-watch); }
+.spark[data-tone='over'] .spark-line { stroke: var(--soft-over); }
+.dial { width: 100%; height: 100%; }
+.dial-tick { stroke: rgb(255 255 255 / 0.18); stroke-width: 1.3; stroke-linecap: round; }
+.dial-day { stroke: rgb(255 255 255 / 0.7); stroke-width: 1.8; }
+.dial-needle { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
+.dial-hub { fill: #fff; }
+.thermo { width: 22px; height: 64px; }
+.thermo-glass { fill: rgb(255 255 255 / 0.08); stroke: rgb(255 255 255 / 0.2); stroke-width: 0.8; }
+.thermo-day { fill: rgb(255 255 255 / 0.16); }
+.thermo-cool { stop-color: var(--viz-cool); }
+.thermo-warm { stop-color: var(--viz-warm); }
+.thermo-bulb { fill: var(--viz-cool); }
+.drop { width: 48px; height: 64px; }
+.drop-glass { fill: rgb(255 255 255 / 0.05); stroke: rgb(255 255 255 / 0.3); stroke-width: 1.2; }
+.drop-top { stop-color: var(--viz-water-top); }
+.drop-bottom { stop-color: var(--viz-water-bottom); }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; }
+.bars span { flex: 1; min-height: 2px; border-radius: 1px; background: rgb(255 255 255 / 0.18); }
+.bars span[data-last] { background: rgb(255 255 255 / 0.85); }
+
+@media (max-aspect-ratio: 4/5) {
+  .room { width: auto; padding: 18px; }
+  .room h2 { font-size: 1.625rem; }
+}
+@media (max-width: 520px) {
+  .mods-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 14px; }
+  .mod-co2 .mod-value { font-size: 2.25rem; }
+  .mod-pic { width: 52px; height: 52px; }
+}
+.room > * { flex-shrink: 0; }
+@media (max-width: 520px) {
+  .mod .mod-value { font-size: 1.5rem; }
+  .mod[data-signal='oxygen'] .mod-pic { width: 56px; }
+  .mod-head span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+}
+
+/* ---- One composed sheet: three cards (breathing, comfort, the rest), radii concentric with the panel ---- */
+.room { --inset: 14px; padding: var(--inset); gap: 8px; }
+.room-head { padding: 12px 10px 8px; margin: 0; }
+.room .mod, .room .mod-co2 { border-radius: calc(30px - var(--inset)); }
+/* Comfort: four readings in one card, quartered by hairlines. */
+.room .mods-comfort {
+  gap: 0;
+  border-radius: calc(30px - var(--inset));
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.room .mods-comfort > .mod { border-radius: 0; background: none; box-shadow: none; padding: 14px 16px; }
+.room .mods-comfort > .mod:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
+.room .mods-comfort > .mod:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.room .mods-comfort > .mod:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1), 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.room .kind-key { margin: 4px 10px 6px !important; }
+@media (max-aspect-ratio: 4/5) {
+  .room { --inset: 10px; padding: var(--inset); }
+}
+
+/* ---- The dock: widgets along the bottom of the station ---- */
+.dock {
+  --dock-h: clamp(176px, 22vh, 210px);
+  position: absolute;
+  z-index: 2;
+  left: max(20px, env(safe-area-inset-left));
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 12px;
+  height: var(--dock-h);
+}
+.dock-station { grid-template-columns: 1fr 2.2fr 1fr; }
+.dock-room { grid-template-columns: 1.15fr 1fr 1fr 1.25fr; }
+.widget-card {
+  position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border-radius: 26px;
+  background: rgb(28 28 30 / 0.62);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 30px 70px -30px rgb(0 0 0 / 0.8);
+  overflow: hidden;
+}
+.widget-card p, .widget-card h2, .widget-card ul { margin: 0; }
+@media (prefers-reduced-transparency: reduce) { .widget-card { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+.w-head { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(235 235 245 / 0.55); }
+.w-head .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2; }
+
+/* Crew: names and where they are, a tap opens them. */
+.w-crew { display: flex; flex-direction: column; gap: 8px; }
+.w-crew-list { list-style: none; padding: 0; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+.w-crew-list button {
+  position: relative;
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.w-crew-list li + li button { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.08); }
+.w-crew-list button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+.w-crew-name { font-size: 0.9375rem; font-weight: 500; }
+.w-crew-where { font-size: 0.8125rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-sleep { font-style: italic; }
+.w-flag { position: absolute; left: -10px; top: 50%; width: 5px; height: 5px; border-radius: 50%; transform: translateY(-50%); background: var(--soft-watch); }
+.w-flag[data-status='over'] { background: var(--soft-over); }
+
+/* Air: every room's CO2 as a column against NASA's levels. */
+.w-air { display: flex; flex-direction: column; gap: 10px; }
+.w-air-chart { position: relative; flex: 1; min-height: 0; }
+.w-air-levels { position: absolute; left: 0; right: 0; top: 0; bottom: 34px; pointer-events: none; }
+.w-air-levels span { position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--soft-over) 55%, transparent); }
+.w-air-levels span[data-soft] { border-top-color: color-mix(in srgb, var(--soft-watch) 45%, transparent); }
+.w-air-levels em { position: absolute; right: 0; top: -15px; font-style: normal; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); font-variant-numeric: tabular-nums; }
+.w-air-cols { list-style: none; padding: 0; height: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
+.w-air-cols button { width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto auto; gap: 3px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.w-air-cols button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+.w-col { position: relative; display: block; width: min(26px, 70%); justify-self: center; border-radius: 6px; background: rgb(255 255 255 / 0.05); overflow: hidden; }
+.w-col-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: color-mix(in srgb, var(--soft-ok) 80%, transparent); }
+.w-col-fill[data-tone='watch'] { background: var(--soft-watch); }
+.w-col-fill[data-tone='over'] { background: var(--soft-over); }
+.w-air-cols button:hover .w-col { background: rgb(255 255 255 / 0.09); }
+.w-col-value { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.8125rem; font-variant-numeric: tabular-nums; color: #fff; }
+.w-col-value .kind-mark { width: 5px; height: 5px; border-width: 1px; color: rgb(235 235 245 / 0.55); }
+.w-col-name { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+
+/* Station: the state in words, the delay to Earth large. */
+.w-station { display: flex; flex-direction: column; gap: 8px; }
+.w-state { align-self: flex-start; padding: 0; border: 0; background: none; font: inherit; font-size: 1.0625rem; font-weight: 600; color: var(--soft-ok); text-align: left; cursor: pointer; }
+.w-state[data-state='watch'] { color: var(--soft-watch); }
+.w-state[data-state='over'] { color: var(--soft-over); }
+.w-state:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 4px; }
+.w-earth { margin-top: auto; }
+.w-earth-value { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.04em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.w-earth-label { margin-top: 4px !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
+
+/* The room's widgets: built for a short, wide card. A header row, then a body that fills it:
+   the number bottom-left, the picture the full height on the right. */
+.w-room { display: grid; grid-template-columns: 1fr auto; gap: 16px; }
+.w-room-words { display: flex; flex-direction: column; min-width: 0; }
+.w-room h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.w-room .room-status { margin-top: 6px !important; font-size: 0.9375rem; }
+.w-room .room-people { margin-top: auto !important; font-size: 0.8125rem; }
+.w-room-co2 { position: relative; width: clamp(130px, 11vw, 170px); align-self: center; text-align: center; }
+.arcgauge { display: block; width: 100%; overflow: visible; }
+.arc-zone { fill: none; stroke-width: 9; stroke-linecap: round; }
+.arc-zone[data-tone='ok'] { stroke: color-mix(in srgb, var(--soft-ok) 80%, transparent); }
+.arc-zone[data-tone='watch'] { stroke: var(--soft-watch); }
+.arc-zone[data-tone='over'] { stroke: var(--soft-over); }
+.arc-dot { fill: #fff; stroke: rgb(28 28 30); stroke-width: 3; }
+.arc-mark { font-size: 7px; fill: rgb(235 235 245 / 0.5); }
+.w-room-co2-value { position: absolute; left: 0; right: 0; bottom: 18px; font-size: 2rem; font-weight: 300; letter-spacing: -0.03em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.w-room[data-tone='watch'] .w-room-co2-value { color: var(--soft-watch); }
+.w-room[data-tone='over'] .w-room-co2-value { color: var(--soft-over); }
+.w-room-co2-unit { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
+
+.w-pair { display: grid; grid-template-columns: 1fr 1fr; padding: 0; }
+.w-half { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; padding: 14px 14px 14px 16px; }
+.w-half + .w-half { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
+.w-half .mod-head { gap: 4px; font-size: 0.625rem; letter-spacing: 0.03em; color: rgb(235 235 245 / 0.55); }
+.w-half .mod-head span:first-of-type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* The picture takes the height above the number, set to the right; the number sits along the bottom. */
+.w-half-body { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-items: end; gap: 6px; min-height: 0; padding-top: 8px; }
+.w-half .mod-value { position: relative; z-index: 1; font-size: 2rem; font-weight: 300; letter-spacing: -0.03em; }
+.w-half-body > .mod-value { grid-row: 2; }
+.w-half-pic { grid-row: 1; align-self: stretch; justify-self: stretch; width: 100%; height: 100%; max-height: 112px; min-height: 0; display: flex; align-items: flex-end; justify-content: flex-end; }
+.w-half-pic > svg { height: 100%; width: auto; max-width: 100%; }
+.w-half:not([data-wide]) .w-half-pic { margin-bottom: -30px; }
+.w-half[data-signal='humidity'] .w-half-pic > svg { height: 88%; }
+.w-half[data-signal='pressure'] .w-half-pic > svg { height: 92%; }
+/* Oxygen's trace runs the width of its half, behind the number. */
+.w-half[data-wide] .w-half-pic { position: absolute; left: -16px; right: -14px; bottom: 34px; height: 52%; }
+.w-half[data-wide] .w-half-pic > svg { width: 100%; }
+.w-half[data-wide] .spark-line { stroke: rgb(255 255 255 / 0.45); stroke-width: 1.2; }
+.w-half[data-wide] .spark-fill { fill: rgb(255 255 255 / 0.04); }
+.w-half[data-wide] .w-half-pic { height: 40%; }
+
+.w-rest { display: grid; grid-template-rows: auto 1fr; gap: 8px; padding: 14px 16px; }
+.w-rest-top { display: flex; justify-content: flex-end; }
+.w-rest-top .kind-key { margin: 0 !important; gap: 10px; }
+.w-rest-cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 14px; min-height: 0; }
+.w-col-reading { display: grid; grid-template-rows: auto 1fr auto auto; gap: 6px; min-width: 0; min-height: 0; }
+.w-col-head { display: flex; align-items: center; gap: 5px; color: rgb(235 235 245 / 0.55); }
+.w-col-head .icon { width: 1rem; height: 1rem; stroke-width: 2; }
+.w-col-reading .bars { height: 100%; min-height: 20px; }
+.w-col-big { font-size: 1.25rem; font-weight: 400; letter-spacing: -0.02em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.w-col-label { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* On a narrow screen the widgets become a row that scrolls sideways, one and a bit in view. */
+@media (max-width: 760px) {
+  .dock {
+    --dock-h: 190px;
+    left: 0;
+    right: 0;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .dock::-webkit-scrollbar { display: none; }
+  .dock > .widget-card { flex: 0 0 82%; scroll-snap-align: center; }
+  .dock-station > .w-air { flex-basis: 92%; }
+}
+
+/* ---- The smart dock: one row on a 12-column grid, widgets changing in place ---- */
+.dock-smart { display: block; }
+.dock-row { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; }
+.dw { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; container-type: inline-size; }
+.dw[data-problem] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft-over) 55%, transparent), 0 30px 70px -30px rgb(0 0 0 / 0.8); }
+.dw-word { font-size: 2.25rem !important; font-weight: 300 !important; letter-spacing: -0.02em !important; }
+
+/* The change: only the cards take part (the station keeps moving). A card that stays glides and
+   resizes into its new place; a card that comes or goes dissolves through a soft blur. */
+:root { view-transition-name: none; }
+::view-transition-group(*) { animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.25, 0.9, 0.25, 1); }
+::view-transition-old(*) { animation: dw-out 0.4s ease both; }
+::view-transition-new(*) { animation: dw-in 0.55s ease 0.12s both; }
+::view-transition-image-pair(*) { isolation: isolate; }
+@keyframes dw-out { to { opacity: 0; filter: blur(10px); transform: scale(0.985); } }
+@keyframes dw-in { from { opacity: 0; filter: blur(10px); transform: scale(1.015); } }
+
+/* Header: icon and name left, how the numbers came to exist (or a note) right. */
+.dw-head { margin: 0; }
+.dw-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-weight: 500; white-space: nowrap; }
+.dw-bad { color: var(--soft-over); }
+.dw p, .dw ul, .dw dl { margin: 0; }
+.dw ul { list-style: none; padding: 0; }
+.dw-big { font-size: 2.5rem; font-weight: 200; letter-spacing: -0.04em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.dw-label, .dw-sub { font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
+.dw-foot { margin-top: auto !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.6); }
+.dw-muted { color: rgb(235 235 245 / 0.5); }
+.dw-empty { margin: auto 0 !important; font-size: 0.875rem; }
+.dw-track { position: relative; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.1); overflow: hidden; }
+.dw-track-fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: rgb(255 255 255 / 0.8); }
+.dw-track-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgb(255 255 255 / 0.35); }
+
+/* Crew rows. */
+.dw-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.dw-row { width: 100%; min-height: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; column-gap: 12px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dw-rows li + li .dw-row { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.08); }
+.dw-row:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+.dw-name { font-size: 0.9375rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-where { font-size: 0.8125rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; }
+.dw-state { font-size: 0.75rem; color: rgb(235 235 245 / 0.55); text-align: right; white-space: nowrap; }
+.dw-row[data-tone='watch'] .dw-state { color: var(--soft-watch); font-weight: 600; }
+.dw-row[data-tone='over'] .dw-state { color: var(--soft-over); font-weight: 600; }
+
+/* CO2 columns. */
+.dw-co2 { position: relative; flex: 1; min-height: 0; }
+.dw-levels { position: absolute; inset: 0 0 34px; pointer-events: none; }
+.dw-levels span { position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--soft-over) 50%, transparent); }
+.dw-levels span[data-soft] { border-top-color: color-mix(in srgb, var(--soft-watch) 40%, transparent); }
+.dw-levels em { position: absolute; right: 0; top: -14px; font-style: normal; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); white-space: nowrap; }
+.dw-levels span[data-soft] em { top: 3px; }
+.dw-cols { height: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.dw-cols button { width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto auto; gap: 3px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.dw-cols button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
+.dw-col { position: relative; display: block; width: min(24px, 70%); justify-self: center; border-radius: 5px; background: rgb(255 255 255 / 0.05); overflow: hidden; }
+.dw-col-fill { position: absolute; inset: auto 0 0; border-radius: 5px; background: rgb(255 255 255 / 0.75); }
+.dw-col-fill[data-tone='watch'] { background: var(--soft-watch); }
+.dw-col-fill[data-tone='over'] { background: var(--soft-over); }
+.dw-col-value { font-size: 0.8125rem; color: #fff; font-variant-numeric: tabular-nums; text-align: center; }
+.dw-col-name { font-size: 0.625rem; color: rgb(235 235 245 / 0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+
+/* Alerts. */
+.dw-alerts { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dw-alerts .dw-big { font-size: 3rem; }
+.dw-alerts[data-tone='ok'] .dw-sub { color: var(--soft-ok); font-size: 0.9375rem; font-weight: 600; }
+.dw-alerts[data-tone='watch'] .dw-big { color: var(--soft-watch); }
+.dw-alerts[data-tone='over'] .dw-big { color: var(--soft-over); }
+.dw-line { margin-top: auto; font-size: 0.8125rem; color: rgb(235 235 245 / 0.7); }
+.dw-alerts:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 6px; }
+
+/* Earth, mission. */
+.dw-earth, .dw-mission { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.dw-earth .dw-big, .dw-mission .dw-big { font-size: 2.75rem; }
+.dw-track-labels { display: flex; justify-content: space-between; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); }
+.dw-facts { margin-top: auto !important; display: flex; justify-content: space-between; gap: 10px; font-size: 0.75rem; color: rgb(235 235 245 / 0.6); }
+
+/* People bars: sleep, exercise, exposure. */
+.dw-bars { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 4px; }
+.dw-bars li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 3.2em; align-items: center; column-gap: 10px; }
+.dw-bars .dw-name { font-size: 0.8125rem; }
+.dw-bar { height: 6px; border-radius: 3px; background: rgb(255 255 255 / 0.08); overflow: hidden; }
+.dw-bar > span { display: block; height: 100%; border-radius: 3px; background: rgb(255 255 255 / 0.75); }
+.dw-bar > span[data-tone='watch'] { background: var(--soft-watch); }
+.dw-num { font-size: 0.8125rem; text-align: right; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Board: readings in a grid. */
+.dw-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px 14px; align-content: center; }
+.dw-grid dt { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); }
+.dw-grid dd { margin: 0; display: flex; align-items: center; gap: 2px; font-size: 1.125rem; font-weight: 300; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dw-grid .kind-mark { margin-left: 5px; color: rgb(235 235 245 / 0.55); }
+
+/* Radiation. */
+.dw-minicols { flex: 1; min-height: 20px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; align-items: end; }
+.dw-minicols li { height: 100%; display: flex; align-items: flex-end; }
+.dw-minicols li span { width: 100%; border-radius: 3px; background: rgb(255 255 255 / 0.4); }
+
+/* Sizes: a widget shows more as its slot grows. */
+@container (max-width: 300px) {
+  .dw-not-quarter { display: none !important; }
+  .dw-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .dw-row .dw-where { display: none; }
+  .dw-big { font-size: 2.25rem; }
+}
+@container (max-width: 640px) {
+  .dw-only-full { display: none; }
+}
+@container (min-width: 520px) {
+  .dw-bars li { grid-template-columns: 6em minmax(0, 1fr) 3.6em; }
+  .dw-earth .dw-big, .dw-mission .dw-big { font-size: 3.25rem; }
+}
+
+/* On a phone a page shows its widgets one under the other would not fit: the page row scrolls sideways instead. */
+@media (max-width: 760px) {
+  .dock-smart { display: block; overflow: visible; padding: 0; }
+  .dock-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 16px; scrollbar-width: none; }
+  .dock-row::-webkit-scrollbar { display: none; }
+  .dock-row > .dw { flex: 0 0 84%; scroll-snap-align: center; }
 }

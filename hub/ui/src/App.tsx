@@ -1,18 +1,29 @@
-// Skeleton screen: proves the data path end to end. It has no design yet; the
-// real screens replace it. Every word comes from the string table and every
-// reading shows how it came to exist.
+// The hub's main screen: the station fills the window, with the top bar over it.
+// The bar's two buttons open what used to be the page below: the bell, alarms
+// and alerts (it opens by itself when a new one arrives); the connection icon,
+// the hub, the sensors, the link to Earth and the language. Tapping a room or a
+// person opens the person view (person/PersonView.tsx); a room, its readings
+// in a card. Every word comes from the string table
+// and every reading shows how it came to exist.
 
-import { useMemo, useState } from 'react';
-import { RecordedSource, chooseSource, hubAddress, useWorld } from './data.ts';
-import { current, isFresh, occupants } from '../../engine/timeline.ts';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { RecordedSource, chooseSource, useWorld } from './data.ts';
+import { current, occupants } from '../../engine/timeline.ts';
 import { t } from '../../engine/strings.ts';
 import { visibleTo } from '../../engine/alerts.ts';
 import { personStatus, roomStatus } from '../../engine/status.ts';
 import { Station } from './scene/Station.tsx';
+import { PersonView } from './person/PersonView.tsx';
+import { AlertsPanel, ConnectionPanel } from './panels.tsx';
+import { RoomView } from './room/RoomView.tsx';
+import { StationDock } from './dock/StationDock.tsx';
+import { useMockAlert } from './demo/mockAlert.ts';
+import { Loading } from './Loading.tsx';
+import { MainPanels, TopActions, isMainPanel, useStationMission } from './panels/MainPanels.tsx';
+import type { MainPanel } from './panels/MainPanels.tsx';
 import type { Selection } from './scene/Station.tsx';
 import './app.css';
 import type { Lang } from '../../engine/strings.ts';
-import type { Row } from '../../engine/types.ts';
 
 const DAY = 24 * 3600_000;
 
@@ -24,15 +35,14 @@ function startLang(): Lang {
   return navigator.language.toLowerCase().startsWith('pt') ? 'pt' : 'en';
 }
 
-function clock(seconds: number): string {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-}
 
 export function App() {
   const source = useMemo(chooseSource, []);
-  const world = useWorld(source);
+  // `?demoAlert` lays a mock alarm and alerts over the live state, on this screen only (demo/mockAlert.ts).
+  const world = useMockAlert(useWorld(source));
   const [lang, setLang] = useState<Lang>(startLang);
   const [selected, setSelected] = useState<Selection>(null);
+  const [panel, setPanel] = useState<'alerts' | 'link' | MainPanel | null>(null);
   const s = (key: string, vars?: Record<string, string | number>) => t(key, lang, vars);
 
   const switchLang = () => {
@@ -42,13 +52,39 @@ export function App() {
     try { localStorage.setItem('astrum.lang', next); } catch { /* not saved, still switched */ }
   };
 
+  // Whose phone this is, if it is one (`?person=<id>`); none on the hub's shared screen.
+  const viewer = new URLSearchParams(location.search).get('person');
+  // A phone shows its owner what they are told. The hub's shared screen shows only what everyone
+  // is told: a question for one person ("Are you OK?") goes to their phone, never the shared screen.
+  const alerts = viewer ? visibleTo(world.alerts, viewer) : world.alerts.filter((a) => a.toldTo === 'everyone');
+  const active = [...world.alarms.map((a) => `alarm|${a.room}|${a.signal}`), ...alerts.filter((a) => !a.held).map((a) => `alert|${a.id}`)];
+
+  // Something new to see opens the alerts by itself.
+  const seen = useRef(new Set<string>());
+  const activeKey = active.join(',');
+  useEffect(() => {
+    if (active.some((key) => !seen.current.has(key))) setPanel('alerts');
+    seen.current = new Set(active);
+  }, [activeKey]);
+
+  // Escape closes an open panel, or else steps back out of what is selected.
+  useEffect(() => {
+    if (!panel && !selected) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (panel) setPanel(null);
+      else setSelected(null);
+    };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, [panel, selected]);
+
+  const stationMission = useStationMission(world.profile);
   const { profile, now } = world;
-  if (!profile) return <main><p role="status">{s(world.status === 'offline' ? 'hub.offline' : 'hub.connecting')}</p></main>;
+  if (world.restarting) return <main><Loading message={s('settings.restartingAny')} quiet={false} /></main>;
+  if (!profile) return <main><Loading message={s(world.status === 'offline' ? 'hub.offline' : 'hub.connecting')} quiet={world.status !== 'offline'} /></main>;
 
   const values = current(world.latest, now);
-  // A phone shows its owner only what the hub tells them. The hub's own window sees everything.
-  const viewer = new URLSearchParams(location.search).get('person');
-  const alerts = viewer ? visibleTo(world.alerts, viewer) : world.alerts;
   const here = occupants(world.stays, now);
   const where: Record<string, string> = {};
   for (const [room, people] of Object.entries(here)) for (const person of people) where[person] = room;
@@ -57,153 +93,80 @@ export function App() {
   // The simulated crew sleeps in its quarters from 22:00 to 06:00.
   const hour = new Date(now).getHours();
   const asleep = profile.crew.map((p) => p.id).filter((id) => (hour < 6 || hour >= 22) && where[id]?.startsWith('quarters'));
-  const shownRooms = selected?.kind === 'room' ? profile.rooms.filter((r) => r.id === selected.id) : profile.rooms;
-  const shownCrew = selected?.kind === 'person' ? profile.crew.filter((p) => p.id === selected.id) : profile.crew;
+  const urgent = world.alarms.some((a) => !a.acknowledged) || alerts.some((a) => !a.held && a.level >= 2);
+  const toggle = (which: 'alerts' | 'link' | MainPanel) => setPanel((open) => (open === which ? null : which));
   const day = Math.floor((now - Date.parse(profile.missionStart)) / DAY) + 1;
 
   return (
-    <main>
-      <header>
+    <main className="hub">
+      <Station rooms={profile.rooms} crew={profile.crew} where={where} roomStatus={roomStatuses} personStatus={personStatuses}
+        asleep={asleep} activity={world.activity && Object.fromEntries(Object.entries(world.activity).map(([id, a]) => [id, a.what]))}
+        s={s} selected={selected} onSelect={(next) => { setSelected(next); if (next) setPanel(null); }} mission={stationMission} />
+
+      <header className="topbar">
         <h1 className="brand"><img src="brand/logo.svg" alt={s('app.name')} /></h1>
-        <p>
-          {s(profile.place)} · {s('top.missionDay', { day })} · {s('top.delay', { time: clock(profile.delayToEarthSeconds) })}
-        </p>
-        <button type="button" onClick={switchLang} aria-label={lang === 'en' ? 'Mudar para português' : 'Switch to English'}>
-          {lang === 'en' ? 'PT' : 'EN'}
+        <p className="topbar-where">{profile.mission?.nameText ?? s(`${profile.place}.short`)} · {s('top.day', { day })}</p>
+        <TopActions open={panel} onToggle={toggle} s={s} />
+        <button type="button" className="topbar-icon" aria-expanded={panel === 'link'} aria-controls="panel-link"
+          aria-label={`${s('top.link')}: ${s(world.status === 'offline' ? 'hub.offline' : world.status === 'replay' ? 'top.link.replay' : 'top.link.live')}`}
+          data-off={world.status === 'offline' ? '' : undefined} onClick={() => toggle('link')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.2a9.5 9.5 0 0 1 13 0M8.6 15.4a5 5 0 0 1 6.8 0" />
+            <circle cx="12" cy="18.6" r="1.1" />
+            {world.status === 'offline' && <path d="M4 4l16 16" />}
+          </svg>
         </button>
-        {world.status === 'offline' && <p role="alert">{s('hub.offline')}</p>}
-        {world.scenario && (
-          <p>
-            {s(world.scenario.label)}
-            {source instanceof RecordedSource && <> <button type="button" onClick={() => source.restart()}>{s('scenario.replay')}</button> <button type="button" onClick={() => source.skip()}>{s('scenario.skip')}</button></>}
-          </p>
-        )}
+        <button type="button" className="topbar-icon" aria-expanded={panel === 'alerts'} aria-controls="panel-alerts"
+          aria-label={active.length ? s('top.alerts.count', { count: active.length }) : s('top.alerts')} onClick={() => toggle('alerts')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0" />
+          </svg>
+          {active.length > 0 && <span className="badge" data-urgent={urgent ? '' : undefined} aria-hidden="true">{active.length}</span>}
+        </button>
       </header>
 
-      {world.alarms.map((alarm) => {
-        const room = profile.rooms.find((r) => r.id === alarm.room);
-        return (
-          <p key={`${alarm.room}|${alarm.signal}`} role="alert">
-            <strong>{s('alarm.over', { room: s(room?.name ?? alarm.room), signal: s(`signal.${alarm.signal}`), value: alarm.value, unit: alarm.unit, limit: alarm.limit })}</strong>
-            {' '}<small>{s(`kind.${alarm.kind}`)} · {alarm.source}</small>{' '}
-            {alarm.acknowledged ? s('alarm.acknowledged') : (
-              <button type="button" onClick={() => void fetch(`http://${hubAddress()}/api/alarms/acknowledge`, { method: 'POST', body: JSON.stringify({ room: alarm.room }) })}>
-                {s('alarm.acknowledge')}
-              </button>
-            )}
-          </p>
-        );
-      })}
+      {world.status === 'offline' && <p className="banner" role="alert">{s('hub.offline')}</p>}
 
-      {[...new Set(alerts.filter((a) => a.stationWide).map((a) => a.signal))].map((signal) => {
-        const group = alerts.filter((a) => a.stationWide && a.signal === signal);
-        const first = group[0];
-        const roomName = (id: string) => s(profile.rooms.find((r) => r.id === id)?.name ?? id);
-        return (
-          <div key={`wide|${signal}`} role="alert">
-            <p>
-              <strong>{s('level.3')}.</strong>{' '}
-              {s('alert.stationWide', { signal: s(`signal.${signal}`), count: new Set(group.map((a) => a.room)).size, people: group.map((a) => profile.crew.find((p) => p.id === a.person)?.name ?? a.person).join(', ') })}{' '}
-              {first.lowestRoom ? s('alert.lowestRoom', { room: roomName(first.lowestRoom.room), value: first.lowestRoom.value, unit: first.unit ?? '' }) : s('alert.noRoomUnder')}
-              {' '}<small>{s(`kind.${first.kind}`)}</small>
-            </p>
-            {first.card && <p>{s('alert.card', { card: first.card })}</p>}
-            {first.earth && <p>{s('alert.earth', { time: clock(Math.max(0, Math.ceil((first.earth.replyAt - now) / 1000))) })}</p>}
-          </div>
-        );
-      })}
+      {panel === 'alerts' && (
+        <AlertsPanel world={world} alerts={alerts} rooms={profile.rooms} crew={profile.crew} now={now} viewer={viewer} s={s} onClose={() => setPanel(null)} />
+      )}
 
-      {alerts.filter((alert) => !alert.held && !alert.stationWide).map((alert) => {
-        const name = (id: string) => profile.crew.find((p) => p.id === id)?.name ?? id;
-        const room = profile.rooms.find((r) => r.id === alert.room);
-        const post = (answer: 'ok' | 'help') => void fetch(`http://${hubAddress()}/api/alerts/answer`, { method: 'POST', body: JSON.stringify({ id: alert.id, answer }) });
-        return (
-          <div key={alert.id} role="alert">
-            <p>
-              <strong>{s(`level.${alert.level}`)}.</strong>{' '}
-              {alert.reason === 'room-limit'
-                ? s('alert.roomLimit', { person: name(alert.person), room: s(room?.name ?? ''), signal: s(`signal.${alert.signal}`), value: alert.value ?? '', unit: alert.unit ?? '', limit: alert.limit ?? '' })
-                : s('alert.unusual', { person: name(alert.person), signal: s(`signal.${alert.signal}`) })}
-              {' '}<small>{s(`kind.${alert.kind}`)} · {s('alert.toldTo', { who: alert.toldTo === 'everyone' ? s('alert.everyone') : alert.toldTo.map(name).join(', ') })}</small>
-            </p>
-            {alert.level === 2 && alert.answer === null && alert.answerBy !== null && (!viewer || viewer === alert.person) && (
-              <p>
-                {s('alert.areYouOk', { seconds: Math.max(0, Math.ceil((alert.answerBy - now) / 1000)) })}{' '}
-                <button type="button" onClick={() => post('ok')}>{s('alert.ok')}</button>{' '}
-                <button type="button" onClick={() => post('help')}>{s('alert.help')}</button>
-              </p>
-            )}
-            {alert.answer === 'ok' && <p>{s('alert.answeredOk')}</p>}
-            {alert.card && <p>{s('alert.card', { card: alert.card })}</p>}
-            {alert.earth && <p>{s('alert.earth', { time: clock(Math.max(0, Math.ceil((alert.earth.replyAt - now) / 1000))) })}</p>}
-          </div>
-        );
-      })}
+      {panel === 'link' && (
+        <ConnectionPanel world={world} delaySeconds={profile.delayToEarthSeconds} s={s} onClose={() => setPanel(null)} />
+      )}
 
-      <Station rooms={profile.rooms} crew={profile.crew} where={where} roomStatus={roomStatuses} personStatus={personStatuses}
-        asleep={asleep} s={s} selected={selected} onSelect={setSelected} />
+      {isMainPanel(panel) && (
+        <MainPanels which={panel} world={world} profile={profile} selected={selected} lang={lang} s={s} onClose={() => setPanel(null)}
+          onLang={(next) => { if (next !== lang) switchLang(); }} />
+      )}
 
-      <section aria-labelledby="rooms">
-        <h2 id="rooms">{s('hub.rooms')}</h2>
-        {shownRooms.map((room) => {
-          const rows = values.filter((r) => !r.person && r.room === room.id).sort((a, b) => a.signal.localeCompare(b.signal));
-          const people = (here[room.id] ?? []).map((id) => profile.crew.find((p) => p.id === id)?.name ?? id);
-          return (
-            <article key={room.id}>
-              <h3>{s(room.name)}</h3>
-              <p>{people.length ? people.join(', ') : s('hub.nobody')}</p>
-              {rows.length ? <Readings rows={rows} now={now} s={s} /> : <p>{s('reading.none')}</p>}
-            </article>
-          );
-        })}
-      </section>
+      {!selected && (
+        <StationDock world={world} profile={profile} values={values} where={where} roomStatus={roomStatuses} personStatus={personStatuses}
+          s={s} onSelect={setSelected} onAlerts={() => setPanel('alerts')} />
+      )}
 
-      <section aria-labelledby="crew">
-        <h2 id="crew">{s('hub.crew')}</h2>
-        {shownCrew.map((person) => {
-          // Blood results get their own screen; the skeleton lists the rest.
-          const rows = values.filter((r) => r.person === person.id && !r.signal.startsWith('blood.'));
-          return (
-            <article key={person.id}>
-              <h3>{person.name} <small>{s(person.role)}</small></h3>
-              {rows.length ? <Readings rows={rows} now={now} s={s} /> : <p>{s('reading.none')}</p>}
-            </article>
-          );
-        })}
-      </section>
+      {selected?.kind === 'person' && (() => {
+        const person = profile.crew.find((p) => p.id === selected.id);
+        return person ? (
+          <PersonView person={person} rooms={profile.rooms} crew={profile.crew} latest={values} room={where[person.id] ?? null}
+            now={now} s={s} lang={lang} own={viewer === person.id} alerts={alerts.filter((a) => a.person === person.id && !a.held)} />
+        ) : null;
+      })()}
 
-      <section aria-labelledby="sensors">
-        <h2 id="sensors">{s('hub.sensors')}</h2>
-        {world.sources.length === 0 && <p>{s('source.disconnected')}</p>}
-        {world.sources.map((src) => (
-          <p key={src.id}>
-            <strong>{src.id}</strong> · {s(src.connected ? 'source.connected' : 'source.disconnected')}
-            {src.missing.length > 0 && <> · {s('source.missing', { list: src.missing.map((k) => s(`signal.${k}`)).join(', ') })}</>}
-            {src.connected && src.id.startsWith('chip:') && (['beep', 'alarm', 'off'] as const).map((mode) => (
-              <button key={mode} type="button" onClick={() => void fetch(`http://${hubAddress()}/api/buzz`, { method: 'POST', body: JSON.stringify({ mode }) })}>
-                {s(mode === 'beep' ? 'chip.beep' : mode === 'alarm' ? 'chip.alarm' : 'chip.alarmOff')}
-              </button>
-            ))}
-          </p>
-        ))}
-      </section>
+      {selected?.kind === 'room' && (() => {
+        const room = profile.rooms.find((r) => r.id === selected.id);
+        if (!room) return null;
+        const rows = values.filter((r) => !r.person && r.room === room.id).sort((a, b) => a.signal.localeCompare(b.signal));
+        const people = (here[room.id] ?? []).map((id) => ({ id, name: profile.crew.find((p) => p.id === id)?.name ?? id }));
+        return <RoomView room={room} status={roomStatuses[room.id] ?? 'unknown'} rows={rows} people={people} now={now} s={s} />;
+      })()}
+
+      {world.scenario && (
+        <p className="story">
+          {s(world.scenario.label)}
+          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => source.restart()}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button></>}
+        </p>
+      )}
     </main>
-  );
-}
-
-function Readings({ rows, now, s }: { rows: Row[]; now: number; s: (key: string, vars?: Record<string, string | number>) => string }) {
-  return (
-    <dl>
-      {rows.map((row) => (
-        <div key={`${row.signal}`}>
-          <dt>{s(`signal.${row.signal}`)}</dt>
-          <dd>
-            {row.value === null ? row.text : `${Number(row.value.toFixed(2))} ${row.unit}`}
-            {' '}
-            <small>{s(`kind.${row.kind}`)} · {row.source}{isFresh(row, now) ? '' : ` · ${s('reading.stale')}`}</small>
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }

@@ -8,6 +8,9 @@ import { clockOffset, screenNow, scopeOf } from '../../engine/timeline.ts';
 import { momentAfter, realOffset, speedProfile } from '../../engine/playback.ts';
 import type { RoomAlarm } from '../../engine/cabin.ts';
 import type { Alert, EarthMessage } from '../../engine/alerts.ts';
+import type { Evidence } from '../../engine/evidence.ts';
+import type { CrewWatch } from '../../engine/sensors.ts';
+import type { Activity } from '../../engine/activity.ts';
 
 export interface World {
   status: 'connecting' | 'live' | 'offline' | 'replay';
@@ -25,8 +28,29 @@ export interface World {
   earthMessages: EarthMessage[];
   /** Crew ids the hub counts as asleep. */
   asleep: string[];
+  /**
+   * Each crewmate's evidence card by crew id, as the hub last worked it out
+   * (computedAt is the hub's clock then). The hub keeps them fresh and pushes
+   * them, so a screen shows a selected person's card with no request. Missing
+   * for a person until the hub has computed theirs, and from older hubs.
+   */
+  evidence?: Record<string, Evidence & { computedAt?: number }>;
   /** Set while what is shown is a simulated scenario, for the screen to say so. */
   scenario?: ScenarioFlag | null;
+  /**
+   * Rooms past a "warn" level the crew set on one of their sensors: mark the
+   * room "watch" (room.summary.crewWatch). Never an alarm. Missing from older
+   * hubs and recordings. The mission's facts (gravity, body, kind) are in
+   * profile.mission; crew-level alarms are in `alarms` with limitSource 'crew'.
+   */
+  crewWatch?: CrewWatch[];
+  /**
+   * What each crewmate is doing as far as the hub knows (sleeping, exercising, eating or none),
+   * with how it is known (engine/activity.ts). Missing from older hubs and recordings.
+   */
+  activity?: Record<string, Activity>;
+  /** Set when the hub said it is restarting on another mission (a mission file); cleared by its next state. */
+  restarting?: string | null;
 }
 
 const empty: World = { status: 'connecting', now: Date.now(), profile: null, latest: [], stays: [], sources: [], alarms: [], alerts: [], earthMessages: [], asleep: [] };
@@ -45,7 +69,8 @@ function applyOne(world: World, message: HubMessage): World {
     case 'state':
       return {
         ...world, now: message.now, profile: message.profile, latest: message.latest, stays: message.stays, sources: message.sources, alarms: message.alarms ?? [], alerts: message.alerts ?? [],
-        earthMessages: message.earthMessages ?? [], asleep: message.asleep ?? [],
+        earthMessages: message.earthMessages ?? [], asleep: message.asleep ?? [], evidence: message.evidence ?? {}, crewWatch: message.crewWatch ?? [],
+        activity: message.activity, restarting: null,
       };
     case 'rows': {
       const latest = new Map(world.latest.map((r) => [`${scopeOf(r)}|${r.source}`, r]));
@@ -64,15 +89,21 @@ function applyOne(world: World, message: HubMessage): World {
     case 'sources':
       return { ...world, sources: message.sources };
     case 'alarms':
-      return { ...world, alarms: message.alarms };
+      return { ...world, alarms: message.alarms, crewWatch: message.crewWatch ?? world.crewWatch };
     case 'alerts':
       return { ...world, alerts: message.alerts };
     case 'earth':
       return { ...world, earthMessages: message.earthMessages };
     case 'asleep':
       return { ...world, asleep: message.asleep };
+    case 'activity':
+      return { ...world, activity: message.activity };
     case 'clock':
       return { ...world, now: message.now };
+    case 'evidence':
+      return { ...world, evidence: { ...world.evidence, [message.person]: message.evidence } };
+    case 'restarting':
+      return { ...world, restarting: message.to };
     default:
       return world;
   }

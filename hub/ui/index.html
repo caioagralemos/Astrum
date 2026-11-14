@@ -5,9 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Astrum</title>
     <link rel="icon" type="image/svg+xml" href="brand/mark.svg" />
+    <style>
+      body { margin: 0; background: #0b0c0e; }
+      #splash { position: fixed; inset: 0; display: grid; place-items: center; }
+      #splash svg { display: block; width: 112px; height: auto; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash">
+        <svg viewBox="0 0 88 68" fill="#f2f3f5" aria-hidden="true">
+          <path d="M34 11C34 7.13401 37.134 4 41 4H47C50.866 4 54 7.13401 54 11V57C54 60.866 50.866 64 47 64H41C37.134 64 34 60.866 34 57V11Z" />
+          <path d="M67 24C70.866 24 74 27.134 74 31V37C74 40.866 70.866 44 67 44H21C17.134 44 14 40.866 14 37V31C14 27.134 17.134 24 21 24H67Z" />
+          <path fill-opacity="0.6" fill-rule="evenodd" transform="translate(43.33 33.8) rotate(142.38)" d="M-53.56 0a53.56 10.01 0 1 0 107.12 0a53.56 10.01 0 1 0 -107.12 0ZM-36.44 0a36.44 6.76 0 1 0 72.88 0a36.44 6.76 0 1 0 -72.88 0Z" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,0 +1,63 @@
+/* The loading screen: the mark alone, with light running round its orbit.
+   Same size and place as the splash in index.html, so one takes over from the other unseen. */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--bg, #0b0c0e);
+}
+
+.loading-mark {
+  display: block;
+  width: 112px;
+  height: auto;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.loading[data-shown] .loading-mark { opacity: 1; }
+
+.loading-cross { fill: var(--text, #f2f3f5); }
+.loading-ring { fill: var(--text, #f2f3f5); fill-opacity: 0.6; }
+
+.loading-light path {
+  fill: none;
+  stroke: var(--text, #f2f3f5);
+  stroke-width: 18;
+  stroke-dashoffset: 0;
+  animation: loading-orbit 1.8s linear infinite;
+  animation-delay: var(--loading-phase, 0ms);
+}
+@keyframes loading-orbit {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+
+/* Under the mark, so the mark itself stays dead centre. */
+.loading-text {
+  position: absolute;
+  top: calc(50% + 43px + 18px);
+  left: 16px;
+  right: 16px;
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted, #9aa0a8);
+}
+.loading-unseen {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* A copy left over the hub as the data arrives: seen out, then faded. */
+.loading[data-leaving] { pointer-events: none; z-index: 1000; transition: opacity 200ms ease; }
+.loading[data-gone] { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark, .loading[data-leaving] { transition: none; }
+  .loading-light path { animation: none; stroke-dashoffset: 0; }
+}

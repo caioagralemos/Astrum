@@ -1,0 +1,209 @@
+/* Settings, Ask Astra and Contact Earth on the main screen. Built from the
+   main screen's own pieces (.panel.frame, .rule, .label, .quiet, .btn, .choice,
+   .status-word, .kind) and its variables; only what those lack is here, every
+   class prefixed with x so it never touches the rest. */
+
+/* ---- Top bar: three more icons, drawn like the wifi and the bell ---- */
+.xtop { display: flex; align-items: center; gap: 8px; }
+.xtop-wide { display: flex; gap: 8px; }
+.xtop-narrow { display: none; position: relative; }
+.topbar-icon circle.xline, .xmenu circle.xline { fill: none; stroke: currentColor; }
+@media (max-width: 520px) {
+  .xtop-wide { display: none; }
+  .xtop-narrow { display: block; }
+}
+/* At phone width the bar was already full: the place and day wrap onto two short lines to make room for the menu. */
+@media (max-width: 430px) {
+  .topbar:has(.xtop) .topbar-where { max-width: 5.75rem; white-space: normal; font-size: 0.8125rem; line-height: 1.2; }
+  .xtop-more.topbar-icon { width: 32px; }
+}
+.xmenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 4;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 18px;
+}
+.xmenu button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text);
+  font-size: 0.9375rem;
+  text-align: left;
+  cursor: pointer;
+}
+.xmenu button:hover, .xmenu button[aria-pressed='true'] { background: var(--fill); }
+.xmenu svg { width: 1.25rem; height: 1.25rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.xmenu circle { fill: currentColor; stroke: none; }
+
+/* ---- The sheet: the panel, wider for reading; a bottom sheet on a tall screen ---- */
+.xpanel { width: min(440px, calc(100vw - 32px)); }
+.xpanel:focus { outline: none; }
+/* The room or person sheet sits where these open: it steps aside while one is open, and comes back after. */
+/* So does the dock along the bottom: a panel is read alone, over the station. */
+.hub:has(.xpanel) > .person, .hub:has(.xpanel) > .room, .hub:has(.xpanel) > .dock { visibility: hidden; }
+@media (max-aspect-ratio: 4/5) {
+  .xpanel { top: auto; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; max-height: 72dvh; padding: 18px; }
+}
+.xpanel h3, .xpanel h4 { margin: 0; }
+.xpanel ul, .xpanel ol { margin: 0; padding: 0; list-style: none; }
+.xsub { margin-top: 16px !important; }
+
+/* ---- Forms: plain fields on a tint, the same radius as the buttons ---- */
+.xform { display: flex; flex-direction: column; gap: 12px; }
+.xform .actions { margin-top: 0; }
+.xrow { display: flex; gap: 12px; flex-wrap: wrap; }
+.xrow > .xfield { flex: 1 1 140px; min-width: 0; }
+.xgrow { flex: 1 1 auto !important; }
+.xfield { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.xfield .label { margin-bottom: 6px; }
+.xpanel input[type='text'], .xpanel input[type='date'], .xpanel input[type='number'], .xpanel select, .xpanel textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+.xpanel textarea { resize: vertical; line-height: 1.45; }
+.xpanel select:disabled { opacity: 1; color: var(--text-muted); }
+.xpanel input:focus-visible, .xpanel select:focus-visible, .xpanel textarea:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.xpanel [aria-invalid='true'] { border-color: var(--soft-over); }
+.xpanel button:focus-visible, .xpanel a:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.xpanel .btn[disabled], .xpanel .btn[aria-disabled='true'] { opacity: 0.45; cursor: default; }
+.xerror { margin: 6px 0 0 !important; font-size: 0.8125rem; color: var(--soft-over); }
+.xerror ul { margin-top: 4px; padding-left: 1.1em; list-style: disc; }
+.xsaid { margin-top: 10px !important; font-size: 0.875rem; }
+.xsaid[data-bad] { color: var(--soft-over); }
+.xvalue { font-size: 1.125rem; font-weight: 300; font-variant-numeric: tabular-nums; }
+.xvalue-sm { font-size: 0.9375rem; }
+.xlink {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.xlink:hover { color: var(--text); }
+.xlink[data-danger] { color: var(--soft-over); }
+.xbtn-link { display: inline-flex; align-items: center; text-decoration: none; box-sizing: border-box; }
+.xslider { display: flex; align-items: center; gap: 14px; }
+.xslider input { flex: 1; accent-color: var(--text); min-height: 44px; }
+
+/* ---- Ask Astra: an instrument ---- */
+.xhub { margin-top: 0 !important; margin-bottom: 12px !important; }
+.xexamples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.xexamples .label { flex-basis: 100%; margin: 0; }
+.xchip {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+.xchip:hover { background: var(--fill); }
+.xchip:disabled { opacity: 0.45; cursor: default; }
+.xlive { margin-top: 14px; }
+.xprogress { font-size: 0.9375rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.xanswer { display: flex; flex-direction: column; gap: 8px; }
+.xtags { display: flex; flex-wrap: wrap; gap: 6px; }
+.xtag { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hairline-strong); color: var(--text-muted); }
+.xtag[data-urgent] { color: var(--soft-over); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft-over) 60%, transparent); }
+.xanswer-text { font-size: 1.0625rem; line-height: 1.5; }
+.xfacts { display: flex; flex-direction: column; gap: 8px; font-size: 0.9375rem; line-height: 1.45; }
+.xfact-labels { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: 8px; }
+.xquote { margin: 10px 0 0; padding-left: 12px; border-left: 1px solid var(--hairline-strong); }
+.xquote blockquote { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--text); }
+.xquote figcaption { margin-top: 4px; font-size: 0.75rem; color: var(--text-muted); }
+.xquote a, .xmessage a { color: var(--text-muted); text-underline-offset: 3px; }
+.xcard { padding: 12px 14px; border-radius: 18px; background: rgb(255 255 255 / 0.055); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xcard h4 { font-size: 0.9375rem; font-weight: 500; margin-bottom: 6px; }
+.xcard ol { list-style: decimal; padding-left: 1.2em; font-size: 0.9375rem; }
+
+/* ---- Contact Earth ---- */
+.xearth-fact { padding-bottom: 18px; }
+.xearth-lead { font-size: 1.625rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.xearth-then { margin-top: 8px !important; font-size: 1rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.xmessages { display: flex; flex-direction: column; }
+.xmessage { padding: 14px 0; }
+.xmessage + .xmessage { border-top: 1px solid var(--hairline); }
+.xmessage-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 0.875rem; font-weight: 500; }
+.xmessage-head .quiet { margin: 0 !important; font-weight: 400; }
+.xmessage-text { margin-top: 6px !important; font-size: 0.9375rem; line-height: 1.45; overflow-wrap: anywhere; }
+.xmessage-times { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 6px !important; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.xmessage-times [data-done] { color: var(--text); }
+/* Sent, at Earth (the tick), the earliest reply: how far along, in a hairline. */
+.xtrack { position: relative; height: 2px; margin-top: 10px; border-radius: 1px; background: var(--hairline); }
+.xtrack span { position: absolute; inset: 0 auto 0 0; border-radius: 1px; background: var(--text); transition: width 1s linear; }
+.xtrack i { position: absolute; top: -3px; width: 1px; height: 8px; background: var(--hairline-strong); }
+.xreply { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--fill); }
+.xreply p { font-size: 0.9375rem; line-height: 1.45; }
+.xreply footer { margin-top: 4px !important; }
+
+/* ---- Settings ---- */
+.xnote { margin-top: 0 !important; margin-bottom: 8px !important; }
+.xplace-list { display: flex; flex-direction: column; }
+.xplace { padding: 12px 0; }
+.xplace + .xplace { border-top: 1px solid var(--hairline); }
+.xplace-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.xplace-head h4 { font-size: 1rem; font-weight: 500; }
+.xplace-head .status-word { font-size: 0.8125rem; white-space: nowrap; }
+.xplace-facts { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px !important; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.xplace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 8px; }
+.xfacts-list { margin: 10px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.xfacts-list dt { font-size: 0.8125rem; color: var(--text-muted); }
+.xfacts-list dd { margin: 2px 0 0; font-size: 0.9375rem; }
+.xboard { display: block; }
+.xwarn { margin-top: 0 !important; }
+
+/* The editor. */
+.xeditor { display: flex; flex-direction: column; gap: 14px; }
+.xeditor-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.xeditor-head h3 { font-size: 1.25rem; font-weight: 500; letter-spacing: -0.01em; }
+.xeditor-head h3:focus { outline: none; }
+.xeditor-head .quiet { margin-top: 0 !important; }
+.xcrew { margin: 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* The section's title, its note and its buttons take their spacing from the column's gap alone. */
+.xcrew > legend { float: none; display: block; padding: 0; margin: 0 0 2px; }
+.xcrew > .quiet, .xcrew > .actions { margin-top: 0 !important; }
+.xperson { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-radius: 16px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xperson .quiet { margin-top: 0 !important; }
+/* Each person's card: which one it is, and removing it, on one line at the top. */
+.xperson-head { display: flex; align-items: center; justify-content: space-between; margin: -10px 0 -8px; font-size: 0.8125rem; font-weight: 600; color: rgb(235 235 245 / 0.6); }
+.xperson-head .xremove { font-weight: 400; }
+.xrooms { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px !important; font-size: 0.875rem; color: var(--text-muted); }
+.xsave .xerror { margin-bottom: 12px !important; }
+
+/* Reduced motion: no moving bar; the countdowns still change as numbers. */
+@media (prefers-reduced-motion: reduce) {
+  .xtrack { display: none; }
+}
+
+/* Reset to default: the question and its two answers, under the Save button. */
+.xconfirm { margin-top: 12px; padding: 12px 14px; border-radius: 18px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xconfirm p { margin-top: 0 !important; }
+.btn[data-danger] { color: var(--soft-over); }

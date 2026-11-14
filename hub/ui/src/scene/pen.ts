@@ -5,6 +5,7 @@
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import type { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import type { Matrix4 } from 'three';
 
 export type Plane = 'xy' | 'xz' | 'yz';
 
@@ -14,6 +15,14 @@ export class Pen {
   private oy = 0;
   private oz = 0;
   private sy = 1;
+  /** A module's frame: everything drawn is carried by it into the place's frame (null draws as is). */
+  private m: number[] | null = null;
+
+  /** Draw from here on in a module's frame (see layout.ts), or as is with null. */
+  frame(matrix: Matrix4 | null): this {
+    this.m = matrix ? matrix.elements : null;
+    return this;
+  }
 
   /** Draw from here on relative to (x, y, z); mirror = -1 flips it upside down. */
   at(x: number, y: number, z: number, mirror = 1): this {
@@ -25,7 +34,17 @@ export class Pen {
   }
 
   seg(ax: number, ay: number, az: number, bx: number, by: number, bz: number): this {
-    this.points.push(this.ox + ax, this.oy + ay * this.sy, this.oz + az, this.ox + bx, this.oy + by * this.sy, this.oz + bz);
+    const m = this.m;
+    if (!m) {
+      this.points.push(this.ox + ax, this.oy + ay * this.sy, this.oz + az, this.ox + bx, this.oy + by * this.sy, this.oz + bz);
+      return this;
+    }
+    for (const [x0, y0, z0] of [[ax, ay, az], [bx, by, bz]]) {
+      const x = this.ox + x0;
+      const y = this.oy + y0 * this.sy;
+      const z = this.oz + z0;
+      this.points.push(m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]);
+    }
     return this;
   }
 
