@@ -1,0 +1,37 @@
+Blood panels of the four SpaceX Inspiration4 private astronauts (subjects C001-C004),
+3-day flight, September 2021. Published by NASA's Open Science Data Repository (OSDR).
+
+  LSDS-8_Comprehensive_Metabolic_Panel_CMP_TRANSFORMED.csv
+      OSD-575 (Inspiration4 plasma/serum), metabolic panel, 19 analytes. Analyser: Beckman Coulter AU5800.
+  LSDS-7_Complete_Blood_Count_CBC_TRANSFORMED.csv
+      OSD-569 (Whole Blood Measurements from the SpaceX Inspiration4 Mission), complete blood count, 20 analytes.
+
+Listing:  https://osdr.nasa.gov/osdr/data/osd/files/569 and https://osdr.nasa.gov/osdr/data/osd/files/575
+Metadata: https://osdr.nasa.gov/osdr/data/osd/meta/575
+Files:    https://osdr.nasa.gov/geode-py/ws/studies/<OSD-n>/download?source=datamanager&file=<name>
+Downloaded 14 Nov 2026, no login. Copied here unchanged (same SHA-1 as the download).
+Public release date (OSD-575 metadata): 14 May 2024.
+
+Wide format: one row per sample ("C001_serum_L-3", "C001_whole-blood_L-3_cbc"), then for each
+analyte its value and the lab's own reference range (min, max), the unit in the column name.
+28 samples per file: 4 people x 7 days. Days are counted from launch (L-92, L-44, L-3) and from
+return (R+1, R+45, R+82, R+194). NONE of the samples was taken in flight.
+Example: C001 glucose 69 mg/dL at L-3, lab range 65-99; sodium 142 mmol/L, lab range 135-146.
+
+What is not verified:
+- Hemoglobin is filed as "percent". Its values (11.5 to 17.0) and its ranges (13.2-17.1 and
+  11.7-15.5) read as g/dL, and each is about a third of the same sample's hematocrit. Astrum keeps
+  the file's unit and leaves hemoglobin out of the demo until the original lab report is checked.
+- C003's lab ranges for hemoglobin and hematocrit change between L-3 (13.2-17.1, 38.5-50) and
+  R+1 (11.7-15.5, 35-45). The file does not say why.
+- A few cells are blank, "NA" or "N/A" (BUN/creatinine ratio, total bilirubin, eGFR maximum, and
+  MCH, MCHC, MCV for some samples). Astrum leaves those out.
+- The lab's ranges are the lab's, not the medical lead's. Astrum flags results only against
+  her blood.json.
+- Terms: no licence string in the study metadata. OSDR's FAQ and terms ask that datasets be cited
+  with the study page's citation button and that OSDR be credited
+  (https://science.nasa.gov/reference/osdr-faq, https://science.nasa.gov/reference/osdr-help-terms-and-conditions).
+  The full terms text was not read.
+
+Astrum never edits these values. In demo mode it plays one subject's values as one simulated
+crewmate's blood results, marked "replayed", each naming the subject and the day.

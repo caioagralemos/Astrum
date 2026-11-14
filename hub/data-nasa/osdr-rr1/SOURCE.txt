@@ -1,0 +1,21 @@
+ISS cabin telemetry recorded during Rodent Research-1 (SpaceX-4), 20 Sep to 1 Nov 2014.
+Published by NASA's Open Science Data Repository, Environmental Data Application.
+
+Downloaded 14 Nov 2026, no login, files unchanged:
+  co2.json              https://visualization.osdr.nasa.gov/eda/api/missions/RR-1/co2/
+  temperature-iss.json  https://visualization.osdr.nasa.gov/eda/api/missions/RR-1/temperature/iss/
+  humidity-iss.json     https://visualization.osdr.nasa.gov/eda/api/missions/RR-1/humidity/iss/
+
+12,087 rows each, one every 5 minutes.
+
+What is not verified:
+- The unit of co2_iss is not stated by the API. The values (1862 to 4667) are read as ppm.
+- Astrum converts ppm to mmHg as ppm / 1,000,000 x 760, which assumes a cabin at 760 mmHg.
+  On that reading the trace runs from 1.42 to 3.55 mmHg and its highest 1-hour average is
+  3.5 mmHg (7 Oct 2014), above NASA's limit of 3 mmHg (OCHMO-TB-004).
+- Where on the station the sensor was.
+- 22 to 26 Sep 2014 holds one repeated value (2641 to 2648 ppm), which looks like a held reading.
+- No licence text was found on the API. It is a NASA public data service; credit NASA OSDR.
+
+Astrum never edits these values. In demo mode it replays them, shifted in time, as the air of
+its simulated rooms, and marks every such row "replayed".
