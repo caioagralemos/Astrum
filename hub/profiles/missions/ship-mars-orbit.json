@@ -1,0 +1,336 @@
+{
+  "id": "mars-orbit",
+  "kind": "ship",
+  "name": "place.mars-orbit",
+  "where": {
+    "body": "mars",
+    "situation": "orbit"
+  },
+  "gravity": 0,
+  "delayToEarthSeconds": 1200,
+  "missionStart": "2026-04-18T00:00:00Z",
+  "plannedDays": 900,
+  "destination": "place.mars-orbit.short",
+  "note": "The ship the station view has always drawn: one line of eight-sided modules, nose at -x, engines at +x. The rooms and crew match profiles/mars-orbit.json exactly.",
+  "modules": [
+    {
+      "id": "command",
+      "name": "room.command",
+      "template": "command",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 3.5,
+        "radius": 1.364,
+        "radiusEnd": 2.2
+      },
+      "position": [-10.75, 0, 0],
+      "axis": [1, 0, 0]
+    },
+    {
+      "id": "quarters",
+      "name": "room.quarters",
+      "template": "quarters",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4.8,
+        "radius": 2.2
+      },
+      "position": [7.9, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "gym",
+        "port": "aft"
+      },
+      "cabins": [
+        {
+          "id": "quarters-1",
+          "name": "room.quarters-1",
+          "band": "upper",
+          "from": 0,
+          "to": 2.4
+        },
+        {
+          "id": "quarters-2",
+          "name": "room.quarters-2",
+          "band": "lower",
+          "from": 0,
+          "to": 2.4
+        },
+        {
+          "id": "quarters-3",
+          "name": "room.quarters-3",
+          "band": "upper",
+          "from": 2.4,
+          "to": 4.8
+        },
+        {
+          "id": "quarters-4",
+          "name": "room.quarters-4",
+          "band": "lower",
+          "from": 2.4,
+          "to": 4.8
+        }
+      ]
+    },
+    {
+      "id": "lab",
+      "name": "room.lab",
+      "template": "lab",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 5,
+        "radius": 2.2
+      },
+      "position": [-6.5, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "command",
+        "port": "aft"
+      }
+    },
+    {
+      "id": "galley",
+      "name": "room.galley",
+      "template": "galley",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 5,
+        "radius": 2.2
+      },
+      "position": [-1.5, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "lab",
+        "port": "aft"
+      }
+    },
+    {
+      "id": "gym",
+      "name": "room.gym",
+      "template": "exercise",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4.5,
+        "radius": 2.2
+      },
+      "position": [3.25, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "galley",
+        "port": "aft"
+      }
+    },
+    {
+      "id": "engines",
+      "name": "module.engines",
+      "template": "service",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 0.9,
+        "radius": 2.2,
+        "radiusEnd": 1.54
+      },
+      "position": [10.75, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "quarters",
+        "port": "aft"
+      }
+    },
+    {
+      "id": "airlock",
+      "name": "module.airlock",
+      "template": "airlock",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 2.3,
+        "radius": 0.62,
+        "chamfer": true
+      },
+      "position": [-6.75, 2.832535, -0.5],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "lab",
+        "port": "zenith"
+      }
+    },
+    {
+      "id": "storage",
+      "name": "module.storage",
+      "template": "storage",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 2.3,
+        "radius": 0.62,
+        "chamfer": true
+      },
+      "position": [3.25, -2.832535, -0.5],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "gym",
+        "port": "nadir"
+      }
+    }
+  ],
+  "crew": [
+    {
+      "id": "reyes",
+      "name": "Reyes",
+      "role": "role.engineer",
+      "pronouns": "she",
+      "quarters": "quarters-2",
+      "work": "lab"
+    },
+    {
+      "id": "leo",
+      "name": "Leo",
+      "role": "role.scientist",
+      "pronouns": "he",
+      "quarters": "quarters-1",
+      "work": "lab"
+    },
+    {
+      "id": "okafor",
+      "name": "Okafor",
+      "role": "role.cmo",
+      "quarters": "quarters-3",
+      "work": "lab"
+    },
+    {
+      "id": "tanaka",
+      "name": "Tanaka",
+      "role": "role.commander",
+      "quarters": "quarters-4",
+      "work": "command"
+    }
+  ],
+  "chips": {
+    "cabin-1": "galley"
+  },
+  "trusses": [
+    {
+      "id": "array-mast",
+      "from": [-1.5, -5.282535, -2.732535],
+      "to": [-1.5, 5.282535, -2.732535]
+    },
+    {
+      "id": "array-boom",
+      "from": [-1.5, 0, -2.032535],
+      "to": [-1.5, 0, -2.732535]
+    }
+  ],
+  "solarArrays": [
+    {
+      "id": "array-upper",
+      "at": [-1.5, 0, -2.732535],
+      "along": [0, 1, 0],
+      "across": [1, 0, 0],
+      "from": 2.482535,
+      "length": 2.8,
+      "panels": [
+        [-3.1, -0.3],
+        [0.3, 3.1]
+      ],
+      "tilt": 0.32,
+      "cols": 5,
+      "rows": 4,
+      "braces": true
+    },
+    {
+      "id": "array-lower",
+      "at": [-1.5, 0, -2.732535],
+      "along": [0, -1, 0],
+      "across": [1, 0, 0],
+      "from": 2.482535,
+      "length": 2.8,
+      "panels": [
+        [-3.1, -0.3],
+        [0.3, 3.1]
+      ],
+      "tilt": 0.32,
+      "cols": 5,
+      "rows": 4,
+      "braces": true
+    }
+  ],
+  "antennas": [
+    {
+      "id": "antenna",
+      "at": [8.6, 2.032535, -0.35],
+      "up": [0, 1, 0],
+      "height": 1.62,
+      "dish": 0.17
+    }
+  ],
+  "engines": [
+    {
+      "at": [11.2, 0.78, -0.35],
+      "axis": [1, 0, 0],
+      "length": 1.5,
+      "radius": 0.62
+    },
+    {
+      "at": [11.2, -0.78, -0.35],
+      "axis": [1, 0, 0],
+      "length": 1.5,
+      "radius": 0.62
+    }
+  ],
+  "view": {
+    "yaw": -0.24,
+    "pitch": 0.2,
+    "turnOnTall": true,
+    "face": 0,
+    "depth": 1,
+    "extras": "full",
+    "frame": [
+      [-12.5, 1.260172, 0.52198],
+      [-12.5, 1.260172, -0.52198],
+      [-12.5, 0.52198, -1.260172],
+      [-12.5, -0.52198, -1.260172],
+      [-12.5, -1.260172, -0.52198],
+      [-12.5, -1.260172, 0.52198],
+      [-12.5, -0.52198, 1.260172],
+      [-12.5, 0.52198, 1.260172],
+      [-9, 2.032535, 0.841904],
+      [-9, 2.032535, -0.841904],
+      [-9, 0.841904, -2.032535],
+      [-9, -0.841904, -2.032535],
+      [-9, -2.032535, -0.841904],
+      [-9, -2.032535, 0.841904],
+      [-9, -0.841904, 2.032535],
+      [-9, 0.841904, 2.032535],
+      [10.3, 2.032535, 0.841904],
+      [10.3, 2.032535, -0.841904],
+      [10.3, 0.841904, -2.032535],
+      [10.3, -0.841904, -2.032535],
+      [10.3, -2.032535, -0.841904],
+      [10.3, -2.032535, 0.841904],
+      [10.3, -0.841904, 2.032535],
+      [10.3, 0.841904, 2.032535],
+      [11.2, 1.422774, 0.589332],
+      [11.2, 1.422774, -0.589332],
+      [11.2, 0.589332, -1.422774],
+      [11.2, -0.589332, -1.422774],
+      [11.2, -1.422774, -0.589332],
+      [11.2, -1.422774, 0.589332],
+      [11.2, -0.589332, 1.422774],
+      [11.2, 0.589332, 1.422774],
+      [12.7, 1.4, -0.35],
+      [12.7, -1.4, -0.35],
+      [-4.4, 5.3, -1.9],
+      [1.5, 5.3, -3.7],
+      [-4.4, -5.3, -1.9],
+      [1.5, -5.3, -3.7],
+      [8.6, 3.832535, -0.35]
+    ]
+  }
+}

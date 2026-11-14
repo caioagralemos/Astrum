@@ -17,8 +17,9 @@ export const SUSTAIN_MS = 20 * 60_000;
 const RANK: Kind[] = ['simulated', 'replayed', 'reported', 'estimated', 'measured'];
 
 export class Baselines {
-  private summaries: PersonSummary[] = [];
-  private computedAt = 0;
+  private summaries = new Map<string, PersonSummary>();
+  /** When each person's summary was computed. */
+  private computedAt = new Map<string, number>();
   /** When each person's signal first turned unusual in its current run. */
   private unusualSince = new Map<string, number>();
   private store: Store;
@@ -31,27 +32,44 @@ export class Baselines {
     this.offsetMinutes = offsetMinutes;
   }
 
-  /** Everyone's summary, recomputed at most once a minute. */
+  /**
+   * Everyone's summary, each recomputed about once a minute. A call refreshes
+   * at most one person whose summary is due (the one waiting longest), so the
+   * work is spread over the watcher's ticks instead of landing in one; a
+   * person never computed yet is computed at once.
+   */
   all(now: number): PersonSummary[] {
-    if (now - this.computedAt < REFRESH_MS && now >= this.computedAt) return this.summaries;
-    const stateOf = stateWithSleep(this.offsetMinutes);
-    this.summaries = this.people.map((person) => {
-      const rows = this.store.rows({ person, from: now - BASELINE_MS, to: now, limit: 50_000 });
-      return personSummary(rows, person, now, { stateOf });
+    const due = this.people.filter((p) => {
+      const at = this.computedAt.get(p);
+      return at === undefined || now - at >= REFRESH_MS || now < at;
     });
-    this.computedAt = now;
+    const missing = due.filter((p) => !this.summaries.has(p));
+    const oldest = due.filter((p) => this.summaries.has(p)).sort((a, b) => this.computedAt.get(a)! - this.computedAt.get(b)!)[0];
+    for (const person of missing.length ? missing : oldest ? [oldest] : []) this.refresh(person, now);
+    return this.people.map((p) => this.summaries.get(p)!);
+  }
+
+  /** One person's summary, from the store, now. */
+  refresh(person: string, now: number): PersonSummary {
+    const rows = this.store.rows({ person, from: now - BASELINE_MS, to: now, limit: 50_000 });
+    const summary = personSummary(rows, person, now, { stateOf: stateWithSleep(this.offsetMinutes) });
+    this.summaries.set(person, summary);
+    this.computedAt.set(person, now);
 
     const seen = new Set<string>();
-    for (const summary of this.summaries) {
-      for (const s of summary.signals) {
-        if (s.status !== 'judged' || !s.unusual) continue;
-        const key = `${summary.person}|${s.signal}|${s.direction}`;
-        seen.add(key);
-        if (!this.unusualSince.has(key)) this.unusualSince.set(key, now);
-      }
+    for (const s of summary.signals) {
+      if (s.status !== 'judged' || !s.unusual) continue;
+      const key = `${person}|${s.signal}|${s.direction}`;
+      seen.add(key);
+      if (!this.unusualSince.has(key)) this.unusualSince.set(key, now);
     }
-    for (const key of [...this.unusualSince.keys()]) if (!seen.has(key)) this.unusualSince.delete(key);
-    return this.summaries;
+    for (const key of [...this.unusualSince.keys()]) if (key.startsWith(`${person}|`) && !seen.has(key)) this.unusualSince.delete(key);
+    return summary;
+  }
+
+  /** One person's summary as last computed, or null before the first. No work. */
+  cached(person: string): PersonSummary | null {
+    return this.summaries.get(person) ?? null;
   }
 
   /** Readings that have been unusual for at least 20 minutes. */

@@ -471,3 +471,24 @@ test('ready means a question works: a failed warm-up is never reported as ready'
     await ai.stop();
   }
 });
+
+test('the ask path picks only cards for the place\'s gravity, and states the gravity when a card turns on it', async () => {
+  const model = new FakeModel();
+  const ai = new AiRuntime({ log: () => {}, client: model, warm: false });
+  await ai.start();
+  // A placeholder card written for weightlessness only, matched by her words.
+  const weightless = { ...cardFile[0], id: 'chest-pain-weightless', applies_in: ['weightless'] };
+  const at = (gravity: number) => ({ ...context(ai), cards: () => parseCards([weightless, cardFile[1]]), gravity });
+  const onMars = await serve(at(0.38));
+  const inOrbit = await serve(at(0));
+  try {
+    assert.equal((await ask(onMars.url, { person: 'reyes', question: 'Reyes has chest pain' })).result.card?.id, NO_CARD_FITS, 'never the weightless card on Mars');
+    assert.equal((await ask(inOrbit.url, { person: 'reyes', question: 'Reyes has chest pain' })).result.card?.id, 'chest-pain-weightless');
+    const floating = await ask(onMars.url, { person: 'reyes', question: 'Why do I feel heavier than I did in orbit, is it the gravity?' });
+    assert.ok(floating.result.facts?.items.some((i) => i.key === 'answer.gravity.partial' && i.vars.g === 0.38 && i.label === 'hub'));
+  } finally {
+    await close(onMars.server);
+    await close(inOrbit.server);
+    await ai.stop();
+  }
+});

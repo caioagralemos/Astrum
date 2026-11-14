@@ -197,8 +197,9 @@ export interface BloodResult {
 export function latestResults(store: Store, entries: BloodEntry[]): Record<string, BloodResult[]> {
   const byId = new Map(entries.map((e) => [e.id, e]));
   const newest = new Map<string, Row>();
-  for (const row of store.recent(0)) {
-    if (!row.person || !row.signal.startsWith('blood.')) continue;
+  // Blood rows only, found through the signal index: a few per test day, however full the table is.
+  for (const row of store.rows({ signalPrefix: 'blood.', limit: 50_000 })) {
+    if (!row.person) continue;
     const key = `${row.person}|${row.signal}`;
     const held = newest.get(key);
     if (!held || row.t > held.t) newest.set(key, row);

@@ -36,18 +36,40 @@ const PPM_TO_MMHG = 760 / 1_000_000;
  *
  * The other rooms play calm stretches (never above 2.8 on the day itself or
  * the three days before it), each a different one so they do not move in step.
+ *
+ * Which room plays what follows a rule, so any mission's rooms can be filled
+ * (replayMoments): the story's subject room (the first crewmate's quarters)
+ * plays the stretch above; every other room, in the mission's order, takes
+ * the next calm stretch, in the order below. A mission with more rooms than
+ * stretches starts them again, each round CYCLE_SHIFT_MS earlier in the
+ * record, so no two rooms play the same moment. On the ship this gives each
+ * room exactly the stretch it has always played.
  */
 const ANCHOR_2026 = Date.UTC(2026, 10, 15);
-const ROOM_MOMENT: Record<string, string> = {
-  'quarters-2': '2014-10-30T18:00:00Z',
-  command: '2014-10-12T00:00:00Z',
-  'quarters-1': '2014-10-13T00:00:00Z',
-  'quarters-3': '2014-09-30T00:00:00Z',
-  'quarters-4': '2014-10-01T00:00:00Z',
-  lab: '2014-10-16T00:00:00Z',
-  galley: '2014-10-02T00:00:00Z',
-  gym: '2014-10-17T00:00:00Z',
-};
+export const SUBJECT_MOMENT = '2014-10-30T18:00:00Z';
+export const CALM_MOMENTS: readonly string[] = [
+  '2014-10-12T00:00:00Z',
+  '2014-10-13T00:00:00Z',
+  '2014-09-30T00:00:00Z',
+  '2014-10-01T00:00:00Z',
+  '2014-10-16T00:00:00Z',
+  '2014-10-02T00:00:00Z',
+  '2014-10-17T00:00:00Z',
+];
+/** How much earlier in the record each further round of calm stretches starts. */
+export const CYCLE_SHIFT_MS = 2 * 3600_000 + 35 * 60_000;
+
+/** The record time each room plays at the anchor, by the rule above. `subject` may be null (no story room). */
+export function replayMoments(rooms: string[], subject: string | null): Record<string, number> {
+  const out: Record<string, number> = {};
+  let i = 0;
+  for (const room of rooms) {
+    if (room === subject) { out[room] = Date.parse(SUBJECT_MOMENT); continue; }
+    out[room] = Date.parse(CALM_MOMENTS[i % CALM_MOMENTS.length]) - Math.floor(i / CALM_MOMENTS.length) * CYCLE_SHIFT_MS;
+    i++;
+  }
+  return out;
+}
 
 interface Series { start: number; values: number[] }
 
@@ -68,17 +90,23 @@ function load(dir: string, file: string, field: string): Series {
 export class NasaReplay {
   private timer: NodeJS.Timeout | null = null;
   private last = 0;
-  /** How far ahead in the record Quarters 2 plays. The scenario sets it to reach the climb. */
+  /** How far ahead in the record the subject room plays. The scenario sets it to reach the climb. */
   aheadMs = 0;
   private series: { signal: string; unit: string; scale: number; decimals: number; data: Series }[];
   private hub: Hub;
   private store: Store;
   private rooms: string[];
+  /** The story's room: the only one `aheadMs` moves. */
+  readonly subject: string | null;
+  private moments: Record<string, number>;
 
-  constructor(hub: Hub, store: Store, dir: string, rooms: string[]) {
+  /** `rooms` in the mission's order; `subject` is the first crewmate's quarters (the ship's is Quarters 2). */
+  constructor(hub: Hub, store: Store, dir: string, rooms: string[], subject: string | null = 'quarters-2') {
     this.hub = hub;
     this.store = store;
-    this.rooms = rooms.filter((room) => ROOM_MOMENT[room]);
+    this.rooms = rooms;
+    this.subject = rooms.includes(subject ?? '') ? subject : null;
+    this.moments = replayMoments(rooms, this.subject);
     this.series = [
       { signal: 'co2', unit: 'mmHg', scale: PPM_TO_MMHG, decimals: 2, data: load(dir, 'co2.json', 'co2_iss') },
       { signal: 'temperature', unit: 'C', scale: 1, decimals: 1, data: load(dir, 'temperature-iss.json', 'temperature_iss') },
@@ -109,7 +137,7 @@ export class NasaReplay {
 
   /** The moment of the record that plays in a room at hub time t. */
   recordTime(room: string, t: number): number {
-    return Date.parse(ROOM_MOMENT[room]) + (t - ANCHOR_2026) + (room === 'quarters-2' ? this.aheadMs : 0);
+    return this.moments[room] + (t - ANCHOR_2026) + (room === this.subject ? this.aheadMs : 0);
   }
 
   /** Every room's replayed readings at one moment. */

@@ -205,3 +205,82 @@ test('the serial adapter uses the registry: registered sensors are placed, unkno
     rmSync(dir, { recursive: true });
   }
 });
+
+test('a crew level is judged live: its own room alarm, alerts for the people in the room, the board, and "watch" for a warn level', async () => {
+  const { RoomAlarms } = await import('./alarms.ts');
+  const { AlertWatcher } = await import('./alerts.ts');
+  const dir = tmp();
+  const store = new Store(':memory:');
+  const hub = new Hub(store, profile, '/nonexistent');
+  try {
+    const registry = new SensorRegistry(join(dir, 'sensors.json'), profile);
+    // Made-up test levels, in the galley, where the profile's board is.
+    registry.put({ id: 'rad-1', name: 'Radiation monitor', room: 'galley', transport: 'http-push', addedAt: 1, signals: [{ signal: 'radiation', name: 'Radiation', unit: 'uSv/h', group: 'cabin', decimals: 2, note: '', limits: { warnAbove: 10, alarmAbove: 50 } }] });
+    const alarms = new RoomAlarms(hub, store, profile.rooms.map((r) => r.id));
+    alarms.crewSensors = () => registry.list();
+    const alerts = new AlertWatcher(hub, store, profile, alarms);
+    const buzz: string[] = [];
+    hub.chipCommand = (command) => { buzz.push(String(command.buzz)); return false; };
+    const heard: any[] = [];
+    hub.onBroadcast = (m) => void heard.push(m);
+    const now = 50_000_000;
+    hub.move('leo', 'galley', now - 60_000, 'measured', 'test');
+    const reading = (value: number, t: number) => hub.ingest([{ t, signal: 'radiation', value, unit: 'uSv/h', kind: 'measured', source: 'sensor:rad-1', room: 'galley' }]);
+
+    reading(12, now);
+    alarms.check(now);
+    assert.deepEqual(alarms.list(), [], 'a warn level is not an alarm');
+    assert.deepEqual(alarms.crewWatch.map((w) => [w.room, w.signal, w.value, w.limit, w.limitSource]), [['galley', 'radiation', 12, 10, 'crew']]);
+    const watchMessage = heard.filter((m) => m.type === 'alarms').at(-1);
+    assert.equal(watchMessage.crewWatch.length, 1, 'screens hear the room is "watch"');
+    assert.equal((hub.state() as any).crewWatch.length, 1);
+
+    reading(60, now + 10_000);
+    alarms.check(now + 10_000);
+    const [alarm] = alarms.list();
+    assert.deepEqual([alarm.room, alarm.signal, alarm.limitSource, alarm.limit, alarm.textKey], ['galley', 'radiation', 'crew', 50, 'alarm.crewLevel.above']);
+    assert.deepEqual(alarms.crewWatch, []);
+    assert.deepEqual(buzz, ['alarm'], 'the galley board sounds for an alarm in its room');
+
+    alerts.check(now + 10_000);
+    const [alert] = alerts.list();
+    assert.deepEqual([alert.person, alert.level, alert.limitSource, alert.textKey, alert.card], ['leo', 2, 'crew', 'alert.crewLevel.above', null]);
+
+    // Silenced by hand like any room alarm; back within the levels, it clears.
+    assert.equal(alarms.acknowledge('galley'), true);
+    assert.deepEqual(buzz, ['alarm', 'off']);
+    reading(5, now + 20_000);
+    alarms.check(now + 20_000);
+    assert.deepEqual(alarms.list(), []);
+  } finally {
+    hub.http.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the hub\'s own signals are never listed as arriving but not described', async () => {
+  const dir = tmp();
+  const store = new Store(':memory:');
+  const hub = new Hub(store, profile, '/nonexistent');
+  const now = 5_000_000;
+  const registry = new SensorRegistry(join(dir, 'sensors.json'), profile);
+  hub.routes.push((req, res, url) => handleSensors(req, res, url, { store, registry, profile, now: () => now }));
+  await new Promise<void>((done) => hub.http.listen(0, '127.0.0.1', done));
+  const { port } = hub.http.address() as { port: number };
+  try {
+    const row = (signal: string, extra: Partial<Row> = {}): Row => ({ t: now - 1000, signal, value: 1, unit: '', kind: 'reported', source: 'checkin:reyes', person: 'reyes', ...extra });
+    store.addRows([
+      row('checkin.headache'), row('checkin.stress'), row('checkin.fatigue'), row('checkin.something_new'), row('blood.glucose', { source: 'typed:blood' }),
+      row('earth.message', { value: null, text: 'hello', source: 'earth:reyes' }),
+      { t: now - 1000, signal: 'mystery', value: 3, unit: 'x', kind: 'measured', source: 'phone:leo', room: 'lab' },
+    ]);
+    const body = (await (await fetch(`http://127.0.0.1:${port}/api/sensors`)).json()) as { undescribed: { signal: string }[] };
+    assert.deepEqual(body.undescribed.map((u) => u.signal), ['mystery'], 'only a device nobody described');
+  } finally {
+    hub.http.closeAllConnections();
+    hub.http.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

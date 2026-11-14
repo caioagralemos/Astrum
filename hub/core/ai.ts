@@ -32,7 +32,7 @@ import type { Who } from '../engine/answer.ts';
 import { LIMITS } from '../engine/cabin.ts';
 import type { HubAnswer } from '../engine/answer.ts';
 import type { Evidence } from '../engine/evidence.ts';
-import type { ChatMessage, CheckResult, PersonReadings, PromptPassage, ReadingLabel } from '../engine/prompt.ts';
+import type { ChatMessage, CheckResult, PersonReadings, PromptPassage, Reading, ReadingLabel } from '../engine/prompt.ts';
 import { cardView, pickCard } from '../engine/cards.ts';
 import type { CardLang, CardView, Facts, ParsedCards } from '../engine/cards.ts';
 import { search } from '../engine/search.ts';
@@ -569,6 +569,12 @@ export interface AskContext {
   personName?: (id: string) => string;
   /** The profile's pronouns for a crewmate. Unset means they/them. */
   pronounsOf?: (id: string) => 'she' | 'he' | 'they' | undefined;
+  /** The place's gravity, in g, from the mission. Cards written for another gravity are never picked. Unknown: null. */
+  gravity?: number | null;
+  /** A crewmate's quarters, so the hub calls a room "your cabin" only when it is theirs. */
+  quartersOf?: (id: string) => string | null;
+  /** Current readings against NASA's limits in one room, for the room the evidence card points to. */
+  roomReadings?: (room: string) => Extract<Reading, { type: 'limit' }>[];
 }
 
 export interface AskPassage {
@@ -707,7 +713,8 @@ export async function askQuestion(
 
   // Passages: the card already open for this person comes first (§5.4), then the search.
   const passages: AskPassage[] = [];
-  const open = pickCard(cards, { readings: facts.readings, answers: facts.answers });
+  const gravity = ctx.gravity ?? null;
+  const open = pickCard(cards, { readings: facts.readings, answers: facts.answers }, gravity);
   if (open && !open.fallback) {
     for (const s of open.card.sources) if (s.is_nasa && s.quote && s.name) passages.push({ id: `card:${open.card.id}`, name: s.name, url: s.url, heading: open.card.title.en, text: s.quote });
   }
@@ -720,7 +727,7 @@ export async function askQuestion(
 
   const base = { type: 'result' as const, source: null, passages, readings: readingList, check: null, facts: null };
   const viewOf = (text?: string) => {
-    const picked = pickCard(cards, { ...facts, text });
+    const picked = pickCard(cards, { ...facts, text }, gravity);
     return picked ? cardView(picked.card, lang) : null;
   };
 
@@ -733,9 +740,12 @@ export async function askQuestion(
   const roomName = ctx.roomName ?? ((id: string) => id);
   const danger = dangerCheck(question, readings);
   const quoted = passages.map((p) => ({ name: p.name, url: p.url, text: p.text }));
+  // A card for this person that was written for one gravity makes the place's gravity worth stating.
+  const gravityMatters = !!open?.card.applies_in || open?.reason === 'no-card-for-this-gravity';
   const compose = (extra: { notExact?: boolean; noPassages?: boolean } = {}) => composeAnswer({
     name: readings.name, who, question, readings, evidence, lang, roomName, personName: ctx.personName, danger,
     passages: extra.noPassages ? [] : quoted, notExact: extra.notExact,
+    gravity, gravityMatters, quarters: ctx.quartersOf?.(about) ?? null, roomReadings: ctx.roomReadings,
   });
   const hubAnswer = compose();
   const withFacts = { ...base, facts: hubAnswer };

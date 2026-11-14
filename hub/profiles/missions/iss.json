@@ -1,0 +1,1016 @@
+{
+  "id": "iss",
+  "kind": "station",
+  "name": "place.iss",
+  "where": {
+    "body": "earth",
+    "situation": "orbit"
+  },
+  "gravity": 0,
+  "delayToEarthSeconds": 1,
+  "missionStart": "2026-04-18T00:00:00Z",
+  "plannedDays": 180,
+  "note": "The International Space Station as NASA describes it (see SOURCES.md), as the setting for a simulated crew. Station-to-ground voice is near real time: the 1 second delay is a small honest stand-in, not a NASA figure. Frame: +x aft, +y zenith, +z port, -z starboard; Destiny's middle is the origin. Visiting vehicles, Canadarm2, Dextre and external payloads are not drawn.",
+  "modules": [
+    {
+      "id": "destiny",
+      "name": "module.iss.destiny",
+      "template": "lab",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 8.5,
+        "radius": 2.15
+      },
+      "position": [0, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "unity",
+        "port": "forward"
+      }
+    },
+    {
+      "id": "harmony",
+      "name": "module.iss.harmony",
+      "template": "quarters",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6.7,
+        "radius": 2.15
+      },
+      "position": [-7.6, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "destiny",
+        "port": "forward"
+      }
+    },
+    {
+      "id": "unity",
+      "name": "module.iss.unity",
+      "template": "galley",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 5.5,
+        "radius": 2.15
+      },
+      "position": [7, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "pma-1",
+        "port": "forward"
+      }
+    },
+    {
+      "id": "pma-2",
+      "name": "module.iss.pma-2",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.86,
+        "radius": 0.685,
+        "radiusEnd": 0.95,
+        "sides": 12
+      },
+      "position": [-11.88, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "harmony",
+        "port": "forward"
+      }
+    },
+    {
+      "id": "ida-2",
+      "name": "module.iss.ida-2",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1,
+        "radius": 0.8,
+        "sides": 12
+      },
+      "position": [-13.31, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "pma-2",
+        "port": "forward"
+      },
+      "approx": true,
+      "note": "International Docking Adapter: NASA names it but gives no size here."
+    },
+    {
+      "id": "pma-1",
+      "name": "module.iss.pma-1",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.86,
+        "radius": 0.95,
+        "radiusEnd": 0.685,
+        "sides": 12
+      },
+      "position": [10.68, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "zarya",
+        "port": "forward"
+      }
+    },
+    {
+      "id": "zarya",
+      "name": "module.iss.zarya",
+      "template": "storage",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 12.99,
+        "radius": 2.05
+      },
+      "position": [18.105, 0, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "zvezda",
+        "port": "forward"
+      },
+      "note": "NASA gives the maximum diameter (4.1 m); the module is drawn at that size along its length."
+    },
+    {
+      "id": "zvezda",
+      "name": "module.iss.zvezda",
+      "template": "galley",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 13.1,
+        "radius": 2.1
+      },
+      "position": [31.15, 0, 0],
+      "axis": [1, 0, 0],
+      "note": "Drawn as one cylinder at its stated diameter; the real module narrows at the front."
+    },
+    {
+      "id": "columbus",
+      "name": "module.iss.columbus",
+      "template": "lab",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6.9,
+        "radius": 2.25
+      },
+      "position": [-7.6, 0, -5.6],
+      "axis": [0, 0, -1],
+      "attachedTo": {
+        "module": "harmony",
+        "port": "starboard"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle."
+    },
+    {
+      "id": "kibo",
+      "name": "module.iss.kibo",
+      "template": "lab",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 11.2,
+        "radius": 2.2
+      },
+      "position": [-7.6, 0, 7.75],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "harmony",
+        "port": "port"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle."
+    },
+    {
+      "id": "kibo-elm",
+      "name": "module.iss.kibo-elm",
+      "template": "storage",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4.2,
+        "radius": 2.2
+      },
+      "position": [-7.6, 4.3, 7.75],
+      "axis": [0, 1, 0],
+      "attachedTo": {
+        "module": "kibo",
+        "port": "zenith"
+      },
+      "approx": true,
+      "note": "NASA: attached to the top of Kibo's main section; where along it is not stated, so it is drawn at Kibo's middle."
+    },
+    {
+      "id": "kibo-ef",
+      "name": "module.iss.kibo-ef",
+      "template": "service",
+      "isRoom": false,
+      "shape": {
+        "kind": "box",
+        "length": 4,
+        "width": 5.6,
+        "height": 5
+      },
+      "position": [-7.6, 0, 15.35],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "kibo",
+        "port": "port"
+      },
+      "approx": true,
+      "note": "Size from NASA (5.6 m wide, 5 m high, 4 m long); its height offset on Kibo's end is not stated."
+    },
+    {
+      "id": "pma-3",
+      "name": "module.iss.pma-3",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.86,
+        "radius": 0.95,
+        "radiusEnd": 0.685,
+        "sides": 12
+      },
+      "position": [-7.6, 3.08, 0],
+      "axis": [0, 1, 0],
+      "attachedTo": {
+        "module": "harmony",
+        "port": "zenith"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle."
+    },
+    {
+      "id": "ida-3",
+      "name": "module.iss.ida-3",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1,
+        "radius": 0.8,
+        "sides": 12
+      },
+      "position": [-7.6, 4.51, 0],
+      "axis": [0, 1, 0],
+      "attachedTo": {
+        "module": "pma-3",
+        "port": "zenith"
+      },
+      "approx": true,
+      "note": "International Docking Adapter: NASA names it but gives no size here."
+    },
+    {
+      "id": "quest",
+      "name": "module.iss.quest",
+      "template": "airlock",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 5.5,
+        "radius": 2
+      },
+      "position": [7, 0, -4.9],
+      "axis": [0, 0, -1],
+      "attachedTo": {
+        "module": "unity",
+        "port": "starboard"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle. NASA gives its width (4.0 m), drawn as the diameter; its two locks are drawn as one cylinder."
+    },
+    {
+      "id": "tranquility",
+      "name": "module.iss.tranquility",
+      "template": "exercise",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6.7,
+        "radius": 2.15
+      },
+      "position": [7, 0, 5.5],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "unity",
+        "port": "port"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle."
+    },
+    {
+      "id": "z1",
+      "name": "module.iss.z1",
+      "template": "service",
+      "isRoom": false,
+      "shape": {
+        "kind": "box",
+        "length": 4,
+        "width": 4,
+        "height": 3
+      },
+      "position": [7, 3.65, 0],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "unity",
+        "port": "zenith"
+      },
+      "approx": true,
+      "note": "NASA names the Z1 truss on Unity but gives no size."
+    },
+    {
+      "id": "cupola",
+      "name": "module.iss.cupola",
+      "template": "observation",
+      "isRoom": true,
+      "shape": {
+        "kind": "dome",
+        "radius": 1.5,
+        "height": 1.5,
+        "sides": 7
+      },
+      "position": [7, -2.15, 5.5],
+      "axis": [0, -1, 0],
+      "attachedTo": {
+        "module": "tranquility",
+        "port": "nadir"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle. NASA: 3 m across, 1.5 m high, six side windows and one nadir window (drawn with seven sides)."
+    },
+    {
+      "id": "pmm",
+      "name": "module.iss.pmm",
+      "template": "storage",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6.67,
+        "radius": 2.25
+      },
+      "position": [1.515, 0, 5.5],
+      "axis": [-1, 0, 0],
+      "attachedTo": {
+        "module": "tranquility",
+        "port": "forward"
+      },
+      "approx": true,
+      "note": "Attached where NASA says; where along the parent that port sits is not stated, so it is drawn at the parent's middle."
+    },
+    {
+      "id": "beam",
+      "name": "module.iss.beam",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4,
+        "radius": 1.6,
+        "sides": 12
+      },
+      "position": [11.15, 0, 5.5],
+      "axis": [1, 0, 0],
+      "attachedTo": {
+        "module": "tranquility",
+        "port": "aft"
+      },
+      "approx": true,
+      "note": "NASA gives no size for BEAM on these pages, nor what it is used for now: size estimated, template left as node."
+    },
+    {
+      "id": "bishop",
+      "name": "module.iss.bishop",
+      "template": "airlock",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 2,
+        "radius": 1,
+        "radiusEnd": 0.7,
+        "sides": 12
+      },
+      "position": [7, 0, 9.85],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "tranquility",
+        "port": "port"
+      },
+      "approx": true,
+      "note": "NASA gives no size for Bishop on these pages: size estimated."
+    },
+    {
+      "id": "poisk",
+      "name": "module.iss.poisk",
+      "template": "airlock",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4.9,
+        "radius": 1.275
+      },
+      "position": [25.8, 4.55, 0],
+      "axis": [0, 1, 0],
+      "attachedTo": {
+        "module": "zvezda",
+        "port": "zenith"
+      },
+      "approx": true,
+      "note": "Where the zenith port sits along Zvezda is not stated: drawn near Zvezda's front."
+    },
+    {
+      "id": "nauka",
+      "name": "module.iss.nauka",
+      "template": "lab",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 13.1,
+        "radius": 2.1
+      },
+      "position": [25.8, -8.65, 0],
+      "axis": [0, -1, 0],
+      "attachedTo": {
+        "module": "zvezda",
+        "port": "nadir"
+      },
+      "approx": true,
+      "note": "NASA: 43 feet long. The diameter is not stated (drawn like Zvezda's), nor where along Zvezda the port sits."
+    },
+    {
+      "id": "prichal",
+      "name": "module.iss.prichal",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 3.3,
+        "radius": 1.65,
+        "sides": 8
+      },
+      "position": [25.8, -16.85, 0],
+      "axis": [0, -1, 0],
+      "attachedTo": {
+        "module": "nauka",
+        "port": "nadir"
+      },
+      "approx": true,
+      "note": "NASA gives no size for Prichal on these pages: size estimated."
+    },
+    {
+      "id": "rassvet",
+      "name": "module.iss.rassvet",
+      "template": "storage",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6,
+        "radius": 1.175
+      },
+      "position": [13.6, -5.05, 0],
+      "axis": [0, -1, 0],
+      "attachedTo": {
+        "module": "zarya",
+        "port": "nadir"
+      },
+      "approx": true,
+      "note": "Where the nadir port sits along Zarya is not stated: drawn near Zarya's front."
+    }
+  ],
+  "crew": [
+    {
+      "id": "reyes",
+      "name": "Reyes",
+      "role": "role.engineer",
+      "pronouns": "she",
+      "quarters": "harmony",
+      "work": "tranquility"
+    },
+    {
+      "id": "leo",
+      "name": "Leo",
+      "role": "role.scientist",
+      "pronouns": "he",
+      "quarters": "harmony",
+      "work": "kibo"
+    },
+    {
+      "id": "okafor",
+      "name": "Okafor",
+      "role": "role.cmo",
+      "quarters": "harmony",
+      "work": "columbus"
+    },
+    {
+      "id": "tanaka",
+      "name": "Tanaka",
+      "role": "role.commander",
+      "quarters": "harmony",
+      "work": "destiny"
+    }
+  ],
+  "chips": {
+    "cabin-1": "unity"
+  },
+  "trusses": [
+    {
+      "id": "s0",
+      "from": [0, 4.95, 6],
+      "to": [0, 4.95, -6],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "s1",
+      "from": [0, 4.95, -6],
+      "to": [0, 4.95, -19.4],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "s3-s4",
+      "from": [0, 4.95, -19.4],
+      "to": [0, 4.95, -31.6],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "s5",
+      "from": [0, 4.95, -31.6],
+      "to": [0, 4.95, -34.6],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "s6",
+      "from": [0, 4.95, -34.6],
+      "to": [0, 4.95, -47],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "p1",
+      "from": [0, 4.95, 6],
+      "to": [0, 4.95, 19.4],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "p3-p4",
+      "from": [0, 4.95, 19.4],
+      "to": [0, 4.95, 31.6],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "p5",
+      "from": [0, 4.95, 31.6],
+      "to": [0, 4.95, 34.6],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "p6",
+      "from": [0, 4.95, 34.6],
+      "to": [0, 4.95, 47],
+      "size": 3.6,
+      "approx": true
+    },
+    {
+      "id": "s0-mount",
+      "from": [0, 2.15, 0],
+      "to": [0, 3.15, 0],
+      "approx": true,
+      "note": "S0 sits on Destiny; how it is mounted is not drawn."
+    }
+  ],
+  "solarArrays": [
+    {
+      "id": "p6-fore",
+      "at": [0, 4.95, 48.45],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "p6-aft",
+      "at": [0, 4.95, 48.45],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "p4-fore",
+      "at": [0, 4.95, 32.5],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "p4-aft",
+      "at": [0, 4.95, 32.5],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "s4-fore",
+      "at": [0, 4.95, -32.5],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "s4-aft",
+      "at": [0, 4.95, -32.5],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "s6-fore",
+      "at": [0, 4.95, -48.45],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "s6-aft",
+      "at": [0, 4.95, -48.45],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 1.5,
+      "length": 35,
+      "panels": [
+        [-5.8, -0.5],
+        [0.5, 5.8]
+      ],
+      "tilt": 0.5,
+      "cols": 3,
+      "rows": 14,
+      "spine": true,
+      "approx": true,
+      "note": "Length from NASA (73 m across both wings of a pair); width, root offset and the sun-tracking angle are estimated."
+    },
+    {
+      "id": "irosa-1",
+      "at": [0, 5.85, 48.45],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "irosa-2",
+      "at": [0, 5.85, 48.45],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "irosa-3",
+      "at": [0, 5.85, 32.5],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "irosa-4",
+      "at": [0, 5.85, -32.5],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "irosa-5",
+      "at": [0, 5.85, -32.5],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "irosa-6",
+      "at": [0, 5.85, -48.45],
+      "along": [-1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 2,
+      "length": 18,
+      "panels": [
+        [-3, 3]
+      ],
+      "tilt": 0.85,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "IROSA: size, angle and which wing of each pair carries it are estimated."
+    },
+    {
+      "id": "zvezda-port",
+      "at": [33.5, 0, 0],
+      "along": [0, 0, 1],
+      "across": [1, 0, 0],
+      "from": 2.1,
+      "length": 12.75,
+      "panels": [
+        [-1.7, 1.7]
+      ],
+      "tilt": 0,
+      "cols": 2,
+      "rows": 6,
+      "spine": true,
+      "approx": true,
+      "note": "Span from NASA; width and place along Zvezda estimated."
+    },
+    {
+      "id": "zvezda-starboard",
+      "at": [33.5, 0, 0],
+      "along": [0, 0, -1],
+      "across": [1, 0, 0],
+      "from": 2.1,
+      "length": 12.75,
+      "panels": [
+        [-1.7, 1.7]
+      ],
+      "tilt": 0,
+      "cols": 2,
+      "rows": 6,
+      "spine": true,
+      "approx": true,
+      "note": "Span from NASA; width and place along Zvezda estimated."
+    },
+    {
+      "id": "zarya-port",
+      "at": [21.5, 0, 0],
+      "along": [0, 0, 1],
+      "across": [1, 0, 0],
+      "from": 2.05,
+      "length": 10.15,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 2,
+      "rows": 5,
+      "spine": true,
+      "approx": true,
+      "note": "Span from NASA's 2015 guide; width and place along Zarya estimated."
+    },
+    {
+      "id": "zarya-starboard",
+      "at": [21.5, 0, 0],
+      "along": [0, 0, -1],
+      "across": [1, 0, 0],
+      "from": 2.05,
+      "length": 10.15,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 2,
+      "rows": 5,
+      "spine": true,
+      "approx": true,
+      "note": "Span from NASA's 2015 guide; width and place along Zarya estimated."
+    }
+  ],
+  "radiators": [
+    {
+      "id": "hrs-s1",
+      "at": [1.8, 4.95, -12.7],
+      "along": [1, 0, 0],
+      "across": [0, 0, -1],
+      "from": 0,
+      "length": 22,
+      "panels": [
+        [-5.4, -2],
+        [-1.7, 1.7],
+        [2, 5.4]
+      ],
+      "tilt": 1.25,
+      "cols": 1,
+      "rows": 8,
+      "approx": true,
+      "note": "NASA gives the count and the segments; size, direction and angle are estimated."
+    },
+    {
+      "id": "hrs-p1",
+      "at": [1.8, 4.95, 12.7],
+      "along": [1, 0, 0],
+      "across": [0, 0, 1],
+      "from": 0,
+      "length": 22,
+      "panels": [
+        [-5.4, -2],
+        [-1.7, 1.7],
+        [2, 5.4]
+      ],
+      "tilt": 1.25,
+      "cols": 1,
+      "rows": 8,
+      "approx": true,
+      "note": "NASA gives the count and the segments; size, direction and angle are estimated."
+    },
+    {
+      "id": "pvr-p6",
+      "at": [0, 3.15, 45.45],
+      "along": [0, -1, 0],
+      "across": [1, 0, 0],
+      "from": 0.5,
+      "length": 12,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "NASA gives one per pair of wings; size, place and direction are estimated."
+    },
+    {
+      "id": "pvr-p4",
+      "at": [0, 3.15, 29.5],
+      "along": [0, -1, 0],
+      "across": [1, 0, 0],
+      "from": 0.5,
+      "length": 12,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "NASA gives one per pair of wings; size, place and direction are estimated."
+    },
+    {
+      "id": "pvr-s4",
+      "at": [0, 3.15, -29.5],
+      "along": [0, -1, 0],
+      "across": [1, 0, 0],
+      "from": 0.5,
+      "length": 12,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "NASA gives one per pair of wings; size, place and direction are estimated."
+    },
+    {
+      "id": "pvr-s6",
+      "at": [0, 3.15, -45.45],
+      "along": [0, -1, 0],
+      "across": [1, 0, 0],
+      "from": 0.5,
+      "length": 12,
+      "panels": [
+        [-1.6, 1.6]
+      ],
+      "tilt": 0,
+      "cols": 1,
+      "rows": 6,
+      "approx": true,
+      "note": "NASA gives one per pair of wings; size, place and direction are estimated."
+    }
+  ],
+  "view": {
+    "yaw": -2.1,
+    "pitch": 0.6,
+    "turnOnTall": true,
+    "face": -2.1,
+    "depth": 7
+  }
+}

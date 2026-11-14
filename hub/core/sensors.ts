@@ -11,7 +11,7 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Profile, Row } from '../engine/types.ts';
-import { QUIET_MS, builtInSignals, checkSensor, crewLimitsOf, judgeCrewLimits, nasaLimitOf, outOfBounds, sensorIdOf, sourceOf } from '../engine/sensors.ts';
+import { QUIET_MS, builtInSignals, checkSensor, crewLimitsOf, isHubSignal, judgeCrewLimits, nasaLimitOf, outOfBounds, sensorIdOf, sourceOf } from '../engine/sensors.ts';
 import type { CrewJudgement, PhysicalBounds, SensorSpec } from '../engine/sensors.ts';
 import type { SensorDirectory, SensorPlace } from './serial-json.ts';
 import type { Store } from './db.ts';
@@ -330,8 +330,8 @@ function overview(ctx: SensorsContext, now: number) {
   };
   const builtIn = builtInSignals().map((b) => ({ ...b, ...seen(b.signal) }));
   const known = new Set([...builtIn.map((b) => b.signal), ...registered]);
-  // Arriving, but described nowhere: a device posting without being registered.
-  const undescribed = [...bySignal.keys()].filter((s) => !known.has(s) && !s.startsWith('blood.')).sort().map((signal) => ({ signal, ...seen(signal) }));
+  // Arriving, but described nowhere: a device posting without being registered. The hub's own signals are not devices.
+  const undescribed = [...bySignal.keys()].filter((s) => !known.has(s) && !isHubSignal(s)).sort().map((signal) => ({ signal, ...seen(signal) }));
 
   return { now, sensors, builtIn, undescribed, unknown: ctx.registry.unknownSensors(), problems: ctx.registry.problems };
 }

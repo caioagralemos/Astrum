@@ -7,14 +7,18 @@
     "node": ">=24"
   },
   "scripts": {
-    "core": "node core/main.ts",
+    "core": "node core/run.ts",
+    "core:iss": "ASTRUM_MISSION=iss node core/main.ts",
+    "core:mars": "ASTRUM_MISSION=base-mars node core/main.ts",
+    "core:moon": "ASTRUM_MISSION=base-moon node core/main.ts",
     "ui": "vite ui",
     "dev": "concurrently -k -n core,ui \"npm run core\" \"npm run ui\"",
     "build": "vite build ui",
     "app": "tauri dev",
     "test": "node --test \"engine/*.test.ts\" \"core/*.test.ts\"",
     "check": "tsc --noEmit",
-    "scenario": "node core/scenario.ts"
+    "scenario": "node core/scenario.ts",
+    "compact": "node core/compact.ts"
   },
   "dependencies": {
     "@serialport/parser-readline": "^13.0.0",

@@ -15,15 +15,24 @@ const profile = JSON.parse(readFileSync(new URL('../profiles/mars-orbit.json', i
 
 // Recording the night takes a few seconds; the tests share one.
 let shared: Recording | null = null;
-const night = () => (shared ??= recordReyesNight(hubDir, profile).recording);
+// Recorded as `npm run scenario` does: pinned to the ship's mission file.
+const night = () => (shared ??= recordReyesNight(hubDir).recording);
 
 interface Play { room: string; from: number; until: number; recordFrom: string; recordUntil: string }
 const plays = (r: Recording) => (r.meta!.record as { plays: Play[] }).plays;
 const moment = (r: Recording, starts: string) => r.meta!.moments.find((m) => m.what.startsWith(starts))!.at;
 
 test('the same inputs record the same night, byte for byte', () => {
-  const again = recordReyesNight(hubDir, profile).recording;
+  const again = recordReyesNight(hubDir).recording;
   assert.equal(JSON.stringify(again), JSON.stringify(night()));
+});
+
+test('the story is the ship\'s, whatever mission the hub runs', () => {
+  const first = night().messages[0].message;
+  assert.ok(first.type === 'state');
+  assert.equal(first.profile.mission?.file, 'ship-mars-orbit');
+  const { mission: _m, ...rest } = first.profile;
+  assert.deepEqual(rest, profile, 'the ship\'s rooms and crew, exactly as the old profile file has them');
 });
 
 test('the night runs in order: quiet act 1, alarm, level 2 to Reyes and the medical officer, level 3, resolved', () => {

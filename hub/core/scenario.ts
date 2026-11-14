@@ -19,6 +19,10 @@
 //   Nothing here changes Reyes's body readings: they are the ordinary
 //   simulated ones, and the room tells the story.
 // - Every message carries a flag that says it is a simulated scenario.
+//
+// The story happens on the ship (profiles/missions/ship-mars-orbit.json),
+// whatever mission the live hub runs: its rooms, crew schedule and replay are
+// the ship's. A hub running another mission refuses to play it.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -30,12 +34,14 @@ import { StandIn } from './standin.ts';
 import { SimulatedCrew } from './crew.ts';
 import { NasaReplay, NASA_SOURCE } from './nasa.ts';
 import { RoomAlarms } from './alarms.ts';
-import { AlertWatcher } from './alerts.ts';
+import { AlertWatcher, crewActivity } from './alerts.ts';
 import { Baselines } from './baseline.ts';
-import { evidenceNow } from './evidence.ts';
+import { EvidenceCards } from './evidence.ts';
 import { demoBloodRows, loadInspiration4 } from './blood.ts';
-import { USUAL } from '../engine/crew.ts';
-import { FRESH_MS, occupants, scopeOf } from '../engine/timeline.ts';
+import { placesOf } from '../engine/crew.ts';
+import { hubProfileOf } from '../engine/mission.ts';
+import type { Mission } from '../engine/mission.ts';
+import { FRESH_MS, scopeOf } from '../engine/timeline.ts';
 import { realOffset, speedAt, speedProfile } from '../engine/playback.ts';
 import type { SpeedProfile } from '../engine/playback.ts';
 import type { AlertEvent } from '../engine/alerts.ts';
@@ -78,6 +84,13 @@ export const CLIMB_FROM = '2014-10-21T22:44:00Z';
 /** The recovery: a calm stretch of the record, 15 Oct 2014 from 00:39 UTC, 2.37 to 2.45 mmHg for three hours. */
 export const CALM_FROM = '2014-10-15T00:39:00Z';
 const ROOM = 'quarters-2';
+/** The mission file the story belongs to. */
+export const STORY_MISSION = 'ship-mars-orbit';
+
+/** The ship's mission file, which the story is pinned to. */
+export function shipMission(hubDir: string): Mission {
+  return JSON.parse(readFileSync(join(hubDir, 'profiles', 'missions', `${STORY_MISSION}.json`), 'utf8')) as Mission;
+}
 
 /** The anchors a cue can wait for. Cues can add their own with `marks`. */
 type Anchor = 'start' | 'air-stops' | 'alarm' | 'level-3' | 'seen' | 'okafor-arrives' | 'restored' | 'clear';
@@ -147,14 +160,6 @@ export function stationTime(t: number): string {
   return new Date(t + STATION_OFFSET_MINUTES * MIN).toISOString().slice(11, 19);
 }
 
-/** Crew asleep now: in their own quarters between 22:00 and 06:00, station clock. */
-function asleepAt(store: Store, people: string[], now: number): string[] {
-  const hour = ((((now + STATION_OFFSET_MINUTES * MIN) % DAY) + DAY) % DAY) / HOUR;
-  if (hour >= 6 && hour < 22) return [];
-  const here = occupants(store.stays(now, now), now);
-  return people.filter((id) => USUAL[id] && (here[USUAL[id].quarters] ?? []).includes(id));
-}
-
 function describe(e: AlertEvent): string {
   const a = e.alert;
   const told = a.toldTo === 'everyone' ? 'everyone' : a.toldTo.join(' and ');
@@ -172,8 +177,12 @@ export interface RecordedNight {
   summary: string[];
 }
 
-/** Records "Reyes's night". `hubDir` is the hub folder (for NASA's data). */
-export function recordReyesNight(hubDir: string, profile: Profile): RecordedNight {
+/**
+ * Records "Reyes's night". `hubDir` is the hub folder (for NASA's data and the
+ * ship's mission file). The profile defaults to the ship's; the crew's day is
+ * always the ship's.
+ */
+export function recordReyesNight(hubDir: string, profile: Profile = hubProfileOf(shipMission(hubDir), STORY_MISSION)): RecordedNight {
   const store = new Store(':memory:');
   const hub = new Hub(store, profile, '/nonexistent');
   try {
@@ -187,14 +196,22 @@ export function recordReyesNight(hubDir: string, profile: Profile): RecordedNigh
 function play(hub: Hub, store: Store, hubDir: string, profile: Profile): RecordedNight {
   const rooms = profile.rooms.map((r) => r.id);
   const people = profile.crew.map((p) => p.id);
-  const crew = new SimulatedCrew(hub, store, people, STATION_OFFSET_MINUTES);
-  const nasa = new NasaReplay(hub, store, join(hubDir, 'data-nasa', 'osdr-rr1'), rooms);
+  const places = placesOf(shipMission(hubDir));
+  const crew = new SimulatedCrew(hub, store, people, STATION_OFFSET_MINUTES, places);
+  const nasa = new NasaReplay(hub, store, join(hubDir, 'data-nasa', 'osdr-rr1'), rooms, ROOM);
   const standIn = new StandIn(hub, rooms, seeded(20261115));
   const alarms = new RoomAlarms(hub, store, rooms);
   const alerts = new AlertWatcher(hub, store, profile, alarms);
   const baselines = new Baselines(store, people, STATION_OFFSET_MINUTES);
   alerts.unusual = (now) => baselines.sustained(now);
-  alerts.asleep = (now) => asleepAt(store, people, now);
+  // What each crewmate is doing, from the crew's day on the station clock: asleep in their own
+  // quarters at night (Reyes, until Okafor gets her out), the same rule the live hub keeps.
+  alerts.activity = (now) => crewActivity(store, people, now, { places, offsetMinutes: STATION_OFFSET_MINUTES });
+  // Evidence cards as the live hub keeps them: one person per step, at once for a person whose
+  // alert changed, sent only when a card changes in substance (no periodic resend: the file stays small).
+  const cards = new EvidenceCards({ store, profile, baselines, alarms, offsetMinutes: STATION_OFFSET_MINUTES });
+  cards.resendMs = Infinity;
+  cards.onChange = (person, card) => hub.setEvidence(person, card);
 
   let clock = STARTS_AT;
   const at: Partial<Record<Anchor, number>> = { start: STARTS_AT };
@@ -209,6 +226,7 @@ function play(hub: Hub, store: Store, hubDir: string, profile: Profile): Recorde
   };
   alerts.onEvent = (e) => {
     say(describe(e));
+    cards.refresh(e.alert.person, clock);
     if (e.type === 'escalated' && e.alert.level === 3 && e.alert.person === 'reyes') at['level-3'] ??= clock;
   };
 
@@ -266,12 +284,15 @@ function play(hub: Hub, store: Store, hubDir: string, profile: Profile): Recorde
       say(`Room alarm clears: Quarters 2's 1-hour CO2 average is back to ${alarms.averages.co2?.[ROOM]} mmHg`);
     }
     alerts.check(t);
+    cards.tick(t);
   };
 
   // The first step happens before recording, so the first message is a whole, judged station.
   step(STARTS_AT);
   q2Plays.push({ from: STARTS_AT, until: STARTS_AT, recordFrom: nasa.recordTime(ROOM, STARTS_AT), recordUntil: 0 });
-  const actOne = evidenceNow('reyes', { store, profile, baselines, alarms, offsetMinutes: STATION_OFFSET_MINUTES }, STARTS_AT);
+  // Every card is ready before the first message, so the first screenful carries them all.
+  for (const person of people) cards.refresh(person, STARTS_AT);
+  const actOne = cards.get('reyes');
   say(`Night, ${stationTime(STARTS_AT)} station clock. Reyes asleep in Quarters 2. No alarm. Her evidence card points to: ${actOne.pointsTo}${actOne.focusRoom ? ` (${actOne.focusRoom})` : ''}`);
 
   const raw: { at: number; message: HubMessage }[] = [];
@@ -391,7 +412,9 @@ function fold(state: StateMessage, message: HubMessage, at: number): StateMessag
   if (message.type === 'alerts') next.alerts = message.alerts;
   if (message.type === 'earth') next.earthMessages = message.earthMessages;
   if (message.type === 'asleep') next.asleep = message.asleep;
+  if (message.type === 'activity') next.activity = message.activity;
   if (message.type === 'sources') next.sources = message.sources;
+  if (message.type === 'evidence') next.evidence = { ...state.evidence, [message.person]: message.evidence };
   return next;
 }
 
@@ -518,8 +541,10 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 /**
  * GET /api/scenario, POST /api/scenario/start {id}, POST /api/scenario/stop,
  * for Hub.routes. In production every one refuses: production plays no story.
+ * `mission` is the mission file the hub runs (null for an old profile file,
+ * which is the ship's): the story is the ship's, so any other mission refuses to start it.
  */
-export function scenarioRoute(player: ScenarioPlayer, production: boolean) {
+export function scenarioRoute(player: ScenarioPlayer, production: boolean, mission: string | null = STORY_MISSION) {
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
     const paths = ['/api/scenario', '/api/scenario/start', '/api/scenario/stop'];
     if (!paths.includes(url.pathname)) return false;
@@ -531,6 +556,9 @@ export function scenarioRoute(player: ScenarioPlayer, production: boolean) {
     if (url.pathname === '/api/scenario' && req.method === 'GET') return json(200, player.status());
     if (req.method !== 'POST' || url.pathname === '/api/scenario') return json(405, { error: 'method not allowed' });
     if (url.pathname === '/api/scenario/stop') return json(200, { stopped: player.stop() });
+    if (mission !== null && mission !== STORY_MISSION) {
+      return json(409, { error: `The recorded story happens on the ship. This hub runs the mission "${mission}". Restart it with ASTRUM_MISSION=${STORY_MISSION} to play the story.` });
+    }
     const body = (await readBody(req)) as { id?: unknown } | undefined;
     if (typeof body?.id !== 'string') return json(400, { error: 'needs the id of a recording, e.g. {"id":"reyes-night"}' });
     if (!player.start(body.id)) return json(404, { error: `no recording "${body.id}"; run "npm run scenario" in hub/` });
@@ -541,8 +569,8 @@ export function scenarioRoute(player: ScenarioPlayer, production: boolean) {
 // npm run scenario: records the night and writes it where the interface can fetch it.
 if (import.meta.main) {
   const hubDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-  const profile = JSON.parse(readFileSync(join(hubDir, 'profiles', 'mars-orbit.json'), 'utf8')) as Profile;
-  const { recording, summary } = recordReyesNight(hubDir, profile);
+  // Always the ship, whatever ASTRUM_MISSION says.
+  const { recording, summary } = recordReyesNight(hubDir);
   const out = join(hubDir, 'ui', 'public', 'scenario', `${SCENARIO_ID}.json`);
   mkdirSync(dirname(out), { recursive: true });
   const text = JSON.stringify(recording);

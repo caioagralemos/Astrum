@@ -1,0 +1,413 @@
+{
+  "id": "base-moon",
+  "kind": "base",
+  "name": "place.base-moon",
+  "where": {
+    "body": "moon",
+    "situation": "surface"
+  },
+  "gravity": 0.166,
+  "delayToEarthSeconds": 1.3,
+  "missionStart": "2026-04-18T00:00:00Z",
+  "plannedDays": 180,
+  "note": "A hub-and-spoke base camp: a commons dome in the middle, six short tunnels to the modules round it. The Moon and Mars bases are the same base; they differ only in body, gravity, delay to Earth and name. Gravity is a plain physical constant (Moon 0.166 g, Mars 0.38 g).",
+  "modules": [
+    {
+      "id": "commons",
+      "name": "room.commons",
+      "template": "galley",
+      "isRoom": true,
+      "shape": {
+        "kind": "dome",
+        "radius": 4.5,
+        "height": 3.6,
+        "sides": 12
+      },
+      "position": [0, 0.6, 0],
+      "axis": [0, 1, 0]
+    },
+    {
+      "id": "tunnel-command",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [0, 1.6, -5.197],
+      "axis": [0, 0, -1],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-1"
+      }
+    },
+    {
+      "id": "command",
+      "name": "room.command",
+      "template": "command",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 5,
+        "radius": 2.2
+      },
+      "position": [0, 1.442, -8.497],
+      "axis": [0, 0, -1],
+      "attachedTo": {
+        "module": "tunnel-command",
+        "port": "outer"
+      }
+    },
+    {
+      "id": "tunnel-lab",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [4.5, 1.6, 2.598],
+      "axis": [0.866, 0, 0.5],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-2"
+      }
+    },
+    {
+      "id": "lab",
+      "name": "room.lab",
+      "template": "lab",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6,
+        "radius": 2.2
+      },
+      "position": [7.791, 1.442, 4.498],
+      "axis": [0.866, 0, 0.5],
+      "attachedTo": {
+        "module": "tunnel-lab",
+        "port": "outer"
+      }
+    },
+    {
+      "id": "tunnel-medical",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [4.5, 1.6, -2.598],
+      "axis": [0.866, 0, -0.5],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-3"
+      }
+    },
+    {
+      "id": "medical",
+      "name": "room.medical",
+      "template": "medical",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 6,
+        "radius": 2.2
+      },
+      "position": [7.791, 1.442, -4.498],
+      "axis": [0.866, 0, -0.5],
+      "attachedTo": {
+        "module": "tunnel-medical",
+        "port": "outer"
+      }
+    },
+    {
+      "id": "tunnel-quarters",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [-4.5, 1.6, 2.598],
+      "axis": [-0.866, 0, 0.5],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-4"
+      }
+    },
+    {
+      "id": "quarters",
+      "name": "room.quarters",
+      "template": "quarters",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 4.8,
+        "radius": 2.2
+      },
+      "position": [-7.272, 2.633, 4.198],
+      "axis": [-0.866, 0, 0.5],
+      "attachedTo": {
+        "module": "tunnel-quarters",
+        "port": "outer"
+      },
+      "cabins": [
+        {
+          "id": "quarters-1",
+          "name": "room.quarters-1",
+          "band": "upper",
+          "from": 0,
+          "to": 2.4
+        },
+        {
+          "id": "quarters-2",
+          "name": "room.quarters-2",
+          "band": "lower",
+          "from": 0,
+          "to": 2.4
+        },
+        {
+          "id": "quarters-3",
+          "name": "room.quarters-3",
+          "band": "upper",
+          "from": 2.4,
+          "to": 4.8
+        },
+        {
+          "id": "quarters-4",
+          "name": "room.quarters-4",
+          "band": "lower",
+          "from": 2.4,
+          "to": 4.8
+        }
+      ]
+    },
+    {
+      "id": "tunnel-airlock",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [0, 1.6, 5.197],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-5"
+      }
+    },
+    {
+      "id": "airlock",
+      "name": "room.airlock",
+      "template": "airlock",
+      "isRoom": true,
+      "shape": {
+        "kind": "cylinder",
+        "length": 3.2,
+        "radius": 1.6
+      },
+      "position": [0, 1.212, 7.597],
+      "axis": [0, 0, 1],
+      "attachedTo": {
+        "module": "tunnel-airlock",
+        "port": "outer"
+      }
+    },
+    {
+      "id": "tunnel-greenhouse",
+      "name": "module.tunnel",
+      "template": "node",
+      "isRoom": false,
+      "shape": {
+        "kind": "cylinder",
+        "length": 1.6,
+        "radius": 0.85
+      },
+      "position": [-4.5, 1.6, -2.598],
+      "axis": [-0.866, 0, -0.5],
+      "attachedTo": {
+        "module": "commons",
+        "port": "spoke-6"
+      }
+    },
+    {
+      "id": "greenhouse",
+      "name": "room.greenhouse",
+      "template": "greenhouse",
+      "isRoom": true,
+      "shape": {
+        "kind": "dome",
+        "radius": 3.5,
+        "height": 3,
+        "sides": 8
+      },
+      "position": [-7.993, 0.6, -4.615],
+      "axis": [0, 1, 0],
+      "attachedTo": {
+        "module": "tunnel-greenhouse",
+        "port": "outer"
+      }
+    }
+  ],
+  "crew": [
+    {
+      "id": "reyes",
+      "name": "Reyes",
+      "role": "role.engineer",
+      "pronouns": "she",
+      "quarters": "quarters-2",
+      "work": "greenhouse"
+    },
+    {
+      "id": "leo",
+      "name": "Leo",
+      "role": "role.scientist",
+      "pronouns": "he",
+      "quarters": "quarters-1",
+      "work": "lab"
+    },
+    {
+      "id": "okafor",
+      "name": "Okafor",
+      "role": "role.cmo",
+      "quarters": "quarters-3",
+      "work": "medical"
+    },
+    {
+      "id": "tanaka",
+      "name": "Tanaka",
+      "role": "role.commander",
+      "quarters": "quarters-4",
+      "work": "command"
+    }
+  ],
+  "chips": {
+    "cabin-1": "commons"
+  },
+  "legs": [
+    {
+      "module": "commons",
+      "height": 0.6
+    },
+    {
+      "module": "quarters",
+      "height": 0.6
+    },
+    {
+      "module": "greenhouse",
+      "height": 0.6
+    }
+  ],
+  "antennas": [
+    {
+      "id": "mast",
+      "at": [0, 3.474, -9.497],
+      "up": [0, 1, 0],
+      "height": 2.6,
+      "dish": 0.45
+    }
+  ],
+  "trusses": [
+    {
+      "id": "post-1",
+      "from": [17, 0, -9],
+      "to": [17, 1.4, -9]
+    },
+    {
+      "id": "post-2",
+      "from": [21, 0, -3],
+      "to": [21, 1.4, -3]
+    }
+  ],
+  "solarArrays": [
+    {
+      "id": "field-1",
+      "at": [17, 1.4, -9],
+      "along": [0.5, 0, 0.866],
+      "across": [-0.866, 0, 0.5],
+      "from": -2.5,
+      "length": 5,
+      "panels": [
+        [-1.4, 1.4]
+      ],
+      "tilt": 0.6,
+      "cols": 4,
+      "rows": 6
+    },
+    {
+      "id": "field-2",
+      "at": [21, 1.4, -3],
+      "along": [0.5, 0, 0.866],
+      "across": [-0.866, 0, 0.5],
+      "from": -2.5,
+      "length": 5,
+      "panels": [
+        [-1.4, 1.4]
+      ],
+      "tilt": 0.6,
+      "cols": 4,
+      "rows": 6
+    }
+  ],
+  "ground": {
+    "radius": 700,
+    "rocks": [
+      {
+        "at": [-14, 0, 9],
+        "size": 0.7
+      },
+      {
+        "at": [11, 0, 13],
+        "size": 0.5
+      },
+      {
+        "at": [24, 0, 6],
+        "size": 0.9
+      },
+      {
+        "at": [-22, 0, -6],
+        "size": 1.1
+      },
+      {
+        "at": [7, 0, -19],
+        "size": 0.6
+      },
+      {
+        "at": [-9, 0, -24],
+        "size": 0.8
+      },
+      {
+        "at": [30, 0, -15],
+        "size": 1.3
+      },
+      {
+        "at": [-31, 0, 14],
+        "size": 0.9
+      }
+    ],
+    "crater": {
+      "at": [-38, 0, -52],
+      "radius": 14
+    }
+  },
+  "view": {
+    "yaw": 0.35,
+    "pitch": 0.62,
+    "turnOnTall": false,
+    "face": 0.35,
+    "depth": 2.5
+  }
+}

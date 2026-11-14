@@ -342,14 +342,14 @@ test('the evidence card answers over HTTP for the simulated crew', async () => {
   const { SimulatedCrew } = await import('./crew.ts');
   const { RoomAlarms } = await import('./alarms.ts');
   const { Baselines } = await import('./baseline.ts');
-  const { evidenceRoute, evidenceNow } = await import('./evidence.ts');
+  const { evidenceRoute, evidenceNow, EvidenceCards } = await import('./evidence.ts');
   const store = new Store(':memory:');
   const hub = new Hub(store, profile, '/nonexistent');
   const ids = profile.crew.map((p) => p.id);
   const now = Date.now();
   new SimulatedCrew(hub, store, ids, 0).catchUp(now);
   const deps = { store, profile, baselines: new Baselines(store, ids, 0), alarms: new RoomAlarms(hub, store, profile.rooms.map((r) => r.id)), offsetMinutes: 0 };
-  hub.routes.push(evidenceRoute(deps));
+  hub.routes.push(evidenceRoute(profile, new EvidenceCards(deps)));
   await new Promise<void>((done) => hub.http.listen(0, '127.0.0.1', done));
   const { port } = hub.http.address() as { port: number };
   try {
@@ -380,7 +380,7 @@ test('a level 3 in a room with no board sounds the galley board; "I\'ve seen it"
   hub.acknowledgeAlarm = (room) => alarms.acknowledge(room);
   const watcher = new AlertWatcher(hub, store, profile, alarms);
   hub.seeAlert = (id, by) => watcher.see(id, by);
-  watcher.asleep = () => ['tanaka'];
+  watcher.activity = () => ({ tanaka: { what: 'sleeping', kind: 'simulated' } });
   await new Promise<void>((done) => hub.http.listen(0, '127.0.0.1', done));
   const { port } = hub.http.address() as { port: number };
   t.after(() => { hub.http.closeAllConnections(); hub.http.close(); store.close(); });

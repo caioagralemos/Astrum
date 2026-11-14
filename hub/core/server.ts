@@ -20,6 +20,10 @@ import { impossible } from '../engine/quality.ts';
 import type { Stuck } from '../engine/quality.ts';
 import { checkinRows } from '../engine/checkin.ts';
 import { occupants } from '../engine/timeline.ts';
+import type { Evidence } from '../engine/evidence.ts';
+import type { CrewWatch } from '../engine/sensors.ts';
+import { sleepersOf } from '../engine/activity.ts';
+import type { Activity } from '../engine/activity.ts';
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -74,6 +78,11 @@ export class Hub {
 
   private earthMessages: EarthMessage[] = [];
 
+  /** Every message to Earth listed now, as the screens have it. */
+  earth(): EarthMessage[] {
+    return this.earthMessages;
+  }
+
   /** Messages to Earth, kept apart from the alerts so they outlive them. */
   setEarthMessages(earthMessages: EarthMessage[]): void {
     if (JSON.stringify(earthMessages) === JSON.stringify(this.earthMessages)) return;
@@ -83,11 +92,24 @@ export class Hub {
 
   private asleep: string[] = [];
 
-  /** Crew ids asleep now. Screens draw them asleep from this, not from their own clock. */
-  setAsleep(asleep: string[]): void {
+  /** Crew ids asleep now: only ever the sleepers of the activity (setActivity), so the two never disagree. */
+  private setAsleep(asleep: string[]): void {
     if (JSON.stringify(asleep) === JSON.stringify(this.asleep)) return;
     this.asleep = asleep;
     this.broadcast({ type: 'asleep', asleep });
+  }
+
+  private activity: Record<string, Activity> = {};
+
+  /**
+   * What each crewmate is doing now, as the hub knows it (engine/activity.ts). Screens draw
+   * activities from this, never from the room. Who is asleep is derived from it and sent first.
+   */
+  setActivity(activity: Record<string, Activity>): void {
+    this.setAsleep(sleepersOf(activity));
+    if (JSON.stringify(activity) === JSON.stringify(this.activity)) return;
+    this.activity = activity;
+    this.broadcast({ type: 'activity', activity });
   }
 
   private clockTimer: NodeJS.Timeout | null = null;
@@ -103,17 +125,28 @@ export class Hub {
     this.clockTimer = null;
   }
 
+  private evidence: Record<string, Evidence & { computedAt?: number }> = {};
+
+  /** One crewmate's evidence card changed (core/evidence.ts decides when): keep it and tell every screen. */
+  setEvidence(person: string, evidence: Evidence & { computedAt?: number }): void {
+    this.evidence = { ...this.evidence, [person]: evidence };
+    this.broadcast({ type: 'evidence', person, evidence });
+  }
+
   private alarms: RoomAlarm[] = [];
   private unjudged: Unjudged[] = [];
   private stuck: Stuck[] = [];
+  /** Rooms past a "warn" level the crew set: marked "watch", never an alarm. */
+  private crewWatch: CrewWatch[] = [];
   /** Set by the alarm watcher: silences one room's buzzer. */
   acknowledgeAlarm: (room: string) => boolean = () => false;
 
-  setAlarms(alarms: RoomAlarm[], unjudged: Unjudged[] = this.unjudged, stuck: Stuck[] = this.stuck): void {
+  setAlarms(alarms: RoomAlarm[], unjudged: Unjudged[] = this.unjudged, stuck: Stuck[] = this.stuck, crewWatch: CrewWatch[] = this.crewWatch): void {
     this.alarms = alarms;
     this.unjudged = unjudged;
     this.stuck = stuck;
-    this.broadcast({ type: 'alarms', alarms, unjudged, stuck });
+    this.crewWatch = crewWatch;
+    this.broadcast({ type: 'alarms', alarms, unjudged, stuck, crewWatch });
     this.soundBoard();
   }
 
@@ -221,7 +254,10 @@ export class Hub {
       alerts: this.alerts,
       quality: this.quality(),
       asleep: this.asleep,
+      activity: this.activity,
       earthMessages: this.earthMessages,
+      evidence: this.evidence,
+      crewWatch: this.crewWatch,
     };
   }
 
@@ -293,6 +329,8 @@ export class Hub {
     const url = new URL(req.url ?? '/', 'http://hub');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'content-type');
+    // Settings edits and deletes a crew-made mission (PUT, DELETE) from a screen served elsewhere (the dev server).
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') return void res.writeHead(204).end();
 
     if (url.pathname === '/api/state' && req.method === 'GET') return send(res, 200, this.state());

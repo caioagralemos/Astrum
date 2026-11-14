@@ -1,0 +1,118 @@
+The hub's stand-in values (core/standin.ts), demo mode only
+
+What this is
+  In demo mode the hub fills every room's readings that no real or replayed source gives.
+  The chip measures pressure, temperature, humidity, noise, light and vibration in its one
+  room (the main cabin). NASA's ISS record (data-nasa/osdr-rr1) is replayed as every room's
+  CO2, temperature and humidity. The stand-in makes up the rest: pressure, oxygen, noise,
+  light, vibration, air quality and radiation. Every stand-in row is kind "simulated",
+  source "sim:hub". Production mode makes none of it. The stand-in never makes CO2 on a
+  mission: the only CO2 is NASA's record, and CO2 is the only signal with a NASA limit.
+
+Three classes of number
+  (a) cited: from a source already in this project, quoted with where it is.
+  (b) convention: a plain physical or engineering convention.
+  (c) made up for plausibility with no source.
+
+Radiation (the signal where the place matters most)
+  Two different quantities, never converted into each other. Each place uses the unit of
+  the source that applies, and every row carries it.
+
+  Earth orbit (the ISS)                                   uGy/day, absorbed dose      (a)
+    Mir 19, 23 Jun to 20 Nov 1995, passive dosimeters, US dose rate in uGy/day:
+    "commander's cabin 352.5; end of core module / exercise area 414.0; close to R-16 261.0;
+    flight engineer's cabin 292.8; central control panel 279.0; transfer module window 336.0"
+    (NASA Life Sciences Portal, dataset J0001100; Badhwar GD et al., "Radiation Environment
+    on the Mir Orbital Station During Solar Minimum", Adv. Space Research;
+    ~/Desktop/NASA/data-found/DATA-FOUND.md section 10). Mir is not the ISS; both fly inside
+    Earth's magnetic field: "missions to the space station are entirely within the
+    magnetosphere, missions to the Moon and Mars will extend beyond this protective bubble"
+    (NASA, Risk of Radiation-Induced Cancers; passages.json, risk-radiation-induced-cancers-3).
+    Each room takes the Mir location of like use: quarters the commander's and the flight
+    engineer's cabins in turn, the exercise room the exercise area, the command room the
+    control panel, a window room the transfer module window; every other room takes the six
+    rates in turn, by room order.
+
+  Mars orbit, transit, Moon orbit (the ship)              mSv/day, dose equivalent    (a)
+    1.8: "an average GCR dose equivalent rate of 1.8 millisieverts per day" in transit to
+    Mars (Curiosity RAD; Zeitlin et al., Science 2013, 340:1080; DATA-FOUND.md section 11).
+    It was measured in cruise, not in Mars orbit; it is the project's only figure for space
+    beyond Earth's magnetic field.
+
+  Mars surface (the Mars base)                            mSv/day, dose equivalent    (a)
+    0.67: "0.67 millisieverts per day from August 2012 to June 2013 on the Martian surface"
+    (Curiosity RAD; Hassler et al., Science 2014; DATA-FOUND.md section 11).
+
+  Moon surface (the Moon base)                            mSv/day                     (c)
+    About 1. No cited figure in this project. Made up for plausibility with no source: a
+    round number between the two RAD figures, chosen so it does not pretend to precision.
+
+  Earth's surface                                         none
+    No place in this project stands there and no figure exists here: no radiation row.
+
+  Rooms inside one place (mSv/day places)                 pattern only                (a)
+    The place's figure times (that room's Mir rate / the mean of the six Mir rates, 322.55),
+    using the same room-to-location rule as above. Mir's spread is reused as a pattern only;
+    no unit is converted. Rooms run from 0.81 to 1.28 times the place's figure.
+
+  Wander                                                                              (c)
+    The sources give an average, not its spread. The shown value moves about one display
+    step (1 uGy/day, or 0.01 mSv/day) every ten minutes and stays within a step or two of
+    the centre. Made up for plausibility with no source.
+
+Pressure                         1013.25 hPa, every place                             (b)
+  Sea-level standard atmosphere, the same 760 mmHg the CO2 replay is converted at
+  (osdr-rr1/SOURCE.txt). NASA says deep-space craft will run at "a constant partial cabin
+  depressurization" (Risk of Hypoxia; passages.json, risk-hypoxia-1) but no figure for it is
+  in this project, so it is not applied. Wander about 0.05 hPa a second (c).
+
+Oxygen                           159.2 mmHg, every place                              (b)
+  20.95 % of dry air at 760 mmHg. Wander as before (c).
+
+Gravity                                                                               -
+  Changes nothing here. The bases keep the same sea-level cabin as the spacecraft, and no
+  room reading is moved by gravity.
+
+Light (raw 0-4095, like the chip's light sensor)
+  Rhythm (a): "light-emitting diodes, or LEDs, simulate Earth's light-dark cycle to help
+  astronauts sleep better" (NASA, Risk from Inadequate Sleep and Irregular Schedules;
+  passages.json, risk-sleep-2). The dark hours are the simulated crew's sleep, 22:00 to
+  06:00 (engine/crew.ts), on the hub's 24-hour clock in every place. A Martian day is
+  longer than 24 hours; the demo does not keep a sol clock.
+  Levels (c), made up for plausibility with no source: by day 2400 in work rooms (lab,
+  command, medical, greenhouse), 2000 in the galley and exercise room, 1400 in quarters,
+  1200 elsewhere; at night 30 in quarters, 500 elsewhere.
+  A window room in Earth orbit (the Cupola): sunlight comes and goes every 90 minutes,
+  from "Astronauts witness 16 sunrises and sunsets per day aboard the space station"
+  (passages.json, risk-sleep-3) (a); its brightness, up to 1200 more, is (c).
+
+Noise (raw 0-4095, like the chip's microphone)                                        (c)
+  Made up for plausibility with no source: 240 at rest (the stand-in's old value); a lab
+  +100 day and night (equipment); command and medical +40; +40 for each person present;
+  the galley +90 for each person eating there; quarters at night 150; other rooms 40 lower
+  at night. The exercise room +1000, and +100 for each person exercising, while someone is
+  exercising there: someone counts as exercising during their 1.5-hour block in the
+  simulated crew's day, which keeps NASA's "1.5 hours per day" (passages.json,
+  risk-reduced-fitness-2) (a); a crewmate who only works there does not.
+
+Vibration (g)                                                                         (c)
+  Made up for plausibility with no source: 0.002 on a spacecraft (pumps, fans, thrusters),
+  0.001 on a surface base, +0.02 while someone is exercising in the exercise room.
+
+Air quality (index)              1.4, as before                                       (c)
+  Shown as a whole index, so it reads 1.
+
+Temperature and humidity         only when NASA's replay is silent                    (c)
+  23 C (0.3 C lower at night) and 45 %, as before. In demo mode NASA's replay gives both in
+  every room, so these are rarely seen.
+
+Without a mission
+  An old profile file, or the recorded story ("npm run scenario"), runs the stand-in as it
+  always was: one ordinary cabin per signal, CO2 included (2.4 mmHg, c), and the six Mir
+  rates in uGy/day handed to the rooms in order.
+
+How it moves
+  Each value drifts randomly toward its target, a little each second (the random function
+  is passed in, so tests are repeatable), never below 0, and the shown value changes only by
+  a whole display step, as a sensor's reading does. Nothing it makes is near a NASA limit:
+  the only limit is CO2's, and it makes no CO2 on a mission.
