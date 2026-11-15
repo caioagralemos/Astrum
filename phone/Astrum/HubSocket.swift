@@ -1,6 +1,7 @@
 // The live connection to the hub's WebSocket (/ws). Keeps it open, notices
 // when it drops (a ping every 20 seconds), and reconnects with a growing wait:
-// 1, 2, 4 ... up to 30 seconds. Hands every decoded message to its owner.
+// 1, 2, 4 ... up to 30 seconds. Decodes each message off the main actor and
+// hands it to its owner, in the order it arrived.
 
 import Foundation
 
@@ -68,7 +69,7 @@ final class HubSocket {
                         attempt = 0
                         onState?(.connected)
                     }
-                    handle(message)
+                    if let incoming = await Self.decode(message) { onMessage?(incoming) }
                 }
             } catch {
                 // The socket closed or failed; fall through to the wait below.
@@ -84,14 +85,15 @@ final class HubSocket {
         }
     }
 
-    private func handle(_ message: URLSessionWebSocketTask.Message) {
+    /// Decodes one message off the main actor; the full state can be large.
+    @concurrent
+    private nonisolated static func decode(_ message: URLSessionWebSocketTask.Message) async -> HubIncoming? {
         let data: Data
         switch message {
         case .string(let text): data = Data(text.utf8)
         case .data(let bytes): data = bytes
-        @unknown default: return
+        @unknown default: return nil
         }
-        guard let incoming = try? JSONDecoder().decode(HubIncoming.self, from: data) else { return }
-        onMessage?(incoming)
+        return try? JSONDecoder().decode(HubIncoming.self, from: data)
     }
 }

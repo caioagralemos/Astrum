@@ -1,40 +1,46 @@
-// The one screen: a native status strip on top of the hub's interface. Until a
-// hub is known it explains that it is searching. Opens settings by itself on
-// first run, when there is no hub or no crewmate chosen yet.
+// The app's frame: the short first run until a hub and a crewmate are
+// chosen, then four tabs (Me, Check-in, Ask Astra, Station), with alerts
+// taking over the screen above any of them.
 
 import SwiftUI
 
+enum AppTab: Hashable {
+    case me, checkIn, ask, station
+}
+
 struct ContentView: View {
     @Environment(AppModel.self) private var model
-    @State private var showingSettings = false
-    @State private var checkedSetup = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            StatusStrip { showingSettings = true }
-            Divider()
-            if let url = model.pageURL {
-                HubWebView(url: url, hubReachable: model.link == .connected)
-                    .ignoresSafeArea(edges: .bottom)
+        @Bindable var model = model
+        Group {
+            if !model.onboarded || model.needsSetup {
+                OnboardingView()
             } else {
-                ContentUnavailableView {
-                    Label("Looking for the hub", systemImage: "antenna.radiowaves.left.and.right")
-                } description: {
-                    Text("Astrum searches this Wi-Fi network for the hub. You can also type its address in Settings.")
-                } actions: {
-                    Button("Open Settings") { showingSettings = true }
-                        .buttonStyle(.borderedProminent)
+                TabView(selection: $model.selectedTab) {
+                    Tab("Me", systemImage: "figure.stand", value: AppTab.me) {
+                        MeView()
+                    }
+                    Tab("Check-in", systemImage: "square.and.pencil", value: AppTab.checkIn) {
+                        CheckInView()
+                    }
+                    Tab("Ask Astra", systemImage: "text.bubble", value: AppTab.ask) {
+                        AskView()
+                    }
+                    Tab("Station", systemImage: "circle.hexagongrid", value: AppTab.station) {
+                        StationView()
+                    }
                 }
-                .frame(maxHeight: .infinity)
+                .modifier(AlertTakeover())
+                // Nothing to show yet (no hub data, not even saved): the hub's loading mark.
+                .modifier(HubLoadingCover(waiting: !model.world.hasData, message: model.link.title))
             }
         }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
-        .onAppear {
-            guard !checkedSetup else { return }
-            checkedSetup = true
-            if model.needsSetup { showingSettings = true }
-        }
+        .preferredColorScheme(.dark)
     }
+}
+
+#Preview {
+    ContentView()
+        .environment(SampleData.model())
 }

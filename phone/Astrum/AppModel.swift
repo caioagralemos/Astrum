@@ -1,6 +1,9 @@
 // The app's one shared state and the glue between its parts: which hub and
 // whose phone, the live socket, Health readings going out through the
 // on-disk queue, alarms coming in as notifications, and the keep-alive.
+// The hub's messages are applied to `world`, which the screens read; the
+// owner's history, check-ins and alert answers go through here too
+// (AppModel+Companion.swift).
 
 import Foundation
 import Observation
@@ -21,10 +24,10 @@ final class AppModel {
 
         var title: String {
             switch self {
-            case .noHub: "Looking for the hub"
-            case .connecting: "Connecting to the hub"
-            case .connected: "Connected to the hub"
-            case .retrying: "Hub out of reach, retrying"
+            case .noHub: String(localized: "Looking for the hub")
+            case .connecting: String(localized: "Connecting to the hub")
+            case .connected: String(localized: "Connected to the hub")
+            case .retrying: String(localized: "Hub out of reach, retrying")
             }
         }
 
@@ -46,9 +49,9 @@ final class AppModel {
 
         var title: String {
             switch self {
-            case .unavailable: "Not available on this device"
-            case .notAsked: "Not asked yet"
-            case .asked: "Asked"
+            case .unavailable: String(localized: "Not available on this device")
+            case .notAsked: String(localized: "Not asked yet")
+            case .asked: String(localized: "Asked")
             }
         }
     }
@@ -61,6 +64,21 @@ final class AppModel {
     private(set) var waitingCount = 0
     private(set) var healthState: HealthState = .notAsked
     private(set) var notificationText = "Checking"
+
+    /// Everything the hub has told the phone; saved to disk for offline.
+    var world = HubWorld()
+    /// The owner's own recent rows and how each signal compares with their usual.
+    let history = PersonHistory()
+    var selectedTab: AppTab = .me
+    /// An alert a notification was tapped for, to open on Me.
+    var openedAlertID: String?
+    var onboarded: Bool
+    /// Check-ins answered offline, waiting for the hub.
+    var pendingCheckins = 0
+    /// Level 3 alerts (by key) the owner has closed after they were seen; shown as a banner instead.
+    var closedAlerts: Set<String> = []
+    @ObservationIgnored let store = LocalStore()
+    @ObservationIgnored var saveTask: Task<Void, Never>?
 
     let finder = HubFinder()
 
@@ -81,15 +99,22 @@ final class AppModel {
         static let person = "person"
         static let crew = "crew"
         static let lastSent = "lastSent"
+        static let onboarded = "onboarded"
     }
 
-    init() {
+    /// `running: false` starts nothing (no socket, Bonjour, Health or audio): for previews.
+    init(running: Bool = true) {
         let defaults = UserDefaults.standard
-        address = defaults.string(forKey: Key.address).flatMap { HubAddress(text: $0) }
+        // Locals: reading an observed property before every stored one is set is not allowed.
+        let savedAddress = defaults.string(forKey: Key.address).flatMap { HubAddress(text: $0) }
+        let savedPerson = defaults.string(forKey: Key.person) ?? ""
+        address = savedAddress
         addressIsAutomatic = defaults.bool(forKey: Key.automatic)
-        person = defaults.string(forKey: Key.person) ?? ""
+        person = savedPerson
         crew = defaults.data(forKey: Key.crew).flatMap { try? JSONDecoder().decode([CrewMember].self, from: $0) } ?? []
         lastSent = defaults.object(forKey: Key.lastSent) as? Date
+        // A phone set up before the first run existed has done its steps already.
+        onboarded = defaults.bool(forKey: Key.onboarded) || (savedAddress != nil && !savedPerson.isEmpty)
 
         let readingQueue = ReadingQueue()
         let (stream, continuation) = AsyncStream.makeStream(of: Void.self)
@@ -97,7 +122,7 @@ final class AppModel {
         queued = stream
         health = HealthSync(queue: readingQueue, queued: continuation)
 
-        start()
+        if running { start() }
     }
 
     // MARK: Derived
@@ -139,6 +164,7 @@ final class AppModel {
                 if waitingCount > 0 { flush() }
             }
         }
+        Task { await loadSaved() }
         Task {
             waitingCount = await queue.count
             await notifier.requestPermission()
@@ -152,6 +178,7 @@ final class AppModel {
         keepAlive.start()
         if link != .connected { connect() }
         flush()
+        flushCheckins()
         Task { await refreshPermissions() }
     }
 
@@ -175,6 +202,7 @@ final class AppModel {
         self.person = person
         UserDefaults.standard.set(person, forKey: Key.person)
         if let hello = helloText { socket.update(hello: hello) }
+        personChanged()
         Task {
             if healthState == .asked { await health.start(person: person) }
         }
@@ -190,6 +218,11 @@ final class AppModel {
             await refreshPermissions()
             if healthState == .asked { await health.start(person: person) }
         }
+    }
+
+    func finishOnboarding() {
+        onboarded = true
+        UserDefaults.standard.set(true, forKey: Key.onboarded)
     }
 
     func sendTestAlert() {
@@ -235,6 +268,7 @@ final class AppModel {
         case .connected:
             link = .connected
             flush()
+            flushCheckins()
         case .retrying: link = .retrying
         }
     }
@@ -246,6 +280,7 @@ final class AppModel {
         }
         // Room alarms sound the room's buzzer. Phones announce alerts, which carry who is told.
         if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew) }
+        apply(message)
     }
 
     // MARK: Sending readings

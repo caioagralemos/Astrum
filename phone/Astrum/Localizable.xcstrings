@@ -1,0 +1,4221 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ (you)" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (você)"
+          }
+        }
+      }
+    },
+    "%@ %@ over the limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ acima do limite"
+          }
+        }
+      }
+    },
+    "%@ %@, limit %@ %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@, limite %3$@ %4$@"
+          }
+        }
+      }
+    },
+    "%@ asked for help." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pediu ajuda."
+          }
+        }
+      }
+    },
+    "%@ did not answer in time." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ não respondeu a tempo."
+          }
+        }
+      }
+    },
+    "%@ h above %@ mmHg, more than any crewmate" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ h acima de %2$@ mmHg, mais que qualquer colega"
+          }
+        }
+      }
+    },
+    "%@ hours" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ horas"
+          }
+        }
+      }
+    },
+    "%@ in %@ is over NASA's limit." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ em %2$@ está acima do limite da NASA."
+          }
+        }
+      }
+    },
+    "%@ is above your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está acima do seu habitual"
+          }
+        }
+      }
+    },
+    "%@ is below your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está abaixo do seu habitual"
+          }
+        }
+      }
+    },
+    "%@ is in %@, where %@ is over NASA's limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ está em %2$@, onde %3$@ está acima do limite da NASA"
+          }
+        }
+      }
+    },
+    "%@ is in %@, where %@ is over NASA's limit." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ está em %2$@, onde %3$@ está acima do limite da NASA."
+          }
+        }
+      }
+    },
+    "%@ is within your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está dentro do seu habitual"
+          }
+        }
+      }
+    },
+    "%@ to answer" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ para responder"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, in %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, em %2$@"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: last reading of %@ %lld minutes ago" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: última leitura de %2$@ há %3$lld minutos"
+          }
+        }
+      }
+    },
+    "%@: no reading of %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: sem leitura de %2$@"
+          }
+        }
+      }
+    },
+    "%@: not enough history to compare yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: ainda sem histórico para comparar"
+          }
+        }
+      }
+    },
+    "%@: the %@ sensor may be stuck" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: o sensor de %2$@ pode estar travado"
+          }
+        }
+      }
+    },
+    "%@: two sensors disagree on %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: dois sensores discordam sobre %2$@"
+          }
+        }
+      }
+    },
+    "%lld min to Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min até a Terra"
+          }
+        }
+      }
+    },
+    "%lld of %lld planned" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld planejados"
+          }
+        }
+      }
+    },
+    "%lld of 100" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld de 100"
+          }
+        }
+      }
+    },
+    "%lld on board" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld a bordo"
+          }
+        }
+      }
+    },
+    "%lld over the limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld acima do limite"
+          }
+        }
+      }
+    },
+    "%lld readings outside your usual" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reading outside your usual"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld readings outside your usual"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld leitura fora do seu habitual"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld leituras fora do seu habitual"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld results" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld result"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld results"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld resultado"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld resultados"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld waiting to send" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld waiting to send"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld waiting to send"
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld esperando envio"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld esperando envio"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "A fixed text" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um texto fixo"
+          }
+        }
+      }
+    },
+    "A level set by the crew" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um nível definido pela tripulação"
+          }
+        }
+      }
+    },
+    "A message takes %@ to reach Earth." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma mensagem leva %@ para chegar à Terra."
+          }
+        }
+      }
+    },
+    "A reply can arrive in" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta pode chegar em"
+          }
+        }
+      }
+    },
+    "A reply can be back in %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta pode voltar em %@"
+          }
+        }
+      }
+    },
+    "A reply can be back in %@ at the earliest." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta pode voltar em %@, no mínimo."
+          }
+        }
+      }
+    },
+    "A reply can be here now" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta já pode ter chegado"
+          }
+        }
+      }
+    },
+    "A reply takes at least %lld min" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma resposta leva ao menos %lld min"
+          }
+        }
+      }
+    },
+    "A typed result is stored as Measured: an instrument read it." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um resultado digitado é guardado como Medido: um instrumento o leu."
+          }
+        }
+      }
+    },
+    "Above range" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acima da faixa"
+          }
+        }
+      }
+    },
+    "Above usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acima do habitual"
+          }
+        }
+      }
+    },
+    "above your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "acima do seu habitual"
+          }
+        }
+      }
+    },
+    "Access" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso"
+          }
+        }
+      }
+    },
+    "Active energy today" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Energia ativa hoje"
+          }
+        }
+      }
+    },
+    "Address, for example 192.168.1.20" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endereço, por exemplo 192.168.1.20"
+          }
+        }
+      }
+    },
+    "Air in %@: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ar em %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Air quality" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualidade do ar"
+          }
+        }
+      }
+    },
+    "Airlock" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Câmara de descompressão"
+          }
+        }
+      }
+    },
+    "Alerts" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alertas"
+          }
+        }
+      }
+    },
+    "Alerts about you, and alerts everyone is told, arrive as time-sensitive notifications, also on a locked phone and the Apple Watch." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alertas sobre você, e alertas avisados a todos, chegam como notificações urgentes, também com o celular bloqueado e no Apple Watch."
+          }
+        }
+      }
+    },
+    "All" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo"
+          }
+        }
+      }
+    },
+    "All quiet on board" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo tranquilo a bordo"
+          }
+        }
+      }
+    },
+    "All readings" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas as leituras"
+          }
+        }
+      }
+    },
+    "Allow Health access" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir acesso ao Saúde"
+          }
+        }
+      }
+    },
+    "an unknown room" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "um ambiente desconhecido"
+          }
+        }
+      }
+    },
+    "Answer" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resposta"
+          }
+        }
+      }
+    },
+    "Answered in %@ s" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondido em %@ s"
+          }
+        }
+      }
+    },
+    "Answered: OK. %@ is still over NASA's limit in %@." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respondeu: está bem. %1$@ continua acima do limite da NASA em %2$@."
+          }
+        }
+      }
+    },
+    "Apple Watch, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Watch, %@"
+          }
+        }
+      }
+    },
+    "Are you OK?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está bem?"
+          }
+        }
+      }
+    },
+    "Arrives in five seconds" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chega em cinco segundos"
+          }
+        }
+      }
+    },
+    "Ask" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar"
+          }
+        }
+      }
+    },
+    "Ask Astra" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pergunte à Astra"
+          }
+        }
+      }
+    },
+    "Asked" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedido"
+          }
+        }
+      }
+    },
+    "Asleep" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dormindo"
+          }
+        }
+      }
+    },
+    "Astra is off; the hub answered from your readings." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Astra está desligada; o hub respondeu a partir das suas leituras."
+          }
+        }
+      }
+    },
+    "Astra is working: %lld s" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astra está trabalhando: %lld s"
+          }
+        }
+      }
+    },
+    "Astra runs on the hub, and the hub is out of reach. Nothing runs on this phone." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Astra roda no hub, e o hub está fora de alcance. Nada roda neste celular."
+          }
+        }
+      }
+    },
+    "Astra was too slow or failed; the hub answered from your readings." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Astra demorou demais ou falhou; o hub respondeu a partir das suas leituras."
+          }
+        }
+      }
+    },
+    "Astra writes in English." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Astra escreve em inglês."
+          }
+        }
+      }
+    },
+    "Astra: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astra: %@"
+          }
+        }
+      }
+    },
+    "Astra: %@ · %lld in line" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astra: %1$@ · %2$lld na fila"
+          }
+        }
+      }
+    },
+    "Astra: out of reach" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astra: fora de alcance"
+          }
+        }
+      }
+    },
+    "Astrum is a companion to the station's hub. It finds the hub on the station's Wi-Fi." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Astrum acompanha o hub da estação. Ele encontra o hub no Wi-Fi da estação."
+          }
+        }
+      }
+    },
+    "Astrum reads your Apple Watch's readings from Health and sends them to the hub. It writes nothing to Health. You can skip this." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Astrum lê as leituras do seu Apple Watch no Saúde e as envia ao hub. Ele não grava nada no Saúde. Você pode pular isto."
+          }
+        }
+      }
+    },
+    "At %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Às %@"
+          }
+        }
+      }
+    },
+    "At Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na Terra"
+          }
+        }
+      }
+    },
+    "Automatic message about %@: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensagem automática sobre %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar"
+          }
+        }
+      }
+    },
+    "Base on Mars" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base em Marte"
+          }
+        }
+      }
+    },
+    "Base on the Moon" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base na Lua"
+          }
+        }
+      }
+    },
+    "below NASA's 2.8 mmHg level" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "abaixo do nível de 2,8 mmHg da NASA"
+          }
+        }
+      }
+    },
+    "Below range" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abaixo da faixa"
+          }
+        }
+      }
+    },
+    "Below usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abaixo do habitual"
+          }
+        }
+      }
+    },
+    "below your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "abaixo do seu habitual"
+          }
+        }
+      }
+    },
+    "between NASA's 2.8 and 3 mmHg levels" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "entre os níveis de 2,8 e 3 mmHg da NASA"
+          }
+        }
+      }
+    },
+    "Blood" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sangue"
+          }
+        }
+      }
+    },
+    "Blood oxygen" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oxigênio no sangue"
+          }
+        }
+      }
+    },
+    "Blood pressure, lower" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressão arterial, mínima"
+          }
+        }
+      }
+    },
+    "Blood pressure, upper" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressão arterial, máxima"
+          }
+        }
+      }
+    },
+    "Blood test" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exame de sangue"
+          }
+        }
+      }
+    },
+    "Blood tests need the hub." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os exames de sangue precisam do hub."
+          }
+        }
+      }
+    },
+    "Body" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Corpo"
+          }
+        }
+      }
+    },
+    "Body and activity" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Corpo e atividade"
+          }
+        }
+      }
+    },
+    "Breathing rate" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência respiratória"
+          }
+        }
+      }
+    },
+    "Breathing rate, blood oxygen and the air of the room you are in" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência respiratória, oxigênio no sangue e o ar do ambiente onde você está"
+          }
+        }
+      }
+    },
+    "Cabin pressure" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressão da cabine"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        }
+      }
+    },
+    "Change in the Settings app" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar no app Ajustes"
+          }
+        }
+      }
+    },
+    "Check-in" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in"
+          }
+        }
+      }
+    },
+    "Choose a region with the buttons below" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha uma região nos botões abaixo"
+          }
+        }
+      }
+    },
+    "Choose who you are in Settings first." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha quem você é nos Ajustes primeiro."
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar"
+          }
+        }
+      }
+    },
+    "CO2" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CO2"
+          }
+        }
+      }
+    },
+    "CO2 exposure, %lld h" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exposição a CO2, %lld h"
+          }
+        }
+      }
+    },
+    "CO2 in every room" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CO2 em cada ambiente"
+          }
+        }
+      }
+    },
+    "Command" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comando"
+          }
+        }
+      }
+    },
+    "Commander" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comandante"
+          }
+        }
+      }
+    },
+    "Commons" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Área comum"
+          }
+        }
+      }
+    },
+    "Compared with %lld earlier readings" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparado com %lld leituras anteriores"
+          }
+        }
+      }
+    },
+    "Concerning" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preocupante"
+          }
+        }
+      }
+    },
+    "Connect to the hub to see the crew." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte-se ao hub para ver a tripulação."
+          }
+        }
+      }
+    },
+    "Connect to the hub to see the mission." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte-se ao hub para ver a missão."
+          }
+        }
+      }
+    },
+    "Connected to the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado ao hub"
+          }
+        }
+      }
+    },
+    "Connecting to the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectando ao hub"
+          }
+        }
+      }
+    },
+    "Contact Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contatar a Terra"
+          }
+        }
+      }
+    },
+    "Crew" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tripulação"
+          }
+        }
+      }
+    },
+    "Crew Medical Officer" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oficial médico da tripulação"
+          }
+        }
+      }
+    },
+    "Crewmate" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tripulante"
+          }
+        }
+      }
+    },
+    "Crewmates in the same room are normal" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colegas no mesmo ambiente estão normais"
+          }
+        }
+      }
+    },
+    "Crewmates in the same room show the same" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colegas no mesmo ambiente apresentam o mesmo"
+          }
+        }
+      }
+    },
+    "Dangerous" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perigoso"
+          }
+        }
+      }
+    },
+    "Dangerous for %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perigoso há %@"
+          }
+        }
+      }
+    },
+    "Dangerous: %@ in %@. Open" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perigoso: %1$@ em %2$@. Abrir"
+          }
+        }
+      }
+    },
+    "day" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dia"
+          }
+        }
+      }
+    },
+    "Day" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia"
+          }
+        }
+      }
+    },
+    "day, of %lld planned" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dia, de %lld planejados"
+          }
+        }
+      }
+    },
+    "Delivered" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entregue"
+          }
+        }
+      }
+    },
+    "Do not" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não faça"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "Earlier check-ins" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-ins anteriores"
+          }
+        }
+      }
+    },
+    "Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terra"
+          }
+        }
+      }
+    },
+    "Earth's reply can arrive within the %@ this card gives." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A resposta da Terra pode chegar dentro dos %@ que este cartão dá."
+          }
+        }
+      }
+    },
+    "Earth's reply can be here now." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A resposta da Terra já pode ter chegado."
+          }
+        }
+      }
+    },
+    "Eating" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comendo"
+          }
+        }
+      }
+    },
+    "English or Portuguese. Astrum follows the device's language unless you choose another for Astrum in the Settings app." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inglês ou português. O Astrum segue o idioma do aparelho, a não ser que você escolha outro para o Astrum no app Ajustes."
+          }
+        }
+      }
+    },
+    "Estimated" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimado"
+          }
+        }
+      }
+    },
+    "Everything within your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo dentro do seu habitual"
+          }
+        }
+      }
+    },
+    "Exercise bay" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Área de exercício"
+          }
+        }
+      }
+    },
+    "Exercise today" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exercício hoje"
+          }
+        }
+      }
+    },
+    "Exercise, steps and active energy" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exercício, passos e energia ativa"
+          }
+        }
+      }
+    },
+    "Exercising" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exercitando"
+          }
+        }
+      }
+    },
+    "Far above range: urgent" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muito acima da faixa: urgente"
+          }
+        }
+      }
+    },
+    "Far below range: urgent" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muito abaixo da faixa: urgente"
+          }
+        }
+      }
+    },
+    "Find the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontre o hub"
+          }
+        }
+      }
+    },
+    "Flight engineer" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engenheiro de voo"
+          }
+        }
+      }
+    },
+    "for a message to reach Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "para uma mensagem chegar à Terra"
+          }
+        }
+      }
+    },
+    "From" : {
+      "comment" : "Label for the start of the time range.",
+      "isCommentAutoGenerated" : true
+    },
+    "From %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@"
+          }
+        }
+      }
+    },
+    "Galley" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cozinha"
+          }
+        }
+      }
+    },
+    "Gravity" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravidade"
+          }
+        }
+      }
+    },
+    "Gravity %@ g" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravidade %@ g"
+          }
+        }
+      }
+    },
+    "Greenhouse" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estufa"
+          }
+        }
+      }
+    },
+    "Head" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cabeça"
+          }
+        }
+      }
+    },
+    "Headache" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dor de cabeça"
+          }
+        }
+      }
+    },
+    "headaches %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dores de cabeça %@"
+          }
+        }
+      }
+    },
+    "Health" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saúde"
+          }
+        }
+      }
+    },
+    "Heart" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coração"
+          }
+        }
+      }
+    },
+    "Heart rate" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência cardíaca"
+          }
+        }
+      }
+    },
+    "Heart rate variability" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variabilidade da frequência cardíaca"
+          }
+        }
+      }
+    },
+    "Heart rate, resting heart rate, heart rate variability and blood pressure" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência cardíaca, frequência em repouso, variabilidade da frequência cardíaca e pressão arterial"
+          }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Histórico"
+          }
+        }
+      }
+    },
+    "History needs the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O histórico precisa do hub"
+          }
+        }
+      }
+    },
+    "Hours you spent at or above %@ mmHg" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horas suas a %@ mmHg ou mais"
+          }
+        }
+      }
+    },
+    "Houston: message received. Your flight surgeon is reviewing it. (Simulated reply: there is no ground station in this demo.)" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Houston: mensagem recebida. Seu cirurgião de voo está analisando. (Resposta simulada: não há estação em terra nesta demonstração.)"
+          }
+        }
+      }
+    },
+    "How much should I exercise?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quanto devo me exercitar?"
+          }
+        }
+      }
+    },
+    "Hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hub"
+          }
+        }
+      }
+    },
+    "Hub address" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endereço do hub"
+          }
+        }
+      }
+    },
+    "Hub address, crewmate, Health access and alerts" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endereço do hub, tripulante, acesso ao Saúde e alertas"
+          }
+        }
+      }
+    },
+    "Hub out of reach, retrying" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hub fora de alcance, tentando de novo"
+          }
+        }
+      }
+    },
+    "Hub, crewmate, Health access, alerts and language" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hub, tripulante, acesso ao Saúde, alertas e idioma"
+          }
+        }
+      }
+    },
+    "Humidity" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umidade"
+          }
+        }
+      }
+    },
+    "I am OK" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estou bem"
+          }
+        }
+      }
+    },
+    "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não consegui terminar uma resposta a tempo. Aqui estão as leituras e o texto da NASA como estão. Toque em Perguntar a Houston para falar com seu cirurgião de voo."
+          }
+        }
+      }
+    },
+    "I don't know. My NASA sources don't cover this, and I won't guess. Tap Ask Houston to send it to your flight surgeon. The answer takes about 40 minutes." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não sei. Minhas fontes da NASA não cobrem isso, e não vou adivinhar. Toque em Perguntar a Houston para enviar ao seu cirurgião de voo. A resposta leva cerca de 40 minutos."
+          }
+        }
+      }
+    },
+    "I need help" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preciso de ajuda"
+          }
+        }
+      }
+    },
+    "I've seen it" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eu vi"
+          }
+        }
+      }
+    },
+    "In %@, where %@ is over NASA's limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Em %1$@, onde o %2$@ está acima do limite da NASA"
+          }
+        }
+      }
+    },
+    "International Space Station" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estação Espacial Internacional"
+          }
+        }
+      }
+    },
+    "iOS does not tell apps what you allowed. To check or change it, open the Settings app, then Health, Data Access & Devices, Astrum." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iOS não diz aos apps o que você permitiu. Para conferir ou mudar, abra o app Ajustes, depois Saúde, Acesso a Dados e Dispositivos, Astrum."
+          }
+        }
+      }
+    },
+    "Is the CO2 in my room dangerous?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O CO2 no meu quarto é perigoso?"
+          }
+        }
+      }
+    },
+    "It reaches Earth in %@. A reply can be back in %@ at the earliest." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chega à Terra em %1$@. Uma resposta pode voltar em %2$@, no mínimo."
+          }
+        }
+      }
+    },
+    "Lab" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laboratório"
+          }
+        }
+      }
+    },
+    "Label: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rótulo: %@"
+          }
+        }
+      }
+    },
+    "Language" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idioma"
+          }
+        }
+      }
+    },
+    "last 12 hours" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "últimas 12 horas"
+          }
+        }
+      }
+    },
+    "Last 12 hours" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Últimas 12 horas"
+          }
+        }
+      }
+    },
+    "last 14 days" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "últimos 14 dias"
+          }
+        }
+      }
+    },
+    "Last 14 days" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Últimos 14 dias"
+          }
+        }
+      }
+    },
+    "Last message from %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última mensagem de %@"
+          }
+        }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luz"
+          }
+        }
+      }
+    },
+    "Live" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao vivo"
+          }
+        }
+      }
+    },
+    "loading" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "carregando"
+          }
+        }
+      }
+    },
+    "Loading history…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando histórico…"
+          }
+        }
+      }
+    },
+    "Loading the steps card…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando o cartão de passos…"
+          }
+        }
+      }
+    },
+    "Loading…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando…"
+          }
+        }
+      }
+    },
+    "location" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "local"
+          }
+        }
+      }
+    },
+    "Looking for the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procurando o hub"
+          }
+        }
+      }
+    },
+    "Low Earth orbit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Órbita baixa da Terra"
+          }
+        }
+      }
+    },
+    "Lowest reading: %@, %@ %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menor leitura: %1$@, %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "Lowest reading: %@, %@ %@." : {
+      "comment" : "A sentence that describes a room and the value of a signal in that room. The first argument is the string “an unknown room”. The second argument is the value of a signal. The third argument is the unit of measurement of the signal.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lowest reading: %1$@, %2$@ %3$@."
+          }
+        }
+      }
+    },
+    "Lungs and air" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulmões e ar"
+          }
+        }
+      }
+    },
+    "Marked urgent" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcado como urgente"
+          }
+        }
+      }
+    },
+    "Mars base" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base em Marte"
+          }
+        }
+      }
+    },
+    "Mars orbit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Órbita de Marte"
+          }
+        }
+      }
+    },
+    "Me" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eu"
+          }
+        }
+      }
+    },
+    "Measured" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medido"
+          }
+        }
+      }
+    },
+    "Medical bay" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enfermaria"
+          }
+        }
+      }
+    },
+    "Message" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensagem"
+          }
+        }
+      }
+    },
+    "Message to Earth sent. A reply can arrive in %@." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensagem enviada à Terra. A resposta pode chegar em %@."
+          }
+        }
+      }
+    },
+    "Messages to Earth go through the hub, and the hub is out of reach." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensagens à Terra passam pelo hub, e o hub está fora de alcance."
+          }
+        }
+      }
+    },
+    "Mission" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missão"
+          }
+        }
+      }
+    },
+    "Mission specialist" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Especialista da missão"
+          }
+        }
+      }
+    },
+    "Mood" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Humor"
+          }
+        }
+      }
+    },
+    "Moon base" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base lunar"
+          }
+        }
+      }
+    },
+    "My NASA sources don't cover this, so I won't guess a treatment. Follow your onboard emergency checklist, get your Crew Medical Officer now, and message Houston." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minhas fontes da NASA não cobrem isto, então não vou adivinhar um tratamento. Siga o checklist de emergência a bordo, chame agora o oficial médico e mande mensagem a Houston."
+          }
+        }
+      }
+    },
+    "NASA %@ %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NASA %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "NASA level" : {
+      "comment" : "Label for a NASA level value in a history chart.",
+      "isCommentAutoGenerated" : true
+    },
+    "NASA limit %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite da NASA %@"
+          }
+        }
+      }
+    },
+    "NASA, Inspiration4 record, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NASA, registro da Inspiration4, %@"
+          }
+        }
+      }
+    },
+    "NASA, ISS record, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NASA, registro da ISS, %@"
+          }
+        }
+      }
+    },
+    "NASA's crews on the ISS exercise 1.5 hours a day. Today: %lld of 90 minutes." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As tripulações da NASA na ISS se exercitam 1,5 hora por dia. Hoje: %lld de 90 minutos."
+          }
+        }
+      }
+    },
+    "NASA's levels: headaches reported from 2.8 mmHg; the 1-hour average is to be no more than 3 mmHg." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Níveis da NASA: dores de cabeça relatadas a partir de 2,8 mmHg; a média de 1 hora não deve passar de 3 mmHg."
+          }
+        }
+      }
+    },
+    "NASA's limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite da NASA"
+          }
+        }
+      }
+    },
+    "NASA's words" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As palavras da NASA"
+          }
+        }
+      }
+    },
+    "Near NASA's limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perto do limite da NASA"
+          }
+        }
+      }
+    },
+    "Needs help" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precisa de ajuda"
+          }
+        }
+      }
+    },
+    "Next" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguinte"
+          }
+        }
+      }
+    },
+    "No" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não"
+          }
+        }
+      }
+    },
+    "No air reading" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem leitura do ar"
+          }
+        }
+      }
+    },
+    "No blood test yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum exame de sangue ainda"
+          }
+        }
+      }
+    },
+    "No blood test yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum exame de sangue ainda."
+          }
+        }
+      }
+    },
+    "No blood tests set up yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum exame configurado ainda"
+          }
+        }
+      }
+    },
+    "No check-ins yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum check-in ainda."
+          }
+        }
+      }
+    },
+    "No current reading" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem leitura atual"
+          }
+        }
+      }
+    },
+    "No data from the hub yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado do hub ainda."
+          }
+        }
+      }
+    },
+    "No delay: Earth answers at once" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem atraso: a Terra responde na hora"
+          }
+        }
+      }
+    },
+    "No messages yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma mensagem ainda."
+          }
+        }
+      }
+    },
+    "No NASA passage came with this answer." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum trecho da NASA veio com esta resposta."
+          }
+        }
+      }
+    },
+    "No range set yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda sem faixa definida"
+          }
+        }
+      }
+    },
+    "No readings from the hub yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma leitura do hub ainda"
+          }
+        }
+      }
+    },
+    "No readings here yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma leitura aqui ainda."
+          }
+        }
+      }
+    },
+    "No readings yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma leitura ainda"
+          }
+        }
+      }
+    },
+    "No room is under the limit." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum ambiente está abaixo do limite."
+          }
+        }
+      }
+    },
+    "No room over a limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum ambiente acima de um limite"
+          }
+        }
+      }
+    },
+    "No steps card has been written for this yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há um cartão de passos escrito para isto."
+          }
+        }
+      }
+    },
+    "No steps card is approved for this yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum cartão de passos foi aprovado para isto ainda."
+          }
+        }
+      }
+    },
+    "Noise" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruído"
+          }
+        }
+      }
+    },
+    "Not answered" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem resposta"
+          }
+        }
+      }
+    },
+    "Not asked yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não pedido"
+          }
+        }
+      }
+    },
+    "Not available on this device" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indisponível neste aparelho"
+          }
+        }
+      }
+    },
+    "Not chosen" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não escolhido"
+          }
+        }
+      }
+    },
+    "Not connected · showing data from %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão · mostrando dados das %@"
+          }
+        }
+      }
+    },
+    "Not connected to the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão com o hub"
+          }
+        }
+      }
+    },
+    "Not current · %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não atual · %@"
+          }
+        }
+      }
+    },
+    "not current, last at %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "não atual, última às %@"
+          }
+        }
+      }
+    },
+    "Not current. Last reading at %@." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não atual. Última leitura em %@."
+          }
+        }
+      }
+    },
+    "not enough history to compare yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ainda sem histórico para comparar"
+          }
+        }
+      }
+    },
+    "Not enough history to compare yet" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda sem histórico para comparar"
+          }
+        }
+      }
+    },
+    "Not enough history to compare yet: %lld of %lld earlier readings." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda sem histórico para comparar: %1$lld de %2$lld leituras anteriores."
+          }
+        }
+      }
+    },
+    "Not enough history to draw yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda sem histórico para desenhar."
+          }
+        }
+      }
+    },
+    "Not enough to say where it points" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não há o suficiente para dizer para onde aponta"
+          }
+        }
+      }
+    },
+    "Not yet verified by the medical lead" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não verificado pela responsável médica"
+          }
+        }
+      }
+    },
+    "Note" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota"
+          }
+        }
+      }
+    },
+    "Note (optional)" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota (opcional)"
+          }
+        }
+      }
+    },
+    "Nothing recent to compare." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada recente para comparar."
+          }
+        }
+      }
+    },
+    "Notifications" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notificações"
+          }
+        }
+      }
+    },
+    "of 100" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 100"
+          }
+        }
+      }
+    },
+    "of NASA's 90 minutes a day" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dos 90 minutos diários da NASA"
+          }
+        }
+      }
+    },
+    "On this Wi-Fi" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neste Wi-Fi"
+          }
+        }
+      }
+    },
+    "open now" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "abertos agora"
+          }
+        }
+      }
+    },
+    "Open the hub's page" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir a página do hub"
+          }
+        }
+      }
+    },
+    "Open the Settings app" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir o app Ajustes"
+          }
+        }
+      }
+    },
+    "Open the source: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir a fonte: %@"
+          }
+        }
+      }
+    },
+    "Opens Contact Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Contatar a Terra"
+          }
+        }
+      }
+    },
+    "Opens the alert" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre o alerta"
+          }
+        }
+      }
+    },
+    "Or try one" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ou experimente"
+          }
+        }
+      }
+    },
+    "Or type its address" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ou digite o endereço"
+          }
+        }
+      }
+    },
+    "over NASA's 3 mmHg limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "acima do limite de 3 mmHg da NASA"
+          }
+        }
+      }
+    },
+    "Over NASA's limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acima do limite da NASA"
+          }
+        }
+      }
+    },
+    "Over the limit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acima do limite"
+          }
+        }
+      }
+    },
+    "Oxygen" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oxigênio"
+          }
+        }
+      }
+    },
+    "part of an alert" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "parte de um alerta"
+          }
+        }
+      }
+    },
+    "Part of an alert" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parte de um alerta"
+          }
+        }
+      }
+    },
+    "Place" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lugar"
+          }
+        }
+      }
+    },
+    "Points to %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aponta para %@"
+          }
+        }
+      }
+    },
+    "Points to the room: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aponta para o ambiente: %@"
+          }
+        }
+      }
+    },
+    "Points to the sensor: the reading behind this cannot be trusted" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aponta para o sensor: a leitura por trás disto não é confiável"
+          }
+        }
+      }
+    },
+    "Quarters 1" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alojamento 1"
+          }
+        }
+      }
+    },
+    "Quarters 2" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alojamento 2"
+          }
+        }
+      }
+    },
+    "Quarters 3" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alojamento 3"
+          }
+        }
+      }
+    },
+    "Quarters 4" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alojamento 4"
+          }
+        }
+      }
+    },
+    "Quoted in English, unchanged." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Citado em inglês, sem alterações."
+          }
+        }
+      }
+    },
+    "Radiation" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radiação"
+          }
+        }
+      }
+    },
+    "Range %@–%@ %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faixa %1$@–%2$@ %3$@"
+          }
+        }
+      }
+    },
+    "Reaches Earth in %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chega à Terra em %@"
+          }
+        }
+      }
+    },
+    "ready" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pronta"
+          }
+        }
+      }
+    },
+    "Recorded in %@; not compared" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrado em %@; não comparado"
+          }
+        }
+      }
+    },
+    "Regions" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regiões"
+          }
+        }
+      }
+    },
+    "Replayed" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduzido"
+          }
+        }
+      }
+    },
+    "Reply" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resposta"
+          }
+        }
+      }
+    },
+    "Reported" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relatado"
+          }
+        }
+      }
+    },
+    "Resting heart rate" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência cardíaca em repouso"
+          }
+        }
+      }
+    },
+    "Result" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultado"
+          }
+        }
+      }
+    },
+    "Room unknown" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambiente desconhecido"
+          }
+        }
+      }
+    },
+    "Searching this Wi-Fi network…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procurando nesta rede Wi-Fi…"
+          }
+        }
+      }
+    },
+    "Seen by %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visto por %@"
+          }
+        }
+      }
+    },
+    "Send a test alert" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar um alerta de teste"
+          }
+        }
+      }
+    },
+    "Send check-in" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar check-in"
+          }
+        }
+      }
+    },
+    "Send results" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar resultados"
+          }
+        }
+      }
+    },
+    "Send to Earth" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar à Terra"
+          }
+        }
+      }
+    },
+    "Sending the question…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando a pergunta…"
+          }
+        }
+      }
+    },
+    "Sending…" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando…"
+          }
+        }
+      }
+    },
+    "Sensor quiet: last reading %@ %@, %lld minutes ago" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sensor em silêncio: última leitura %1$@ %2$@, há %3$lld minutos"
+          }
+        }
+      }
+    },
+    "Sent" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviada"
+          }
+        }
+      }
+    },
+    "Sent %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviada às %@"
+          }
+        }
+      }
+    },
+    "Sent. The hub stored %lld results." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sent. The hub stored %lld result."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Sent. The hub stored %lld results."
+                }
+              }
+            }
+          }
+        },
+        "pt" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Enviado. O hub guardou %lld resultado."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Enviado. O hub guardou %lld resultados."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Sent. The hub stored it as Reported." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado. O hub guardou como Relatado."
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        }
+      }
+    },
+    "Simulated" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulado"
+          }
+        }
+      }
+    },
+    "Simulated scenario playing on the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cenário simulado tocando no hub"
+          }
+        }
+      }
+    },
+    "Sleep last night" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono na última noite"
+          }
+        }
+      }
+    },
+    "Sleep, headache, mood, stress and tiredness" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono, dor de cabeça, humor, estresse e cansaço"
+          }
+        }
+      }
+    },
+    "Sleepiness" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonolência"
+          }
+        }
+      }
+    },
+    "Something outside your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo fora do seu habitual"
+          }
+        }
+      }
+    },
+    "Sound around you" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Som ao seu redor"
+          }
+        }
+      }
+    },
+    "Source: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonte: %@"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Começar"
+          }
+        }
+      }
+    },
+    "Station" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estação"
+          }
+        }
+      }
+    },
+    "station average" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "média da estação"
+          }
+        }
+      }
+    },
+    "Station in Mars orbit" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estação em órbita de Marte"
+          }
+        }
+      }
+    },
+    "Station sensor board, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placa de sensores da estação, %@"
+          }
+        }
+      }
+    },
+    "Station-wide: %@ is over NASA's limit in %lld rooms. In them: %@." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toda a estação: %1$@ passou do limite da NASA em %2$lld ambientes. Neles: %3$@."
+          }
+        }
+      }
+    },
+    "Steps card: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartão de passos: %@"
+          }
+        }
+      }
+    },
+    "Steps today" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passos hoje"
+          }
+        }
+      }
+    },
+    "Stress" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estresse"
+          }
+        }
+      }
+    },
+    "Stress (check-in)" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estresse (check-in)"
+          }
+        }
+      }
+    },
+    "Temperature" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperatura"
+          }
+        }
+      }
+    },
+    "That is not an address. Try something like 192.168.1.20 or 192.168.1.20:4310." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isso não é um endereço. Tente algo como 192.168.1.20 ou 192.168.1.20:4310."
+          }
+        }
+      }
+    },
+    "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A IA não está disponível agora. Aqui estão as leituras e o texto da NASA como estão. Toque em Perguntar a Houston para falar com seu cirurgião de voo."
+          }
+        }
+      }
+    },
+    "The alert has ended; the reply is still on its way." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O alerta terminou; a resposta ainda está a caminho."
+          }
+        }
+      }
+    },
+    "The alert stays on Me until it ends" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O alerta fica em Eu até terminar"
+          }
+        }
+      }
+    },
+    "The hub does not know which room you are in." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub não sabe em que ambiente você está."
+          }
+        }
+      }
+    },
+    "The hub has no facts for this question." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub não tem fatos para esta pergunta."
+          }
+        }
+      }
+    },
+    "The hub has no readings for you yet." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub ainda não tem leituras suas."
+          }
+        }
+      }
+    },
+    "The hub has not sent this reading." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub não enviou esta leitura."
+          }
+        }
+      }
+    },
+    "The hub is found automatically on the station's Wi-Fi. If no port is given, %@ is used." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub é encontrado automaticamente no Wi-Fi da estação. Se nenhuma porta for dada, usa-se %@."
+          }
+        }
+      }
+    },
+    "The hub is out of reach." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub está fora de alcance."
+          }
+        }
+      }
+    },
+    "The hub is out of reach. Kept on this phone; it is sent when the hub is back." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub está fora de alcance. Guardado neste celular; é enviado quando o hub voltar."
+          }
+        }
+      }
+    },
+    "The hub is restarting" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub está reiniciando"
+          }
+        }
+      }
+    },
+    "The hub refused it: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub recusou: %@"
+          }
+        }
+      }
+    },
+    "The hub sent something the app cannot read." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub enviou algo que o app não consegue ler."
+          }
+        }
+      }
+    },
+    "The hub set Astra's answer aside: it did not pass the checks." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O hub deixou de lado a resposta da Astra: ela não passou nas verificações."
+          }
+        }
+      }
+    },
+    "The hub's own interface, as the station's screens show it." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A interface do próprio hub, como as telas da estação a mostram."
+          }
+        }
+      }
+    },
+    "The hub's own rule" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regra do próprio hub"
+          }
+        }
+      }
+    },
+    "The hub's page" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A página do hub"
+          }
+        }
+      }
+    },
+    "The hub's simulation, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simulação do hub, %@"
+          }
+        }
+      }
+    },
+    "The hub's urgent rules matched: the steps card, not Astra." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As regras de urgência do hub bateram: o cartão de passos, não a Astra."
+          }
+        }
+      }
+    },
+    "The test alert arrives after five seconds, so there is time to lock the phone. On a locked phone, alerts also show on the Apple Watch." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O alerta de teste chega depois de cinco segundos, para dar tempo de bloquear o celular. Com o celular bloqueado, os alertas também aparecem no Apple Watch."
+          }
+        }
+      }
+    },
+    "This alert has ended" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este alerta terminou"
+          }
+        }
+      }
+    },
+    "This card is only written in another language." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este cartão só está escrito em outro idioma."
+          }
+        }
+      }
+    },
+    "This card says act within %@: act on board now." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este cartão diz para agir em até %@: aja a bordo agora."
+          }
+        }
+      }
+    },
+    "This card says to message Houston." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este cartão diz para mandar mensagem a Houston."
+          }
+        }
+      }
+    },
+    "This needs a person, not me. I've asked a crewmate to come and be with you." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isto precisa de uma pessoa, não de mim. Pedi a um colega que venha ficar com você."
+          }
+        }
+      }
+    },
+    "This needs a person, not me. Please go to a crewmate or your Crew Medical Officer now." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isto precisa de uma pessoa, não de mim. Procure agora um colega ou seu oficial médico."
+          }
+        }
+      }
+    },
+    "This needs a person. Astra was not used." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isto precisa de uma pessoa. A Astra não foi usada."
+          }
+        }
+      }
+    },
+    "This needs the steps card, not an answer from me. The card is on screen." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isto precisa do cartão de passos, não de uma resposta minha. O cartão está na tela."
+          }
+        }
+      }
+    },
+    "This phone is yours: it shows your body and sends your Health readings as yours." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este celular é seu: mostra o seu corpo e envia as suas leituras do Saúde como suas."
+          }
+        }
+      }
+    },
+    "This phone sends its Health readings as this crewmate's." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este celular envia as leituras do Saúde como sendo deste tripulante."
+          }
+        }
+      }
+    },
+    "Time" : {
+
+    },
+    "Time in bed asleep" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo na cama dormindo"
+          }
+        }
+      }
+    },
+    "Time is up. The crew is being told." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O tempo acabou. A tripulação está sendo avisada."
+          }
+        }
+      }
+    },
+    "Times awake in the night" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Despertares na noite"
+          }
+        }
+      }
+    },
+    "Tiredness" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cansaço"
+          }
+        }
+      }
+    },
+    "Tiredness (check-in)" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cansaço (check-in)"
+          }
+        }
+      }
+    },
+    "To" : {
+      "comment" : "Label for the end date in a history chart.",
+      "isCommentAutoGenerated" : true
+    },
+    "Today" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoje"
+          }
+        }
+      }
+    },
+    "Too many questions are waiting. Ask again in a moment, or tap Ask Houston." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Há perguntas demais esperando. Pergunte de novo em instantes ou toque em Perguntar a Houston."
+          }
+        }
+      }
+    },
+    "Typed blood result, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultado de sangue digitado, %@"
+          }
+        }
+      }
+    },
+    "unavailable" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "indisponível"
+          }
+        }
+      }
+    },
+    "Use this address" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar este endereço"
+          }
+        }
+      }
+    },
+    "Using" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usando"
+          }
+        }
+      }
+    },
+    "Usual high" : {
+      "comment" : "Label for the upper bound of the usual range.",
+      "isCommentAutoGenerated" : true
+    },
+    "Usual low" : {
+      "comment" : "Label for the lower bound of the usual range.",
+      "isCommentAutoGenerated" : true
+    },
+    "Usually %@, give or take %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normalmente %1$@, com variação de %2$@"
+          }
+        }
+      }
+    },
+    "Value" : {
+
+    },
+    "Vibration" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vibração"
+          }
+        }
+      }
+    },
+    "Waiting for the hub to send the crew." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando o hub enviar a tripulação."
+          }
+        }
+      }
+    },
+    "Waiting in line: position %lld" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando na fila: posição %lld"
+          }
+        }
+      }
+    },
+    "Weightless" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem gravidade"
+          }
+        }
+      }
+    },
+    "What the hub knows" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que o hub sabe"
+          }
+        }
+      }
+    },
+    "Where it points" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para onde aponta"
+          }
+        }
+      }
+    },
+    "Where the data points, not a diagnosis." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para onde os dados apontam, não um diagnóstico."
+          }
+        }
+      }
+    },
+    "Where you are" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onde você está"
+          }
+        }
+      }
+    },
+    "Where you are: %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onde você está: %@"
+          }
+        }
+      }
+    },
+    "Who are you?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quem é você?"
+          }
+        }
+      }
+    },
+    "Whose phone" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De quem é o celular"
+          }
+        }
+      }
+    },
+    "Why do I keep waking up with a headache?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por que eu continuo acordando com dor de cabeça?"
+          }
+        }
+      }
+    },
+    "Within range" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dentro da faixa"
+          }
+        }
+      }
+    },
+    "within your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dentro do seu habitual"
+          }
+        }
+      }
+    },
+    "Within your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dentro do seu habitual"
+          }
+        }
+      }
+    },
+    "Written by Astra, checked by the hub" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrito pela Astra, conferido pelo hub"
+          }
+        }
+      }
+    },
+    "Written by the hub from your readings" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrito pelo hub a partir das suas leituras"
+          }
+        }
+      }
+    },
+    "Yes" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sim"
+          }
+        }
+      }
+    },
+    "You" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você"
+          }
+        }
+      }
+    },
+    "You are in %@, where %@ is over NASA's limit." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está em %1$@, onde %2$@ está acima do limite da NASA."
+          }
+        }
+      }
+    },
+    "You entered a room over the limit. Are you OK?" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você entrou em um ambiente acima do limite. Você está bem?"
+          }
+        }
+      }
+    },
+    "Your answers are stored as Reported: said by you, not measured." : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suas respostas são guardadas como Relatado: ditas por você, não medidas."
+          }
+        }
+      }
+    },
+    "Your check-in, %@" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu check-in, %@"
+          }
+        }
+      }
+    },
+    "Your latest blood test" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu exame de sangue mais recente"
+          }
+        }
+      }
+    },
+    "Your latest results" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus resultados mais recentes"
+          }
+        }
+      }
+    },
+    "Your question" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua pergunta"
+          }
+        }
+      }
+    },
+    "Your usual" : {
+      "localizations" : {
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu habitual"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}

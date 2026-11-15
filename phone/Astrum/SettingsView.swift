@@ -1,7 +1,9 @@
 // The settings sheet: which hub (found automatically, or typed in), whose
-// phone this is, the Health permission, and a test alert.
+// phone this is, the Health permission, a test alert, the language, and a
+// link to the hub's own page.
 
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -16,6 +18,8 @@ struct SettingsView: View {
                 personSection
                 healthSection
                 alertSection
+                languageSection
+                hubPageSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -131,6 +135,40 @@ struct SettingsView: View {
         } footer: {
             if model.healthState == .asked {
                 Text("iOS does not tell apps what you allowed. To check or change it, open the Settings app, then Health, Data Access & Devices, Astrum.")
+            }
+        }
+    }
+
+    // MARK: Language
+
+    /// iOS keeps a per-app language: it follows the device unless changed in the Settings app.
+    private var languageSection: some View {
+        Section {
+            LabeledContent("Language", value: Locale.current.localizedString(forLanguageCode: model.lang) ?? model.lang)
+            Button("Change in the Settings app") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            }
+        } header: {
+            Text("Language")
+        } footer: {
+            Text("English or Portuguese. Astrum follows the device's language unless you choose another for Astrum in the Settings app.")
+        }
+    }
+
+    // MARK: The hub's page
+
+    @ViewBuilder
+    private var hubPageSection: some View {
+        if let url = model.pageURL {
+            Section {
+                NavigationLink("Open the hub's page") {
+                    HubWebView(url: url, hubReachable: model.link == .connected)
+                        .ignoresSafeArea(edges: .bottom)
+                        .navigationTitle("The hub's page")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            } footer: {
+                Text("The hub's own interface, as the station's screens show it.")
             }
         }
     }

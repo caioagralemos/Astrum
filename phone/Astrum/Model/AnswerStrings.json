@@ -1,0 +1,186 @@
+{
+ "answer.limit.under": {
+  "en": "The {signal} in {your} cabin reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} na cabine {de_voce} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}."
+ },
+ "answer.limit.at": {
+  "en": "The {signal} in {your} cabin reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} na cabine {de_voce} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}."
+ },
+ "answer.limit.over": {
+  "en": "The {signal} in {your} cabin reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}. The steps card for this applies.",
+  "pt": "O {signal} na cabine {de_voce} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica."
+ },
+ "answer.limit.plain": {
+  "en": "The {signal} in {your} cabin reads {value} {unit} ({window}).",
+  "pt": "O {signal} na cabine {de_voce} está em {value} {unit} ({window})."
+ },
+ "answer.danger.under": {
+  "en": "The {signal} in {your} cabin is under NASA's limit: {value} {unit} ({window}), {diff} {unit} below {limit} {unit}.",
+  "pt": "O {signal} na cabine {de_voce} está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}."
+ },
+ "answer.danger.at": {
+  "en": "The {signal} in {your} cabin is at NASA's limit: {value} {unit} ({window}); the limit is {limit} {unit}.",
+  "pt": "O {signal} na cabine {de_voce} está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}."
+ },
+ "answer.danger.over": {
+  "en": "The {signal} in {your} cabin is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
+  "pt": "O {signal} na cabine {de_voce} está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica."
+ },
+ "answer.limitHere.under": {
+  "en": "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}."
+ },
+ "answer.limitHere.at": {
+  "en": "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}."
+ },
+ "answer.limitHere.over": {
+  "en": "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}. The steps card for this applies.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica."
+ },
+ "answer.limitHere.plain": {
+  "en": "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}).",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window})."
+ },
+ "answer.dangerHere.under": {
+  "en": "The {signal} in {room}, where {you} {are} now, is under NASA's limit: {value} {unit} ({window}), {diff} {unit} below {limit} {unit}.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}."
+ },
+ "answer.dangerHere.at": {
+  "en": "The {signal} in {room}, where {you} {are} now, is at NASA's limit: {value} {unit} ({window}); the limit is {limit} {unit}.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}."
+ },
+ "answer.dangerHere.over": {
+  "en": "The {signal} in {room}, where {you} {are} now, is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
+  "pt": "O {signal} em {room}, onde {voce} está agora, está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica."
+ },
+ "answer.limitThere.under": {
+  "en": "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}."
+ },
+ "answer.limitThere.at": {
+  "en": "The {signal} in {room} reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} em {room} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}."
+ },
+ "answer.limitThere.over": {
+  "en": "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}.",
+  "pt": "O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}."
+ },
+ "answer.limitThere.plain": {
+  "en": "The {signal} in {room} reads {value} {unit} ({window}).",
+  "pt": "O {signal} em {room} está em {value} {unit} ({window})."
+ },
+ "answer.gravity.none": {
+  "en": "You are weightless here.",
+  "pt": "Aqui você está sem peso."
+ },
+ "answer.gravity.partial": {
+  "en": "Gravity here is {g} of Earth's.",
+  "pt": "A gravidade aqui é {g} da gravidade da Terra."
+ },
+ "answer.normal.inside": {
+  "en": "{Your} {signal} is inside {your} normal ({value} {unit}).",
+  "pt": "O {signal} {de_voce} está dentro do normal ({value} {unit})."
+ },
+ "answer.normal.above": {
+  "en": "{Your} {signal} is {value} {unit}, above {your} normal of {normal} {unit}.",
+  "pt": "O {signal} {de_voce} está em {value} {unit}, acima do normal de {normal} {unit}."
+ },
+ "answer.normal.below": {
+  "en": "{Your} {signal} is {value} {unit}, below {your} normal of {normal} {unit}.",
+  "pt": "O {signal} {de_voce} está em {value} {unit}, abaixo do normal de {normal} {unit}."
+ },
+ "answer.series": {
+  "en": "{Your} {signal}, {window}: {values} {unit}.",
+  "pt": "O {signal} {de_voce}, {window}: {values} {unit}."
+ },
+ "answer.value": {
+  "en": "{Your} {signal}: {value} {unit}.",
+  "pt": "O {signal} {de_voce}: {value} {unit}."
+ },
+ "answer.exposure.standsOut": {
+  "en": "In the last {hours} hours {you} spent {spent} hours in {room} with CO2 above {level} mmHg; none of {your} crewmates spent any time above it.",
+  "pt": "Nas últimas {hours} horas {voce} passou {spent} horas em {room} com CO2 acima de {level} mmHg; nenhum colega passou tempo algum acima disso."
+ },
+ "answer.exposure.standsOutSome": {
+  "en": "In the last {hours} hours {you} spent {spent} hours in {room} with CO2 above {level} mmHg; the most any crewmate spent above it was {others} hours.",
+  "pt": "Nas últimas {hours} horas {voce} passou {spent} horas em {room} com CO2 acima de {level} mmHg; o máximo de qualquer colega acima disso foi {others} horas."
+ },
+ "answer.exposure.plain": {
+  "en": "In the last {hours} hours {you} spent {spent} hours with CO2 above {level} mmHg; the most any crewmate spent above it was {others} hours.",
+  "pt": "Nas últimas {hours} horas {voce} passou {spent} horas com CO2 acima de {level} mmHg; o máximo de qualquer colega acima disso foi {others} horas."
+ },
+ "answer.exposure.plainNone": {
+  "en": "In the last {hours} hours {you} spent {spent} hours with CO2 above {level} mmHg; none of {your} crewmates spent any time above it.",
+  "pt": "Nas últimas {hours} horas {voce} passou {spent} horas com CO2 acima de {level} mmHg; nenhum colega passou tempo algum acima disso."
+ },
+ "answer.exposure.above": {
+  "en": "In the same {hours} hours {you} spent {spent} hours with single CO2 readings above {level} mmHg.",
+  "pt": "Nas mesmas {hours} horas {voce} passou {spent} horas com leituras isoladas de CO2 acima de {level} mmHg."
+ },
+ "answer.exposure.hourUnder": {
+  "en": "The 1-hour average, which is what NASA's limit of {limit} mmHg applies to, stayed under it throughout; the highest was {max} mmHg.",
+  "pt": "A média de 1 hora, que é a que o limite da NASA de {limit} mmHg considera, ficou abaixo dele o tempo todo; a mais alta foi {max} mmHg."
+ },
+ "answer.exposure.hourOver": {
+  "en": "The highest 1-hour average was {max} mmHg, above NASA's limit of {limit} mmHg.",
+  "pt": "A média de 1 hora mais alta foi {max} mmHg, acima do limite da NASA de {limit} mmHg."
+ },
+ "answer.reported.run": {
+  "en": "{You} reported {what} on {days} days in a row.",
+  "pt": "{Voce} relatou {what} em {days} dias seguidos."
+ },
+ "answer.reported.count": {
+  "en": "{You} reported {what} {count} times in the last {hours} hours.",
+  "pt": "{Voce} relatou {what} {count} vezes nas últimas {hours} horas."
+ },
+ "answer.unusual.none": {
+  "en": "None of {your} body readings is unusual for {them} right now.",
+  "pt": "Nenhuma leitura do corpo {de_voce} está fora do normal agora."
+ },
+ "answer.unusual.signal": {
+  "en": "{Your} {signal} is unusual for {them}: {recent} against {your} usual {usual}.",
+  "pt": "O {signal} {de_voce} está fora do normal: {recent} contra o habitual de {usual}."
+ },
+ "answer.sameRoom.same": {
+  "en": "{people}, in the same room, show the same reading.",
+  "pt": "{people}, no mesmo ambiente, mostram a mesma leitura."
+ },
+ "answer.sameRoom.normal": {
+  "en": "{people}, in the same room, do not.",
+  "pt": "{people}, no mesmo ambiente, não mostram."
+ },
+ "answer.points.room": {
+  "en": "This points to the room ({room}), not to {them}.",
+  "pt": "Isso aponta para o ambiente ({room}), não para {voce}."
+ },
+ "answer.points.person": {
+  "en": "This points to {them}, not to the room.",
+  "pt": "Isso aponta para {voce}, não para o ambiente."
+ },
+ "answer.points.sensor": {
+  "en": "This points to the sensor: the room's reading may not be right.",
+  "pt": "Isso aponta para o sensor: a leitura do ambiente pode não estar certa."
+ },
+ "answer.points.unknown": {
+  "en": "The readings do not point anywhere yet.",
+  "pt": "As leituras ainda não apontam para nada."
+ },
+ "answer.notExact": {
+  "en": "NASA's text does not answer this exactly. Here is what it does say, and what the readings show.",
+  "pt": "O texto da NASA não responde a isso exatamente. Aqui está o que ele diz, e o que as leituras mostram."
+ },
+ "answer.noAdvice": {
+  "en": "The hub does not recommend what to do. Ask your Crew Medical Officer, and follow the steps card if one is on screen.",
+  "pt": "O hub não recomenda o que fazer. Fale com o oficial médico da tripulação e siga o cartão de passos, se houver um na tela."
+ },
+ "answer.noDiagnosis": {
+  "en": "The hub does not diagnose. Ask your Crew Medical Officer.",
+  "pt": "O hub não faz diagnóstico. Fale com o oficial médico da tripulação."
+ },
+ "answer.quote": {
+  "en": "NASA, {name}: \"{text}\" ({url})",
+  "pt": "NASA, {name}: \"{text}\" ({url})"
+ }
+}
