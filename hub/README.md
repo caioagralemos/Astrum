@@ -1,71 +1,54 @@
 # Hub
 
-The desktop app that runs on the station computer.
+The program that runs on the station computer. It reads the cabin board and the phones, works out alerts, and serves the page at port 4310.
 
-## Drill: test the real alert flow on a phone
+## Run it
 
-A recorded story ("Reyes's night") is a recording: its alerts cannot be
-answered. A drill is the real alert engine on the live hub, on a simulated
-CO2 reading (4 mmHg, labelled simulated, never stored) in one person's room
-(core/drill.ts). Demo mode only, one at a time, never while a story plays or
-a real alarm is active. It ends by itself after 10 minutes.
+Needs Node 24 or newer. For the on-board model: `brew install llama.cpp`.
 
 ```sh
-# Start one for Reyes, in the room the hub has her in (or add "room":"quarters-2")
+npm install
+npm run build
+npm run core
+```
+
+Open <http://localhost:4310>.
+
+1. The model file is not in this repository: `LFM3-1.7B-Q8_0.gguf`. Download it from Hugging Face, repository `LiquidAI/LFM3-1.7B-GGUF`.
+2. Put it at `~/Desktop/NASA/astrum-model-test/gguf/LFM3-1.7B-Q8_0.gguf`, or set `ASTRUM_MODEL=/path/to/file.gguf`.
+3. Without the model or `llama-server`, the hub still starts, with the model off.
+4. Production mode (no simulated values): `ASTRUM_MODE=production npm run core`. The default is demo mode.
+5. Tests: `npm test`. Medical cases: `npm run cases`.
+
+The Mac app: `scripts/package-mac.sh` (add `--no-model` to leave the 2 GB model out). The app lands in `../dist-mac/`. See the main README for opening an app that is not notarised.
+
+No hardware: open `http://localhost:4310/?replay=scenario/reyes-night.json`.
+
+## Folders
+
+- `core/`: the server, alerts, drills, events, serial link to the board
+- `engine/`: the maths: baselines, limits, readings
+- `ui/`: the page (React), built into `ui/dist`
+- `medical/`: the medical lead's cards, blood list and test cases
+- `profiles/`, `data/`: crew and places, the database
+- `scripts/`: helper scripts (fake board, end-to-end checks)
+- `src-tauri/`: the desktop app shell
+
+## What is real and what is simulated
+
+- In demo mode the hub fills the crew's gaps with simulated readings and labels them.
+- In production mode it makes no simulated value; a missing reading shows as missing.
+- A recorded story is a recording, not a live feed.
+- The hub has no weather or radiation sensor; a base-wide event is declared by a crewmate.
+
+## Try the alert flow (demo mode)
+
+```sh
+# A drill for Reyes: simulated CO2 in her room, ends by itself after 10 minutes
 curl -X POST http://localhost:4310/api/drill/start -H 'content-type: application/json' -d '{"person":"reyes"}'
-# What is running, and how the last one ended
-curl http://localhost:4310/api/drill
-# End it now: its alarm and alerts end, the message to Earth stays listed as a resolved drill
 curl -X POST http://localhost:4310/api/drill/stop
-```
 
-Her phone gets the level 2 "Are you OK?" with the real 60-second countdown.
-"I am OK" records the answer: the alert stays at level 2, answered, for as
-long as the room stays over the limit (here, until the drill ends); nothing
-escalates and nothing goes to Earth. The room's board, if it has one, sounds
-until the room alarm is acknowledged. "I need help", or no answer within 60
-seconds, is level 3 for everyone, with the steps card, a message to Earth and
-the boards sounding until someone says "I've seen it".
-
-## Base-wide event: declared by a crewmate
-
-The hub has no weather or radiation feed, so a dust storm, a solar particle
-event, a loss of pressure or a fire is declared by a person (core/events.ts).
-It is one level 3 alert for everyone at once (kind "reported", no reading),
-with a message to Earth and the boards sounding until someone says "I've seen
-it". It works in production too; never while a story plays. One active event
-per kind; anyone ends it. Kinds: `dust_storm`, `solar_particle_event`,
-`pressure_loss`, `fire`, `other`. A steps card comes only where one of the
-medical lead's covers the kind: `smoke-toxic-air` for a fire,
-`decompression-radiation` for a loss of pressure or a solar particle event.
-
-```sh
-# Declare a dust storm: who says so (a crew id), where to go (a room id, optional), their words (optional, 280 characters)
-curl -X POST http://localhost:4310/api/events/declare -H 'content-type: application/json' -d '{"kind":"dust_storm","by":"reyes","shelter":"command","note":"Storm front over the ridge, all inside."}'
-# The active events
+# A crewmate declares a dust storm (kinds: dust_storm, solar_particle_event, pressure_loss, fire, other)
+curl -X POST http://localhost:4310/api/events/declare -H 'content-type: application/json' -d '{"kind":"dust_storm","by":"reyes"}'
 curl http://localhost:4310/api/events
-# End one, by the id the declare returned (works at either stage)
-curl -X POST http://localhost:4310/api/events/end -H 'content-type: application/json' -d '{"id":"event|dust_storm|1763200000000","by":"reyes"}'
 ```
-
-Declared ahead, it is first a warning: `expectedAt` (hub clock, ms, in the
-future, at most 72 hours ahead) makes it a level 2 notice for everyone, to
-acknowledge, never a question: no countdown, no card, no buzzer, no message to
-Earth. At `expectedAt` the same alert becomes the level 3 above. `source` is
-`crew` (default: someone on board) or `earth` (a forecast mission control
-sent, entered by a crewmate). Pending and active events are kept in
-`<database>.events.json`, so a restart keeps them; one whose time passed while
-the hub was down is level 3 on start and still says when it was expected.
-
-```sh
-# A solar particle event forecast by Earth for 6 hours from now
-curl -X POST http://localhost:4310/api/events/declare -H 'content-type: application/json' -d "{\"kind\":\"solar_particle_event\",\"by\":\"okafor\",\"source\":\"earth\",\"shelter\":\"command\",\"expectedAt\":$(( $(date +%s) * 1000 + 6 * 3600000 ))}"
-# Move the time, or cancel it ("did not happen"), while it is still a warning
-curl -X POST http://localhost:4310/api/events/update -H 'content-type: application/json' -d '{"id":"event|solar_particle_event|1763200000000","by":"okafor","expectedAt":1763225000000}'
-curl -X POST http://localhost:4310/api/events/update -H 'content-type: application/json' -d '{"id":"event|solar_particle_event|1763200000000","by":"okafor","cancel":true}'
-```
-
-Nothing here detects an event: the hub has no weather or radiation sensor.
-The path for automatic solar-event warnings later is a radiation monitor the
-crew adds, with a limit the crew sets, raising the warning with source
-`sensor`.
