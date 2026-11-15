@@ -38,6 +38,9 @@ import type { CardLang, CardView, Facts, ParsedCards } from '../engine/cards.ts'
 import { search } from '../engine/search.ts';
 import { CARD_FINDING_KEEP_MS, FOLLOW_UP_QUESTION, FOLLOW_UP_SIGNAL, cardFinding } from '../engine/medical.ts';
 import type { LevelOverride } from '../engine/medical.ts';
+import { askFirstFinding, pickWithFollowUp } from '../engine/followup.ts';
+import type { AskFirst, FollowUpRow, Given } from '../engine/followup.ts';
+import { t } from '../engine/strings.ts';
 import type { Finding } from '../engine/alerts.ts';
 import type { SearchIndex } from '../engine/search.ts';
 
@@ -47,12 +50,12 @@ export const DEFAULT_MODEL = join(homedir(), 'Desktop', 'NASA', 'astrum-model-te
 /** Homebrew's build on Apple Silicon, then Intel. Set ASTRUM_LLAMA to use another. */
 export const DEFAULT_LLAMA = ['/opt/homebrew/bin/llama-server', '/usr/local/bin/llama-server'].find((p) => existsSync(p)) ?? '/opt/homebrew/bin/llama-server';
 
-/** §7: the server flags, as tested. */
+/** llama-server's flags: 8192 tokens of context over 2 slots, thinking off, temperature 0. Settings first chosen in the 9 Nov planning tests. */
 export function serverArgs(model: string, port: number): string[] {
   return ['-m', model, '--host', '127.0.0.1', '--port', String(port), '-c', '8192', '-np', '2', '--reasoning-budget', '0', '--temp', '0', '--no-webui'];
 }
 
-/** §6 check 6: no first word after 8 s, or no full answer after 25 s, is the fallback. */
+/** The crew gets the fallback when the first word takes longer than 8 s or the whole answer longer than 25 s. */
 export const FIRST_TOKEN_MS = 8_000;
 export const ANSWER_MS = 25_000;
 const URGENT_MS = 8_000;
@@ -209,7 +212,7 @@ export interface AiOptions {
   /** Where the PID of the server this hub started is kept, so the next run can recognise it. */
   pidFile?: string;
   readyMs?: number;
-  /** Fill the server's prompt cache once it is ready (§7). Default true. */
+  /** Fill the server's prompt cache once it is ready. Default true. */
   warm?: boolean;
   firstTokenMs?: number;
   answerMs?: number;
@@ -392,7 +395,7 @@ export class AiRuntime {
     this.retry(`llama-server stopped (code ${code})${last ? `: ${last}` : ''}`);
   }
 
-  /** §7: if the server dies, restart it, with a growing wait, a few times. The fallback is served meanwhile. */
+  /** If the server dies, restart it, with a growing wait, a few times. The fallback is served meanwhile. */
   private retry(reason: string): void {
     if (this.stopping) return;
     if (this.restartTimer) return;
@@ -479,8 +482,8 @@ export class AiRuntime {
   }
 
   /**
-   * §7: send each fixed prefix once with max_tokens 1, so the server keeps it
-   * cached. Both at once, so each of the server's two slots holds one of them,
+   * Warm the server: ask each fixed prompt prefix for a single token, so the
+   * prefix stays in the server's cache. Both at once, so each of the server's two slots holds one of them,
    * as they will be used: the urgent check and the answer side by side.
    */
   private async warm(): Promise<boolean> {
@@ -573,6 +576,12 @@ export interface AskContext {
   onFinding?: (finding: Finding, keepMs: number) => void;
   /** Her levels per situation (medical/level-overrides.json, engine/medical.ts cardLevel). Unset: each card's own level. */
   levelOverrides?: () => LevelOverride[];
+  /** Her ask-first questions (medical/follow-up.json, engine/followup.ts). Unset: none, as before. */
+  followUps?: () => FollowUpRow[];
+  /** That person's stored answers to them, by key ("checkin.<key>" rows). */
+  followUpAnswers?: (person: string) => Record<string, Given>;
+  /** Called when a card waits for her questions, so the hub can raise its level once a rule of hers is met by the answers. */
+  onAskFirst?: (person: string, askFirst: AskFirst) => void;
   /** That person's evidence card (engine/evidence.ts), or null. */
   evidenceFor?: (person: string) => Evidence | null;
   /** How rooms and crewmates are named in the hub's sentences. Default: their ids. */
@@ -636,11 +645,19 @@ export interface AskResult {
   followUp?: { question: string; signal: string };
   /** Her signs matched only cards written for another gravity: their ids, for the screen to name as a choice. */
   otherGravity?: string[];
+  /**
+   * Her ask-first rule (engine/followup.ts): only a lone symptom picked this
+   * card, so its level is not raised. The questions to ask the person, in both
+   * languages, each with the check-in signal its answer goes to (POST
+   * /api/checkin; 1 yes, 0 no, or the value typed). `followUp` carries the
+   * first of them, the same way it carries "Did it get better?".
+   */
+  askFirst?: { card: string; intro: { en: string; pt: string }; questions: { signal: string; kind: 'yes_no' | 'value'; unit?: string; en: string; pt: string }[] };
 }
 
-/** Not in the spec's fixed texts: the spec's "not covered" rule (§4) in words, for when no approved card exists. */
+/** Shown when a message is urgent and none of the medical lead's approved cards fits: the checklist, a person, Houston. */
 export const URGENT_NO_CARD =
-  "My NASA sources don't cover this, so I won't guess a treatment. Follow your onboard emergency checklist, get your Crew Medical Officer now, and message Houston.";
+  "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Houston.";
 
 function send(res: ServerResponse, status: number, body: unknown): true {
   res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
@@ -709,12 +726,27 @@ export async function askQuestion(
   if (!result || 'error' in result || result.route === 'crisis') return result;
   const about = q.about ?? q.person;
   const cards = ctx.cards().cards;
-  const picked = pickCard(cards, { ...ctx.facts(about), text: q.question }, ctx.gravity ?? null);
-  const finding = cardFinding(picked, about, cards, 'reported', ctx.levelOverrides?.() ?? []);
-  if (finding) { try { ctx.onFinding?.(finding, CARD_FINDING_KEEP_MS); } catch { /* the hub's side failed; the answer still goes out */ } }
+  const given = ctx.followUpAnswers?.(about) ?? {};
+  const { picked, askFirst } = pickWithFollowUp(cards, { ...ctx.facts(about), text: q.question }, ctx.gravity ?? null, ctx.followUps?.() ?? [], given);
+  const overrides = ctx.levelOverrides?.() ?? [];
+  const finding = cardFinding(picked, about, cards, 'reported', overrides);
+  const raise = (f: Finding) => { try { ctx.onFinding?.(f, CARD_FINDING_KEEP_MS); } catch { /* the hub's side failed; the answer still goes out */ } };
+  if (finding) raise(finding);
   const out: AskResult = { ...result };
   if (picked?.otherGravity) out.otherGravity = picked.otherGravity;
-  if (!finding) out.followUp = { question: FOLLOW_UP_QUESTION, signal: FOLLOW_UP_SIGNAL };
+  if (askFirst) {
+    // Only a lone symptom: nothing is raised for this card until a rule of hers is met by the answers.
+    try { ctx.onAskFirst?.(about, askFirst); } catch { /* the hub's side failed; the answer still goes out */ }
+    const ruled = askFirstFinding(askFirst, about);
+    if (ruled) raise(ruled);
+    const questions = askFirst.questions.map((x) => {
+      const one: NonNullable<AskResult['askFirst']>['questions'][number] = { signal: x.signal, kind: x.kind, en: t(x.stringKey, 'en'), pt: t(x.stringKey, 'pt') };
+      if (x.unit) one.unit = x.unit;
+      return one;
+    });
+    out.askFirst = { card: askFirst.card, intro: { en: t('followup.intro', 'en'), pt: t('followup.intro', 'pt') }, questions };
+    if (questions[0]) out.followUp = { question: q.lang === 'pt' ? questions[0].pt : questions[0].en, signal: questions[0].signal };
+  } else if (!finding) out.followUp = { question: FOLLOW_UP_QUESTION, signal: FOLLOW_UP_SIGNAL };
   return out;
 }
 
@@ -751,7 +783,7 @@ async function answerQuestion(
   const detectorLine = readingsBlock(null, detector);
   if (detectorLine) readingList.push({ line: detectorLine.split('\n')[1], label: 'detector' });
 
-  // Passages: the card already open for this person comes first (§5.4), then the search.
+  // Passages: the card already open for this person comes first, then the search.
   const passages: AskPassage[] = [];
   const gravity = ctx.gravity ?? null;
   const open = pickCard(cards, { readings: facts.readings, answers: facts.answers }, gravity);
@@ -767,8 +799,10 @@ async function answerQuestion(
 
   const base = { type: 'result' as const, source: null, passages, readings: readingList, check: null, facts: null };
   const viewOf = (text?: string) => {
-    const picked = pickCard(cards, { ...facts, text }, gravity);
-    return picked ? cardView(picked.card, lang) : null;
+    // As askQuestion picks: a card picked only by her lone-symptom words gives way to another card that fits, else it is shown (its steps are hers) with no level.
+    const { picked, askFirst } = pickWithFollowUp(cards, { ...facts, text }, gravity, ctx.followUps?.() ?? []);
+    const card = picked?.card ?? cards.find((c) => c.id === askFirst?.card) ?? null;
+    return card ? cardView(card, lang) : null;
   };
 
   if (screen.route === 'card') {
@@ -846,7 +880,7 @@ async function answerQuestion(
       const ticker = setInterval(() => emit({ type: 'status', state: 'thinking', ms: Date.now() - t0 }), 1000);
       emit({ type: 'status', state: 'thinking', ms: 0 });
       try {
-        // The urgent check and the answer run side by side on the server's two slots (§7).
+        // The urgent check and the answer run side by side on the server's two slots.
         const [label, answer] = await Promise.all([
           ctx.ai.client.chat({ messages: buildUrgentMessages(prompt), maxTokens: 16, responseFormat: URGENT_FORMAT, signal, firstTokenMs: URGENT_MS, totalMs: URGENT_MS })
             .then(parseUrgentLabel, () => null),

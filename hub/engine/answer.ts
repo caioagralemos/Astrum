@@ -301,7 +301,7 @@ const GRAVITY = /\b(gravity|weightless\w*|microgravity|zero[- ]?g|float\w*|g[- ]
 /** A yes/no question about an action ("Should I sleep somewhere else?"), not "How much should I exercise?". */
 const ADVICE = /^\W*(should|shall|can|could|must|may) (i|we|she|he|they)\b|^\W*(do|does) (i|we|she|he|they) need to\b|^\W*(would|will) it help\b|^\W*is it better\b|^\W*what should (i|we|she|he|they) do\b/i;
 const DIAGNOSIS = /\b((am i|is (she|he)|are they) (sick|ill|unwell)|(do i|does (she|he)|do they) have|what('?s| is) wrong with (me|her|him|them)|is something wrong with (me|her|him|them))\b/i;
-/** A question asking for an amount, a dose or a treatment: "How many hours of oxygen does she need?" */
+/** A question asking for an amount, a dose or a treatment: "How long does she have to stay on oxygen?" */
 const AMOUNT = /\bhow (many|much|long|often)\b|\bwhat (dose|amount|quantity)\b|\bwhich (treatment|medicine|drug)\b|\bhow (do|should|can) (i|we) treat\b|\bwhat treatment\b|\bwhat (do|should) (i|we) (take|give)\b/i;
 /** A passage that names treatment options. Never shown as if it answered an amount or treatment question. */
 const TREATMENT = /\b(treat\w*|therap\w*|recompress\w*|hyperbaric|medicat\w*|drugs?|analgesics?|antibiotics?|pharmaceutical\w*|decongestants?|supplemental (oxygen|o2)|100% ?o2|doses?)\b/i;

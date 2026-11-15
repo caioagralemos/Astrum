@@ -234,7 +234,7 @@ test('the evidence card reaches the prompt as hub lines, and the facts always co
     const { result } = await ask(url, { person: 'reyes', question: 'Is it my room?' });
     assert.match(model.seen[0], /headache reported on 3 days in a row \(reported\)\.\nNo body reading is unusual for Reyes\.\nThe hub's comparison points to the room \(Quarters 2\), not to Reyes\.\nDetector:/);
     assert.ok(result.facts?.items.some((i) => i.key === 'answer.points.room'));
-    const crisis = await ask(url, { person: 'reyes', question: 'everyone would be better off without me' });
+    const crisis = await ask(url, { person: 'reyes', question: "they'd all be better off without me" });
     assert.equal(crisis.result.facts, null, 'never on the crisis route');
     const urgent = await ask(url, { person: 'reyes', question: 'Reyes has chest pain' });
     assert.equal(urgent.result.facts, null, 'never on the card route');
@@ -246,7 +246,7 @@ test('the evidence card reaches the prompt as hub lines, and the facts always co
 
 test('a crisis never reaches the model, sends for a person, and never repeats the words', async () => {
   await withHub(async (url, model, crisis) => {
-    const words = 'I keep thinking everyone would be better off without me';
+    const words = "Lately I keep thinking they'd all be better off without me";
     const { result, raw } = await ask(url, { person: 'reyes', question: words });
     assert.equal(result.route, 'crisis');
     assert.equal(model.answers, 0);
@@ -271,7 +271,7 @@ test('the urgent word list opens the card her words point to, with no model call
 
 test('medicine questions get the fixed refusal without the model; unknown people are refused', async () => {
   await withHub(async (url, model) => {
-    const { result } = await ask(url, { person: 'reyes', question: 'What dose of melatonin should I take tonight?' });
+    const { result } = await ask(url, { person: 'reyes', question: 'How much melatonin is the right dose tonight?' });
     assert.equal(result.route, 'fixed');
     assert.equal(result.text, REFUSAL_TEXT);
     assert.equal(model.answers, 0);
@@ -489,6 +489,38 @@ test('the ask path picks only cards for the place\'s gravity, and states the gra
   } finally {
     await close(onMars.server);
     await close(inOrbit.server);
+    await ai.stop();
+  }
+});
+
+test('ask first: a lone "pressão alta" raises nothing, asks her questions (first one as followUp); severe words still raise', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { parseFollowUps } = await import('../engine/followup.ts');
+  const medical = new URL('../medical/', import.meta.url);
+  const her = parseCards(JSON.parse(readFileSync(new URL('cards.json', medical), 'utf8')));
+  const rows = parseFollowUps(JSON.parse(readFileSync(new URL('follow-up.json', medical), 'utf8')), her.cards).rows;
+  const model = new FakeModel();
+  const ai = new AiRuntime({ log: () => {}, client: model, warm: false });
+  await ai.start();
+  const raised: { card: string | null; level: number }[] = [];
+  const asked: string[] = [];
+  const ctx: AskContext = {
+    ...context(ai), cards: () => her, gravity: 0, followUps: () => rows, followUpAnswers: () => ({}),
+    onFinding: (f) => { raised.push({ card: f.card, level: f.level }); },
+    onAskFirst: (_p, a) => { asked.push(a.card); },
+  };
+  const hub = await serve(ctx);
+  try {
+    const lone = (await ask(hub.url, { person: 'reyes', question: 'pressão alta', lang: 'pt' })).result;
+    assert.deepEqual(raised, [], 'nothing raised for a lone symptom');
+    assert.deepEqual(asked, ['heart-circulation']);
+    assert.equal(lone.askFirst?.card, 'heart-circulation');
+    assert.deepEqual(lone.askFirst?.questions.map((q) => q.pt), ['Você dormiu bem?', 'Está com a cabeça pesada e mal-estar?', 'Você tem pressão alta (diagnóstico)?', 'Meça a pressão e anote o valor.']);
+    assert.deepEqual(lone.followUp, { question: 'Você dormiu bem?', signal: 'checkin.bp_slept_well' }, 'the first question, the same way "Did it get better?" is carried');
+    await ask(hub.url, { person: 'reyes', question: 'pale with cold sweat' });
+    assert.deepEqual(raised, [{ card: 'heart-circulation', level: 3 }]);
+  } finally {
+    await close(hub.server);
     await ai.stop();
   }
 });

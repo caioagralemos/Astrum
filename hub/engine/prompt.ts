@@ -1,27 +1,34 @@
 // What the model is sent, and what the hub checks before and after. Pure: no
-// I/O, no model. The source of truth is ~/Desktop/NASA/AI-CORE-SPEC.md:
-//   §5.1-5.2  the system prompt and the four examples, word for word (frozen)
-//   §5.3      the message layout; the hub does the arithmetic, the model only reads it
-//   §5.6      the urgent check (one label) and the hub's word list
-//   §6        the hub checks on every answer
+// I/O, no model.
 //
-// The spec's §6 checks are all here. On top of them, the output check throws
-// an answer away (and shows the fixed refusal text) when it holds an invented
-// step, a number that is in neither the readings nor the passages, medicine or
-// dose talk, diagnosis language, a source that wasn't sent, or one of the unsafe
-// phrases the spec's test cases fail on. The spec tested a number check and
-// only logged it; here it discards, as asked for the hub.
+// Astra, the voice the crew talks to, only relates what the hub hands it: the
+// hub's own numbers and NASA's words. Around the model:
+//   - screenInput: a crisis, an urgent word, medicine or a dose, and anything
+//     shaped like the hub's own message never reach it;
+//   - the urgent check: one label, URGENT or ROUTINE. It can only add urgency;
+//   - checkAnswer: the model's text is shown only when every check passes, and
+//     a refusal is always replaced by the hub's fixed text.
+// The hub writes its own answer as well, each fact with its label
+// (engine/answer.ts), and core/ai.ts decides which one the crew sees.
+// Emergencies are the medical lead's cards, picked by rules (engine/cards.ts),
+// never by the model.
+//
+// History, plainly: a first draft of this prompt, its examples, the urgent
+// check, its word list and the refusal text was written on 9 Nov 2026, before
+// the hackathon, in the planning spec (~/Desktop/NASA/AI-CORE-SPEC.md). It was
+// copied in here on 14 Nov and rewritten during the event for the hub as it is
+// now. The NASA passages in the examples are NASA's own words, unchanged, each
+// cited by its document.
 
 // ---------- the fixed texts ----------
 
-/** §6: shown instead of any refusal, so a refusal can never carry a dose or a drug. */
+/** Shown in place of every refusal, so a refusal can never contain a drug name or an amount. No delay is named: it depends on the place. */
 export const REFUSAL_TEXT =
-  "I don't know. My NASA sources don't cover that, and I won't guess. Tap Ask Houston to send it to your flight surgeon. The reply takes about 40 minutes.";
+  "I don't have that in NASA's text or in your readings, so I won't guess. Tap Ask Houston and the question goes to your flight surgeon.";
 
-/** Fixed texts the hub shows instead of a model answer, by string-table key. English here; the table holds both. */
+/** Fixed texts the hub shows instead of a model answer, by string-table key. English here; engine/strings.ts holds both languages. */
 export const FIXED_TEXTS = {
   'ai.refusal': REFUSAL_TEXT,
-  // Not in the spec: neutral wording, waiting for the owner's approval.
   'ai.unavailable': "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.",
   'ai.slow': "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.",
   'ai.busy': "Too many questions are waiting. Ask again in a moment, or tap Ask Houston.",
@@ -32,99 +39,51 @@ export const FIXED_TEXTS = {
 
 export type FixedKey = keyof typeof FIXED_TEXTS;
 
-// ---------- §5.1 and §5.2: frozen ----------
-
-export const SYSTEM_PROMPT = `You are Astrum, the health assistant on a crewed Mars mission. You talk to the crew. They are not doctors.
-
-Each message has READINGS, sometimes NASA PASSAGES, and a QUESTION. The readings and passages are your only facts.
-
-How to answer:
-- Answer the question in the first sentence. Then explain with the numbers: the reading, the person's own normal, the difference, and the NASA limit if a passage gives one.
-- Mention every reading that is off the person's normal.
-- If the crew member believes something the passage contradicts or does not say, tell them, and give what the passage says.
-- If the passage says what is done about the problem, say it.
-- When asked what is going on: say which readings are off, what the passage links them to, and what the passage says is done about it.
-- Never add advice, causes, treatments, drugs or numbers that are not in the readings or passages.
-- When the readings are inside the person's normal, say so plainly. Do not look for a problem.
-- Readings alone are enough to describe a trend. No passage is needed for that.
-- End with "Source: [exact passage name]" for the passage you used. If you used no passage, write no source line.
-- If the question asks for something the readings and passages don't contain (which drug, what dose, how long, a diagnosis): start your answer with the words "I don't know." Then say the NASA sources don't cover it, and suggest Ask Houston (the reply takes about 40 minutes). Give no advice of your own.
-- 2 to 5 sentences. Plain words. Calm.`;
-
-const X_DOSE = `PASSAGE [NASA-STD-3001 Radiation Protection Technical Brief]:
-"[V1 4030] Career Space Permissible Exposure Limit for Space Flight Radiation An individual astronaut's total career effective radiation dose due to space flight radiation exposure shall be less than 600 mSv. This limit is universal for all ages and sexes."`;
-
-const X_BARO = `PASSAGE [NASA-STD-3001 Habitable Atmosphere Technical Brief]:
-"Barotrauma is injury to your body caused by changes in barometric (air) or water pressure. Barotrauma is most often experienced in the ear and sinuses but is also experienced in the lungs or other major organs.
-Prevention includes gradually controlled pressure changes, crew training in equalizing techniques, and pharmaceuticals including decongestants, pain medication and supplemental or supportive care when required."`;
-
-/** The four examples, as [crew message, answer], in the spec's order. */
-export const EXAMPLES: [string, string][] = [
-  [
-    `READINGS (Sam): radiation dose this mission 212 mSv. Detector: normal.\n\n${X_DOSE}\n\nQUESTION: I heard the limit is lower for women. Am I getting close to it?`,
-    'No. The limit is the same for everyone: total career dose under 600 mSv, for all ages and sexes. You are at 212 mSv this mission, which is 388 mSv under the limit. The limit counts your whole career, and I only have this mission\'s reading.\nSource: [NASA-STD-3001 Radiation Protection Technical Brief]',
-  ],
-  [
-    'READINGS (Sam), HRV, last 6 days: 58, 57, 55, 49, 44, 41 ms. His normal: 54-60 ms.\nDetector: anomaly 0.66. Main signal: HRV trend.\n(no passages)\n\nQUESTION: How is Sam doing this week?',
-    "Sam's HRV has been falling all week, from 58 to 41 ms. The first three days were inside his normal 54-60 ms. The last three are below it, and today's 41 ms is 13 under the bottom of his range. The detector flags this trend (anomaly 0.66). I have no NASA passage about the cause, so I can't say why.",
-  ],
-  [
-    `READINGS (Sam): ear pain after a suit pressure check. Vitals within his normal.\n\n${X_BARO}\n\nQUESTION: Which decongestant should I take, and how much?`,
-    "I don't know. The passage says decongestants are used to prevent barotrauma, but it names no medicine and gives no amount, and I won't guess. Tap Ask Houston to send this to your flight surgeon. The reply takes about 40 minutes.\nSource: [NASA-STD-3001 Habitable Atmosphere Technical Brief]",
-  ],
-  [
-    'READINGS (Sam): sleep last night 7.0 h (his normal range 6.8-7.4 h). Detector: normal.\n(no passages)\n\nQUESTION: I feel like I barely slept. Is my sleep off?',
-    'Your sleep reading is normal. You slept 7.0 h, inside your usual 6.8-7.4 h, and the detector shows nothing unusual. I have no NASA passage about how rested you feel, so I can\'t say more than that.',
-  ],
-];
+// ---------- the explainer's rules ----------
 
 /**
- * Not in the spec: a fifth example, after the four frozen ones, that shows how
- * to use the hub's evidence lines with "points to" wording and no cause. The
- * passage is the first sentence of NASA's CO2 brief, unchanged.
+ * Astra's rules. The examples that follow them are built further down, by the
+ * same code that builds a real message (buildUserMessage), so they look
+ * exactly like what the model is sent. Changing a word here changes answers:
+ * rerun ai-eval/run.ts after any edit.
  */
-EXAMPLES.push([
-  'READINGS (Sam):\ncabin CO2 (est.) 2.7 mmHg, 1-hour average: 0.3 mmHg below the NASA limit of 3 mmHg.\nCO2 exposure, last 72 hours: 8 h in the workshop above 2.8 mmHg, 0 h above 3 mmHg; crewmates at most 0.5 h above 2.8 mmHg (estimated).\nNo body reading is unusual for Sam.\nThe hub\'s comparison points to the room (the workshop), not to Sam.\nDetector: normal.\n\nPASSAGE [NASA-STD-3001 CO2 Technical Brief]:\n"Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg."\n\nQUESTION: Is something wrong with me, or is it the workshop?',
-  "The hub's comparison points to the room, the workshop, not to you. In the last 72 hours you spent 8 h there above 2.8 mmHg, and your crewmates at most 0.5 h. Its CO2 now is 2.7 mmHg, 0.3 mmHg below the NASA limit of 3 mmHg, and none of your body readings is unusual. The passage gives the limit; it does not say what the workshop's air does to you.\nSource: [NASA-STD-3001 CO2 Technical Brief]",
-]);
+export const SYSTEM_PROMPT = `You are Astra, the voice of Astrum, the crew health hub on this space mission. You talk with crew members. They are not medical professionals.
 
-/** How the ASKER line names the person (used by the examples below and by askerLine). */
-const REFLEXIVE = { she: 'herself', he: 'himself', they: 'themself' } as const;
-const PRONOUN_PAIR = { she: 'she/her', he: 'he/him', they: 'they/them' } as const;
+Every message gives you an ASKER line, the READINGS (the hub's own numbers, already compared with the person's normal and with NASA's limits), sometimes one or more PASSAGE blocks that quote NASA word for word, and the QUESTION. Those are your only facts.
+
+How to reply:
+- Follow the ASKER line. A person asking about themself is "you" in every sentence, never their name and never she or he, even though the READINGS name them.
+- Give the answer to the question first. Then support it with the hub's numbers: the reading, the person's normal, the gap between them, and NASA's limit when one is given. Use each gap exactly as the hub wrote it; never work out a difference, a percentage or a total yourself.
+- Mention each reading that is outside the person's normal. When every reading is inside it, say so simply and do not hunt for a problem.
+- A trend can be described from the readings alone; it needs no passage.
+- If the crew member believes something a passage contradicts or leaves out, tell them, and state what the passage does say.
+- When a passage describes what NASA does about the problem, include that, in NASA's terms.
+- If the readings say where the hub's comparison points (a room or a person), you may repeat it. It is where the data points, not a cause.
+- Never add advice, orders, causes, diagnoses, treatments, medicines, or any number missing from the readings and passages.
+- After using a passage, end with the line Source: [the passage's name exactly as in its PASSAGE brackets]. Without a passage, write no source line at all.
+- If answering would need something the facts do not hold (a medicine, an amount, how long, which illness), your reply must start with "I don't know." Then say that NASA's text and the readings do not cover it, and that Ask Houston sends the question to the flight surgeon. Add no advice of your own.
+- Two to five short sentences, in plain and calm words.`;
 
 /**
- * Not in the spec: each example's crew message opens with the ASKER line the
- * hub now sends, so the model sees when to say "you" and when to use a name.
- * The examples' own words are unchanged: 1, 3, 4 and 5 already answer "you";
- * 2 answers a crewmate asking about Sam.
+ * Words that appear only in the examples. A sentence of an answer that uses
+ * one, when the crew's message doesn't, was copied from an example and is
+ * dropped. Keep in step with EXAMPLES.
  */
-const EXAMPLE_ASKERS: [boolean, string][] = [[true, ''], [false, 'Lee'], [true, ''], [true, ''], [true, '']];
-EXAMPLE_ASKERS.forEach(([self, askerName], i) => {
-  EXAMPLES[i][0] = `${askerLine({ name: 'Sam', pronouns: 'he', self, askerName })}\n${EXAMPLES[i][0]}`;
-});
-
-/** §6 check 4: words that exist only in the examples. Keep in step with EXAMPLES. */
-export const EXAMPLE_ONLY_WORDS = ['sam', 'lee', 'decongestant', 'barotrauma', 'hyperoxia', 'career', 'ear pain', 'suit pressure check', 'all ages and sexes', 'equalizing', 'workshop'];
-
-// ---------- §5.6: the urgent check ----------
-
-export const URGENT_SYSTEM = `You sort messages for a crew health system on a Mars mission. Answer with ONE word: URGENT or ROUTINE.
-
-URGENT: someone is in danger right now. Examples: confused, fainted, not responding, can't breathe, choking, chest pain, bleeding, a burn, a broken or badly swollen limb, pain or tingling after an EVA, cabin pressure dropping, CO2 at 15 mmHg or more, a solar flare or particle alert.
-ROUTINE: everything else. Questions about limits, sleep, exercise, medicine, summaries of a week, explaining an alert or a trend, a mild headache, feeling tired or anxious with normal readings.
-
-A detector anomaly, or a reading above the person's normal, is NOT urgent by itself. It is urgent only with a symptom or event from the URGENT list.
-
-Reply as JSON: {"label": "..."}`;
-
-export const URGENT_EXAMPLES: [string, 'URGENT' | 'ROUTINE'][] = [
-  ['READINGS (Sam): cut his forearm on a panel edge. Bleeding, pale. Heart rate 118 bpm (his normal 61).\n\nQUESTION: What do we do?', 'URGENT'],
-  ['READINGS (Sam): sleep last night 7.0 h (his normal range 6.8-7.4 h). Detector: normal.\n\nQUESTION: I feel like I barely slept. Is my sleep off?', 'ROUTINE'],
-  ["READINGS (Sam): resting heart rate 79 bpm (his normal 61), HRV 38 ms (his normal 55). Detector: anomaly 0.88.\nCABIN: CO2 (est.) 3.4 mmHg.\n\nQUESTION: What's going on with Sam?", 'ROUTINE'],
-  ['CABIN: pressure falling for 6 minutes.\nREADINGS (Sam): says his vision is going grey.\n\nQUESTION: What is happening?', 'URGENT'],
-  ['QUESTION: Why do we have to wear the dosimeter all day?', 'ROUTINE'],
-  ["READINGS (Sam): vomiting, says the room is spinning, can't stand up.\n\nQUESTION: Help, what do I do?", 'URGENT'],
+export const EXAMPLE_ONLY_WORDS = [
+  'dana', 'kofi', 'third mission', 'career', 'all ages and sexes', 'respiratory rate', 'breaths',
+  'neuro-ocular', 'sans', 'swelling', 'times awake', 'workshop',
 ];
+
+// ---------- the urgent check ----------
+
+export const URGENT_SYSTEM = `You triage messages for Astrum, the crew health hub on this space mission. Answer with one label: URGENT or ROUTINE.
+
+URGENT: someone may be in danger right now. For example: fainting or about to, not responding, confused or slurring, struggling to breathe or choking, chest pain or pressure, bleeding, a burn, a limb that may be broken, sudden numbness or weakness, pain or tingling after a spacewalk, cabin pressure falling, CO2 of 15 mmHg and above, a radiation storm alert.
+ROUTINE: anything else, such as questions about limits, trends, sleep, exercise or medicine, a summary of someone's week, why an alert went off, a mild headache, feeling tired, low or worried while the readings are normal.
+
+An off reading or a detector anomaly is ROUTINE on its own. It is URGENT only together with a symptom or an event on the URGENT list.
+
+Return JSON: {"label": "..."}`;
 
 export const URGENT_FORMAT = {
   type: 'json_schema',
@@ -136,10 +95,26 @@ export const URGENT_FORMAT = {
   },
 } as const;
 
-/** §5.6: the hub's word list. It can only add urgency. */
-export const URGENT_WORDS = /bleed|blood|unconscious|not responding|won'?t wake|collapsed|fainted|passed out|choking|can'?t breathe|cannot breathe|not breathing|chest pain|seizure|fell\b|fall\b|broken|fracture|swelling|swollen|burn(ed|t)?\b|blister|blue lips|slurred|can'?t (stand|move|see|speak)/;
+/**
+ * What sends a typed message straight to the card, before any model runs,
+ * grouped by what it means. It can only add urgency: a match never reaches
+ * the model. Everything the first draft caught is still caught.
+ */
+const URGENT_PHRASES = [
+  // bleeding
+  'bleed', 'blood',
+  // not awake, not answering
+  'unconscious', 'unresponsive', 'not responding', "won'?t wake", 'collapsed', 'fainted', 'passed out',
+  // breathing
+  'choking', "can'?t breathe", 'cannot breathe', 'not breathing', 'stopped breathing', 'blue lips',
+  // chest and brain
+  'chest pain', 'seizure', 'slurr(ed|ing)', "can'?t (stand|move|see|speak)",
+  // falls, bones, burns
+  'fell\\b', 'fall\\b', 'broken', 'fracture', 'swelling', 'swollen', 'burn(ed|t)?\\b', 'blister',
+];
+export const URGENT_WORDS = new RegExp(URGENT_PHRASES.join('|'));
 
-/** Not in the spec: the same list in Portuguese, for a crewmate who types in Portuguese. Waiting for approval. */
+/** The same list in Portuguese, for a crewmate who types in Portuguese. */
 export const URGENT_WORDS_PT = /sangr|sangue|inconsciente|n[aã]o responde|n[aã]o acorda|desmai|engasg|sufoc|n[aã]o consigo respirar|n[aã]o est[aá] respirando|dor no peito|convuls|\bcaiu\b|\bca[ií]\b|quebr|fratur|inchad|inchaço|queimad|queimou|bolha|l[aá]bios roxos|fala enrolada|n[aã]o consigo (ficar de p[eé]|mexer|ver|falar)/;
 
 export function parseUrgentLabel(text: string): 'URGENT' | 'ROUTINE' | null {
@@ -147,12 +122,12 @@ export function parseUrgentLabel(text: string): 'URGENT' | 'ROUTINE' | null {
   return m ? (m[1] as 'URGENT' | 'ROUTINE') : null;
 }
 
-// ---------- §5.3: the readings block ----------
+// ---------- the readings block ----------
 
 /**
- * How a value came to exist, as the screen labels it. The spec's prompt
- * marked only estimates, as "(est.)"; the others follow the same style.
- * Measured values carry no mark, as in the spec's tested layout.
+ * How a value came to exist, as the screen labels it. The model sees a short
+ * mark after the name: "(est.)", "(reported)", "(replayed)", "(simulated)".
+ * A measured value carries no mark.
  */
 export type ReadingLabel = 'measured' | 'estimated' | 'reported' | 'replayed' | 'simulated';
 
@@ -228,7 +203,7 @@ function oneLine(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
 }
 
-/** One reading as one sentence, the way §5.3 lays it out. */
+/** One reading as one sentence. The hub does the subtraction; the model only reads it. A table confused the small model, so: one line each. */
 export function readingLine(r: Reading, pronoun: string): string {
   if (r.type === 'note') return /[.!?]$/.test(oneLine(r.text)) ? oneLine(r.text) : `${oneLine(r.text)}.`;
   const name = `${oneLine(r.name)}${TAG[r.label]}`;
@@ -298,6 +273,10 @@ export interface Asker {
 }
 
 
+/** How the ASKER line names the person. */
+const REFLEXIVE = { she: 'herself', he: 'himself', they: 'themself' } as const;
+const PRONOUN_PAIR = { she: 'she/her', he: 'he/him', they: 'they/them' } as const;
+
 /** One plain line before the readings: who is asking, and how to address the person. */
 export function askerLine(a: Asker): string {
   return a.self
@@ -314,7 +293,7 @@ export function passageBlock(p: PromptPassage): string {
   return `PASSAGE [${oneLine(p.name)}]:\n"${p.text.trim()}"`;
 }
 
-/** The crew message, laid out as §5.3 and the tested examples lay it out. */
+/** The crew message: the ASKER line, the readings, each passage with its name (or "(no passages)"), the question. */
 export function buildUserMessage(input: MessageInput): string {
   const readings = readingsBlock(input.readings, input.detectorLine, input.evidence);
   const question = `QUESTION: ${oneLine(input.question)}`;
@@ -323,7 +302,110 @@ export function buildUserMessage(input: MessageInput): string {
   return asker + [readings, ...input.passages.map(passageBlock), question].filter(Boolean).join('\n\n');
 }
 
-/** The explainer's messages: system prompt, the four examples as chat turns, then the crew message. */
+// ---------- the examples ----------
+
+/** NASA's own words, quoted as the hub quotes any passage. */
+const NASA_CAREER_LIMIT: PromptPassage = {
+  name: 'NASA-STD-3001 Radiation Protection Technical Brief',
+  text: "[V1 4030] Career Space Permissible Exposure Limit for Space Flight Radiation An individual astronaut's total career effective radiation dose due to space flight radiation exposure shall be less than 600 mSv. This limit is universal for all ages and sexes.",
+};
+const NASA_SANS: PromptPassage = {
+  name: 'NASA Risk of Spaceflight Associated Neuro-ocular Syndrome (SANS)',
+  text: 'Approximately 70 percent of astronauts aboard the International Space Station experience some swelling in the back of their eyes.',
+};
+const NASA_CO2_LIMIT: PromptPassage = {
+  name: 'NASA-STD-3001 CO2 Technical Brief',
+  text: 'Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg.',
+};
+
+/** The examples' crew member. No profile has this name, so a name copied from an example is easy to catch. */
+const DANA = { name: 'Dana', pronouns: 'she' as const };
+const dana = (readings: Reading[]): PersonReadings => ({ name: DANA.name, pronoun: 'her', readings });
+const DANA_ASKS: Asker = { ...DANA, self: true, askerName: DANA.name };
+
+/**
+ * The explainer's examples, as [crew message, answer]. Each crew message is
+ * built by buildUserMessage, exactly as a real one. One example per thing the
+ * hub needs from the model:
+ *   1. a belief the passage corrects, with the hub's numbers and the source line;
+ *   2. a crewmate asking about a trend, with no passage: describe, no cause;
+ *   3. a question NASA's text does not answer: "I don't know." (the hub then shows REFUSAL_TEXT);
+ *   4. readings inside the person's normal: say so, and look for nothing more;
+ *   5. the hub's comparison pointing to a room: repeat it, never as a cause.
+ * Every answer passes checkAnswer against its own message (prompt.test.ts).
+ */
+export const EXAMPLES: [string, string][] = [
+  [
+    buildUserMessage({
+      asker: DANA_ASKS, readings: dana([{ type: 'value', name: 'radiation dose this mission', value: 212, unit: 'mSv', label: 'measured' }]),
+      detectorLine: 'Detector: normal.', passages: [NASA_CAREER_LIMIT], question: 'This is my third mission. Does the limit start over each time?',
+    }),
+    `No. NASA's limit covers a whole career: a total effective dose under 600 mSv, the same for all ages and sexes. Your dose on this mission is 212 mSv so far. The hub has no reading from your earlier missions, so I can't give your career total.\nSource: [${NASA_CAREER_LIMIT.name}]`,
+  ],
+  [
+    buildUserMessage({
+      asker: { ...DANA, self: false, askerName: 'Kofi' },
+      readings: dana([{ type: 'series', name: 'respiratory rate', values: [14, 14, 15, 17, 18], unit: 'breaths/min', window: 'last 5 days', label: 'measured', normal: [12, 16] }]),
+      detectorLine: 'Detector: anomaly 0.61. Main signal: respiratory rate trend.', passages: [], question: 'How has Dana been this week?',
+    }),
+    "Dana's respiratory rate has gone up over the last 5 days, from 14 to 18 breaths/min. The first three days were inside her normal range of 12-16, the last two were above it, and the latest, 18, is 2 over the top of her range. The detector flags the same trend (anomaly 0.61). I have no NASA passage about it, so I can't say why it is rising.",
+  ],
+  [
+    buildUserMessage({
+      asker: DANA_ASKS, readings: dana([{ type: 'note', text: 'blurry close-up vision for 10 days', label: 'reported' }]),
+      detectorLine: null, passages: [NASA_SANS], question: 'How long until my eyes are back to normal?',
+    }),
+    `I don't know. The passage says about 70 percent of astronauts on the space station get some swelling in the back of their eyes, but it gives no time for that to go away, so I won't guess. Ask Houston can take the question to your flight surgeon.\nSource: [${NASA_SANS.name}]`,
+  ],
+  [
+    buildUserMessage({
+      asker: DANA_ASKS, readings: dana([{ type: 'normal', name: 'times awake in the night', value: 2, unit: '', label: 'measured', normal: [1, 3] }]),
+      detectorLine: 'Detector: normal.', passages: [], question: 'I keep waking up at night. Am I sleeping badly?',
+    }),
+    'Your reading says no. You woke 2 times in the night, inside your usual range of 1-3, and the detector shows nothing unusual. How rested you feel is not something the readings measure, and I have no NASA passage on it.',
+  ],
+  [
+    buildUserMessage({
+      asker: DANA_ASKS,
+      readings: dana([{ type: 'limit', name: 'cabin CO2', value: 2.7, unit: 'mmHg', label: 'estimated', window: '1-hour average', limit: 3 }]),
+      evidence: [
+        'CO2 exposure, last 72 hours: 8 h in the workshop above 2.8 mmHg, 0 h above 3 mmHg; crewmates at most 0.5 h above 2.8 mmHg (estimated).',
+        'No body reading is unusual for Dana.',
+        "The hub's comparison points to the room (the workshop), not to Dana.",
+      ],
+      detectorLine: 'Detector: normal.', passages: [NASA_CO2_LIMIT], question: 'Is something wrong with me, or is it the workshop?',
+    }),
+    `The hub's comparison points to the room, the workshop, not to you. In the last 72 hours you spent 8 h there above 2.8 mmHg, and your crewmates at most 0.5 h. Its CO2 now is 2.7 mmHg, 0.3 mmHg below the NASA limit of 3 mmHg, and none of your body readings is unusual. The passage gives the limit; it does not say what the workshop's air does to you.\nSource: [${NASA_CO2_LIMIT.name}]`,
+  ],
+];
+
+/** The urgent check's crew message: the readings block, then the question. It never carries passages. */
+function urgentUserMessage(readings: PersonReadings | null, question: string, detector: string | null = null, evidence: string[] = []): string {
+  const block = readingsBlock(readings, detector, evidence);
+  return `${block ? `${block}\n\n` : ''}QUESTION: ${oneLine(question)}`;
+}
+
+/** The urgent check's examples: three of each label, in the layout the hub sends. */
+export const URGENT_EXAMPLES: [string, 'URGENT' | 'ROUTINE'][] = [
+  [urgentUserMessage(dana([
+    { type: 'note', text: 'hit her head on a hatch; the cut above her eye is bleeding through the cloth', label: 'reported' },
+    { type: 'normal', name: 'heart rate', value: 109, unit: 'bpm', label: 'measured', normal: 63 },
+  ]), 'What now?'), 'URGENT'],
+  [urgentUserMessage(dana([{ type: 'normal', name: 'sleep last night', value: 6.9, unit: 'h', label: 'measured', normal: [6.5, 7.5] }]), 'Why do I feel so groggy this morning?', 'Detector: normal.'), 'ROUTINE'],
+  [urgentUserMessage(dana([
+    { type: 'normal', name: 'resting heart rate', value: 81, unit: 'bpm', label: 'measured', normal: 62 },
+    { type: 'normal', name: 'HRV', value: 36, unit: 'ms', label: 'measured', normal: 54 },
+    { type: 'limit', name: 'cabin CO2', value: 3.3, unit: 'mmHg', label: 'estimated', window: '1-hour average', limit: 3 },
+  ]), "Why did Dana's alert go off?", 'Detector: anomaly 0.84. Main signals: resting heart rate, HRV.'), 'ROUTINE'],
+  [urgentUserMessage(dana([
+    { type: 'note', text: 'cabin pressure has been dropping for 4 minutes', label: 'measured' },
+    { type: 'note', text: 'her fingertips are numb and she says she cannot think clearly', label: 'reported' },
+  ]), 'Is this bad?'), 'URGENT'],
+  [urgentUserMessage(null, 'Why does the hub watch CO2 in every room?'), 'ROUTINE'],
+  [urgentUserMessage(dana([{ type: 'note', text: 'back from a spacewalk an hour ago: aching left shoulder and pins and needles down the arm', label: 'reported' }]), 'Should I be worried?'), 'URGENT'],
+];
+
+/** The explainer's messages: the rules, the examples as chat turns, then the crew message. */
 export function buildMessages(input: MessageInput): ChatMessage[] {
   return [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -332,10 +414,9 @@ export function buildMessages(input: MessageInput): ChatMessage[] {
   ];
 }
 
-/** The urgent check's messages. It sees the readings and the question, not the passages. */
+/** The urgent check's messages: its rules, its examples, then the crew message without any passage. */
 export function buildUrgentMessages(input: Omit<MessageInput, 'passages'>): ChatMessage[] {
-  const readings = readingsBlock(input.readings, input.detectorLine, input.evidence);
-  const user = `${readings ? `${readings}\n\n` : ''}QUESTION: ${oneLine(input.question)}`;
+  const user = urgentUserMessage(input.readings, input.question, input.detectorLine, input.evidence);
   return [
     { role: 'system', content: URGENT_SYSTEM },
     ...URGENT_EXAMPLES.flatMap(([u, a]): ChatMessage[] => [{ role: 'user', content: u }, { role: 'assistant', content: `{"label": "${a}"}` }]),
@@ -346,8 +427,7 @@ export function buildUrgentMessages(input: Omit<MessageInput, 'passages'>): Chat
 // ---------- the input screen ----------
 
 /**
- * Not in the spec, which found nothing covering a crewmate in crisis (§10).
- * Kept short and literal on purpose. A match never reaches the model: the hub
+ * Words that mean a crewmate may be in crisis. Kept short and literal on purpose. A match never reaches the model: the hub
  * sends a person. Misses are listed in the eval results.
  */
 export const CRISIS_WORDS = [
@@ -384,10 +464,9 @@ function lowerPlain(s: string): string {
  * What must never reach the model, in this order:
  *   1. anything that looks like a crisis: a person, never the model;
  *   2. empty, too long, or shaped like the hub's own message: fixed text;
- *   3. the urgent word list (spec §5.6, plus the Portuguese list): the card;
- *   4. a question about medicine or a dose: the fixed refusal. The spec leaves
- *      this to the model, which refused every time in the tests; the hub
- *      makes it certain.
+ *   3. the urgent word list (English and Portuguese): the card;
+ *   4. a question about medicine or a dose: the fixed refusal. The model is
+ *      told to refuse these too; the hub makes it certain by never asking it.
  */
 export function screenInput(question: string): Screen {
   const q = lowerPlain(question);
@@ -463,13 +542,17 @@ export function statesCause(text: string): boolean {
   return CAUSE.some((re) => re.test(text));
 }
 
-/** Unsafe phrases from the spec's test cases (cases.py): waiting for Houston, Earth-only help, false comfort, withholding oxygen or shelter. */
+/**
+ * Phrases the crew must never be shown, by why: being told to wait for Earth,
+ * help only Earth has, comfort the readings can't give, or being kept from
+ * oxygen or the storm shelter. Each covers at least what the first draft did.
+ */
 const UNSAFE: [RegExp, string][] = [
-  [/wait (for|until) (houston|a (reply|response|answer)|their (reply|response|answer)|the (reply|response|answer)|instructions)|until houston|before (you )?(do|doing|take|taking) any(thing| action)|without (authori[sz]ation|permission|approval)|ask(ing)? (houston )?(for )?permission|await (further |their |the |a )?(instructions?|reply|response|answer|houston|guidance)/i, 'waiting for Houston'],
-  [/9-?1-?1|\bambulance|helicopter|\bhospital\b|emergency room/i, 'help only Earth has'],
-  [/(do not|don'?t|no) need to worry|nothing to worry about|safe to continue|\byou('re| are) (fine|okay|ok|safe|healthy|all right|alright)\b|\bno cause for concern\b/i, 'false comfort'],
-  [/(do not|don'?t) (try to )?(breathe|give|use|apply|put on) (the )?(100% )?(o2|oxygen|mask)/i, 'withholding oxygen'],
-  [/(do not|don'?t|no need to) (go|relocate|move|shelter)\b.{0,30}shelter/i, 'keeping the crew out of shelter'],
+  [/\b(wait|hold off|hold on)\b[^.]{0,30}\b(houston|earth|reply|response|answer|instructions?|guidance|approval|go-ahead)\b|\buntil (houston|earth|mission control|the flight surgeon)\b|\bbefore (you )?(do|doing|take|taking) any(thing| action)\b|\bwithout (authori[sz]ation|permission|approval|the go-ahead)\b|\b(ask|asking|get|getting) (houston('s)? )?(for )?(permission|approval)\b|\bawait(ing)?\b/i, 'waiting for Houston'],
+  [/\b(9-?1-?1|ambulances?|helicopters?|hospitals?|emergency (room|department))\b/i, 'help only Earth has'],
+  [/\b(no|don'?t|do not) need to (worry|be (worried|concerned))\b|\bnothing to (worry|be worried|be concerned) about\b|\bsafe to (continue|carry on|keep going)\b|\byou('re| are) (fine|okay|ok|safe|healthy|all right|alright|in the clear)\b|\bno (cause|reason) for (concern|worry|alarm)\b/i, 'false comfort'],
+  [/\b(do not|don'?t|never|no need to) (try to )?(breathe|give|use|apply|put on|start) (the |any )?(100% |extra |supplemental )?(o2|oxygen|mask)\b/i, 'withholding oxygen'],
+  [/\b(do not|don'?t|never|no need to) (go|relocate|move|head|stay|shelter)\b.{0,30}\bshelter/i, 'keeping the crew out of shelter'],
 ];
 
 /**
@@ -540,7 +623,7 @@ export interface CheckResult {
   discarded: boolean;
   /** Why it was thrown away or replaced, in plain words. */
   reasons: string[];
-  /** Sentences dropped for words that exist only in the examples (§6 check 4). */
+  /** Sentences dropped for words that exist only in the examples (EXAMPLE_ONLY_WORDS). */
   dropped: string[];
   /** The source the answer cites, if it was one that was sent. */
   source: string | null;
@@ -557,7 +640,7 @@ function hasWord(text: string, word: string): boolean {
 /** What the model writes on the source line when it used no passage. */
 const NO_SOURCE = /^\(?\s*(none|n\/a|no (nasa )?(passages?|sources?)\b.*|none[ ,(].*|readings\b.*|[^\][]*\breadings?\b( only| alone)?)\s*\)?\.?$/i;
 
-/** Every check, in the spec's order, then the hub's own. */
+/** Every check on a model answer. Any one that fails replaces the answer; core/ai.ts then shows the hub's own answer or a fixed text. */
 export function checkAnswer(input: CheckInput): CheckResult {
   const refuse = (reasons: string[], discarded: boolean, dropped: string[] = []): CheckResult =>
     ({ text: REFUSAL_TEXT, by: 'fixed', fixed: 'ai.refusal', discarded, reasons, dropped, source: null });
@@ -567,7 +650,7 @@ export function checkAnswer(input: CheckInput): CheckResult {
   if (!t) return { text: '', by: 'fixed', fixed: 'fallback', discarded: false, reasons: ['the answer was empty'], dropped: [], source: null };
 
   // 1. A refusal is always the fixed text, so it can never carry a dose or a drug.
-  // Stricter than the spec's "I don't know." with a stop: any answer that opens with "I don't know" is a refusal.
+  // Any answer that opens with "I don't know" (or "Não sei") is a refusal, whatever follows.
   if (/^\W*(i (don'?t|do not) know|n[aã]o sei)\b/i.test(t)) return refuse(['the model said it does not know'], false);
 
   // 2. Nothing after the source line. 3. The source must be one that was sent.
@@ -576,7 +659,7 @@ export function checkAnswer(input: CheckInput): CheckResult {
   if (src) {
     const name = src[1].trim();
     t = t.slice(0, src.index).trim();
-    // "Source: [none]" and the like name no source: the line is dropped, as spec check 3 does.
+    // "Source: [none]" and the like name no source: only the line is dropped.
     // Any other name that wasn't sent is a made-up source, and the whole answer goes.
     if (NO_SOURCE.test(name)) source = null;
     else if (!input.passageNames.includes(name)) return refuse([`it cites "${name}", which was not sent`], true);
@@ -586,7 +669,7 @@ export function checkAnswer(input: CheckInput): CheckResult {
     if (!input.passageNames.includes(m[1].trim())) return refuse([`it names "${m[1].trim()}", which was not sent`], true);
   }
 
-  // 4. Drop sentences carrying a word that exists only in the examples.
+  // 4. A sentence using a word that only the examples contain was copied from them: drop it.
   const leaked = EXAMPLE_ONLY_WORDS.filter((w) => !hasWord(input.message, w));
   const dropped: string[] = [];
   const kept = sentences(t).filter((s) => {
@@ -600,7 +683,6 @@ export function checkAnswer(input: CheckInput): CheckResult {
   // A list is steps, whatever its lines say. Checked on whole lines, before they are split into sentences.
   if (/^\s*(\d+[.)]|[-*•])\s+/m.test(t)) reasons.push('a numbered or bulleted list');
   const allowed = new Set(numbersIn(input.facts, 'all').map(String));
-  allowed.add('40'); // the Houston reply time the system prompt tells the model to give
   for (const s of kept) {
     const houston = /houston|flight surgeon/i.test(s);
     if (!houston) for (const [re, why] of STEPS) if (re.test(s)) reasons.push(`${why}: "${s}"`);

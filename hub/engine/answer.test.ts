@@ -152,7 +152,7 @@ test('when NASA\'s text only comes near the question, the answer says so first',
 });
 
 test('amount, dose and treatment questions, and passages that name treatments', () => {
-  for (const q of ['How many hours of oxygen does she need?', 'How long should she stay on it?', 'What dose is right?', 'What treatment does she need?']) assert.ok(asksAmountOrTreatment(q), q);
+  for (const q of ['How long does she have to stay on oxygen?', 'How long should she stay on it?', 'What dose is right?', 'What treatment does she need?']) assert.ok(asksAmountOrTreatment(q), q);
   assert.equal(asksAmountOrTreatment('Is it my room?'), false);
   assert.ok(namesTreatment('If DCS occurs, current treatment options include recompression to sea level pressure or higher (hyperbaric therapy), breathing 100% O2'));
   assert.equal(namesTreatment('Six to seven days a week, astronauts on the International Space Station perform resistance training'), false);
