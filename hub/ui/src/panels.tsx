@@ -7,8 +7,11 @@
 // sentence case, numbers are large and light. Status is a word in its colour.
 // Every reading names how it came to exist (Measured, Simulated...) in words.
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { hubAddress } from './data.ts';
+import { closeIn, noteCount, openedWith } from './panels/autoClose.ts';
+import { DeclareEvent, DeclaredAlert } from './panels/Events.tsx';
 import type { World } from './data.ts';
 import type { Status } from '../../engine/status.ts';
 import type { Kind, Person, Room } from '../../engine/types.ts';
@@ -57,12 +60,12 @@ function StatusWord({ status, text }: { status: Status | 'live' | 'off'; text: s
   return <span className="status-word" data-status={status}>{text}</span>;
 }
 
-function PanelHead({ id, title, sub, close, onClose }: { id: string; title: string; sub?: ReactNode; close: string; onClose: () => void }) {
+function PanelHead({ id, title, sub, close, onClose, live }: { id: string; title: string; sub?: ReactNode; close: string; onClose: () => void; live?: boolean }) {
   return (
     <div className="panel-head">
       <div>
         <h2 id={id}>{title}</h2>
-        {sub && <p className="panel-sub">{sub}</p>}
+        {sub && <p className="panel-sub" aria-live={live ? 'polite' : undefined}>{sub}</p>}
       </div>
       <button type="button" className="panel-close" aria-label={close} onClick={onClose}>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" /></svg>
@@ -118,6 +121,86 @@ export function ConnectionPanel({ world, delaySeconds, s, onClose }: ConnectionP
   );
 }
 
+/**
+ * The alerts panel closes by itself once what it showed has all gone
+ * (panels/autoClose.ts): after a beat, and only when nobody is pointing or
+ * moving focus inside it. Focus inside goes back to the bell. True while it
+ * fades out (reduced motion: it simply closes).
+ */
+function useAutoClose(count: number, node: RefObject<HTMLElement | null>, close: () => void, hold = false): boolean {
+  const state = useRef(openedWith(count));
+  const quietSince = useRef(-Infinity);
+  /** Focus was last inside: on something there, or on an alert that has since gone. */
+  const focusInside = useRef(false);
+  const [interacting, setInteracting] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closeRef = useRef(close);
+  closeRef.current = close;
+
+  // Pointing at it, or keyboard focus inside it, holds it open.
+  useEffect(() => {
+    const el = node.current;
+    if (!el) return;
+    let pointer = false;
+    let keys = false;
+    const update = () => {
+      setInteracting(pointer || keys);
+      if (!pointer && !keys) quietSince.current = performance.now();
+    };
+    const enter = () => { pointer = true; update(); };
+    const leave = () => { pointer = false; update(); };
+    const focusIn = (e: FocusEvent) => { focusInside.current = true; keys = e.target instanceof Element && e.target.matches(':focus-visible'); update(); };
+    const focusOut = (e: FocusEvent) => {
+      if (el.contains(e.relatedTarget as Node | null)) return;
+      keys = false;
+      update();
+      // Leaving for somewhere else ends it; focus dropped because its alert was removed does not.
+      const from = e.target as Node;
+      queueMicrotask(() => { focusInside.current = !e.relatedTarget && !from.isConnected; });
+    };
+    el.addEventListener('pointerenter', enter);
+    el.addEventListener('pointerleave', leave);
+    el.addEventListener('focusin', focusIn);
+    el.addEventListener('focusout', focusOut);
+    return () => {
+      el.removeEventListener('pointerenter', enter);
+      el.removeEventListener('pointerleave', leave);
+      el.removeEventListener('focusin', focusIn);
+      el.removeEventListener('focusout', focusOut);
+    };
+  }, []);
+
+  // A form open inside (declaring an event) holds it open too, however focus and the pointer move; closing it counts as use ending.
+  useEffect(() => { if (!hold) quietSince.current = Math.max(quietSince.current, performance.now()); }, [hold]);
+
+  useEffect(() => {
+    state.current = noteCount(state.current, count, performance.now());
+    if (count > 0) setClosing(false);
+    const wait = closeIn(state.current, performance.now(), interacting || hold, quietSince.current);
+    if (wait === null) return;
+    const timer = setTimeout(() => {
+      const el = node.current;
+      // Focus inside (or lost with a removed alert) goes back to the bell; focus elsewhere stays put.
+      const focus = document.activeElement;
+      if (el?.contains(focus) || ((!focus || focus === document.body) && focusInside.current)) {
+        document.querySelector<HTMLElement>('button[aria-controls="panel-alerts"]')?.focus({ preventScroll: true });
+      }
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) closeRef.current();
+      else setClosing(true);
+    }, wait);
+    return () => clearTimeout(timer);
+  }, [count, interacting, hold]);
+
+  // If the fade's end is never reported (the page hidden), close anyway.
+  useEffect(() => {
+    if (!closing) return;
+    const timer = setTimeout(() => closeRef.current(), 1000);
+    return () => clearTimeout(timer);
+  }, [closing]);
+
+  return closing;
+}
+
 export interface AlertsProps {
   world: World;
   alerts: World['alerts'];
@@ -133,13 +216,26 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
   const roomName = (id: string) => s(rooms.find((r) => r.id === id)?.name ?? id);
   const name = (id: string) => crew.find((p) => p.id === id)?.name ?? id;
   const shown = alerts.filter((a) => !a.held);
-  const wide = [...new Set(shown.filter((a) => a.stationWide).map((a) => a.signal))];
-  const single = shown.filter((a) => !a.stationWide);
-  const count = world.alarms.length + wide.length + single.length;
+  // A declared event (base-wide, station-wide too) is its own item: never grouped by signal or worded as a reading.
+  const declared = shown.filter((a) => a.reason === 'declared' && a.declared);
+  const readings = shown.filter((a) => !(a.reason === 'declared' && a.declared));
+  const wide = [...new Set(readings.filter((a) => a.stationWide).map((a) => a.signal))];
+  const single = readings.filter((a) => !a.stationWide);
+  // Level 2 and 3 alerts that are not addressed to this screen: the dock counts them, so the list
+  // names them too, with who has been told and nothing else.
+  const listed = new Set(shown.map((a) => a.id));
+  const others = world.alerts.filter((a) => !a.held && a.level >= 2 && !listed.has(a.id));
+  const count = world.alarms.length + declared.length + wide.length + single.length + others.length;
+  const recorded = Boolean(world.scenario);
+  const [declaring, setDeclaring] = useState(false);
+
+  const node = useRef<HTMLElement>(null);
+  const closing = useAutoClose(count, node, onClose, declaring && !recorded);
 
   return (
-    <section id="panel-alerts" className="panel frame" aria-labelledby="panel-alerts-title">
-      <PanelHead id="panel-alerts-title" title={s('top.alerts')} close={s('top.close')} onClose={onClose}
+    <section ref={node} id="panel-alerts" className="panel frame" aria-labelledby="panel-alerts-title" data-closing={closing ? '' : undefined}
+      onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget) onClose(); }}>
+      <PanelHead id="panel-alerts-title" title={s('top.alerts')} close={s('top.close')} onClose={onClose} live
         sub={count ? s('top.alerts.active', { count }) : <StatusWord status="ok" text={s('top.alerts.none')} />} />
 
       {world.alarms.map((alarm) => (
@@ -153,8 +249,12 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
         </article>
       ))}
 
+      {declared.map((alert) => (
+        <DeclaredAlert key={alert.id} alert={alert} crew={crew} rooms={rooms} now={now} viewer={viewer} recorded={recorded} s={s} />
+      ))}
+
       {wide.map((signal) => {
-        const group = shown.filter((a) => a.stationWide && a.signal === signal);
+        const group = readings.filter((a) => a.stationWide && a.signal === signal);
         const first = group[0];
         return (
           <article key={`wide|${signal}`} className="alert" data-level="3" role="alert">
@@ -169,6 +269,13 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
           </article>
         );
       })}
+
+      {others.map((alert) => (
+        <article key={alert.id} className="alert" data-level={alert.level}>
+          <h3><StatusWord status={alert.level >= 3 ? 'over' : 'watch'} text={s(`level.${alert.level}`)} /> <span>{name(alert.person)}</span></h3>
+          <p className="quiet">{s('alert.toldTo', { who: alert.toldTo === 'everyone' ? s('alert.everyone') : alert.toldTo.map(name).join(', ') })}</p>
+        </article>
+      ))}
 
       {single.map((alert) => {
         const asking = alert.level === 2 && alert.answer === null && alert.answerBy !== null && viewer === alert.person;
@@ -196,6 +303,8 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
           </article>
         );
       })}
+
+      {!recorded && <DeclareEvent crew={crew} rooms={rooms} now={world.now} viewer={viewer} s={s} onOpen={setDeclaring} />}
     </section>
   );
 }

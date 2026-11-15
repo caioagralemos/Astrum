@@ -442,6 +442,10 @@ button { font: inherit; }
   overflow: auto;
   padding: 20px 22px 22px;
 }
+/* A panel closing by itself (the alerts, once empty): it fades and lifts away on the motion timing. */
+.panel[data-closing] { pointer-events: none; animation: panel-out var(--motion-exit) var(--motion-ease) forwards; }
+@keyframes panel-out { to { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .panel[data-closing] { animation: none; } }
 .sheet {
   position: absolute;
   z-index: 3;
@@ -644,6 +648,9 @@ button { font: inherit; }
 .mod-mini-head .icon { width: 0.95rem; height: 0.95rem; stroke-width: 2; }
 .mod-mini-value { font-size: 1.125rem; font-weight: 400; letter-spacing: -0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; color: rgb(var(--ink-hi)); }
 .mod-mini-value .unit { margin-left: 1px; font-size: 0.625rem; }
+/* A reading past its freshness: muted, with its age. */
+.mod-mini[data-stale] .mod-mini-value { color: rgb(var(--ink) / calc(0.5 * var(--ink-k))); }
+.mod-mini-ago { display: block; font-size: 0.6875rem; }
 .mod-mini-name { font-size: 0.6875rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Kind marks and their key. */
@@ -921,7 +928,13 @@ button { font: inherit; }
   background: var(--w-bg); backdrop-filter: var(--w-blur); -webkit-backdrop-filter: var(--w-blur);
 }
 .dw-frame > i:nth-child(2) { left: 0; width: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 0 18px 18px stretch; border-radius: var(--w-radius) 0 0 var(--w-radius); }
-.dw-frame > i:nth-child(3) { left: 18px; right: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 0 stretch; }
+/* The top and bottom lines, as the frame image draws them (1 px at 72%, from the brackets' slice edge),
+   painted plainly: a border image with no side widths draws nothing in WebKit. */
+.dw-frame > i:nth-child(3) {
+  left: 18px; right: 18px;
+  --dw-line: linear-gradient(rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.72));
+  background: var(--dw-line) top / 100% 1px no-repeat, var(--dw-line) bottom / 100% 1px no-repeat;
+}
 .dw-frame > i:nth-child(4) { right: 0; width: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 18px 18px 0 stretch; border-radius: 0 var(--w-radius) var(--w-radius) 0; }
 .dw[data-problem] .dw-frame > i:nth-child(2) { box-shadow: inset 1px 0 0 var(--dw-problem), inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
 .dw[data-problem] .dw-frame > i:nth-child(3) { box-shadow: inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
@@ -986,7 +999,13 @@ button { font: inherit; }
 /* The tile centres in the height it has; its portrait (4:5) gives way first when the dock is short. */
 .dw-tile { width: 100%; height: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-shadow: inherit; cursor: pointer; }
 .dw-portrait { position: relative; display: block; flex: 0 1 auto; min-height: 0; width: 100%; aspect-ratio: 4 / 5; border-radius: var(--w-tile-radius); background: rgb(var(--wash) / 0.05); box-shadow: inset 0 0 0 1px var(--w-hair); overflow: hidden; }
-.dw-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Fills the tile exactly: laid out in flow, a fractional tile width left a sliver of the tile's own edge showing beside the picture. */
+.dw-portrait { overflow: hidden; }
+/* A photo needs no outline of its own: the tile's hairline showed as a light edge beside the picture at fractional widths. */
+.dw-portrait:has(img) { box-shadow: none; background: #0b0c0e; }
+.dw-tile:hover .dw-portrait:has(img) { box-shadow: none; filter: brightness(1.12); }
+.dw-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.dw-crew-note { margin: 6px 0 0; font-size: 0.6875rem; line-height: 1.2; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dw-portrait svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgb(var(--wash) / 0.42); stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; }
 .dw-tile:hover .dw-portrait { box-shadow: inset 0 0 0 1px rgb(var(--wash) / 0.3); }
 .dw-tile-name { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; font-size: 0.9375rem; line-height: 1.2; color: rgb(var(--ink-hi)); }

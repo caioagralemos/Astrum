@@ -155,9 +155,8 @@ export class DockFlow {
     for (const el of row.querySelectorAll<HTMLElement>(':scope > .dw')) {
       const id = el.dataset.widget;
       if (!id) continue;
-      const leaving = el.hasAttribute('data-leaving');
-      // A live card wins over a leaving copy of the same widget.
-      if (leaving && boxes.has(id)) continue;
+      // A leaving copy only fades; it is never where a card comes back from.
+      if (el.hasAttribute('data-leaving')) continue;
       const rect = el.getBoundingClientRect();
       const card = this.cards.get(el);
       const l = card ? this.edge(card.left, now) : { x: 0, v: 0 };
@@ -168,7 +167,7 @@ export class DockFlow {
         content: card ? this.value(card.content, now) : 1,
       });
       const body = el.querySelector<HTMLElement>(':scope > .dw-body');
-      if (body && !leaving) {
+      if (body) {
         const copy = body.cloneNode(true) as HTMLElement;
         copy.removeAttribute('style');
         bodies.set(id, copy);
@@ -196,6 +195,11 @@ export class DockFlow {
     const live = laid.filter((c) => !c.el.hasAttribute('data-leaving'));
     const leavingNew = laid.filter((c) => c.el.hasAttribute('data-leaving') && !this.cards.has(c.el));
     const exits = leavingNew.length > 0;
+    // Whether any staying card has somewhere to go (an arriving one waits for them, not for nothing).
+    const moves = live.some((c) => {
+      const was = shot.boxes.get(c.el.dataset.widget ?? '');
+      return was && (Math.abs(was.left - c.left) > 1 || Math.abs(was.right - c.right) > 1);
+    });
 
     live.forEach((c, place) => {
       const id = c.el.dataset.widget ?? '';
@@ -214,7 +218,8 @@ export class DockFlow {
       const delay = place * timing.stagger;
       if (!was) {
         // Arriving: after the others start making room, and after anything leaving has gone.
-        const start = now + delay + (exits ? timing.exit * 0.9 : timing.move * 0.22);
+        // (Once the neighbours are most of the way there, so it never lands on a frame still moving.)
+        const start = now + delay + Math.max(exits ? timing.exit * 0.6 : 0, moves ? timing.move * 0.45 : 0);
         this.cards.set(c.el, {
           el: c.el, left: zero, right: { ...zero }, leaving: false, width: c.width, styled: false,
           presence: { from: 0, to: 1, at: start, dur: timing.enter }, content: still(1), was: still(0),
@@ -226,6 +231,7 @@ export class DockFlow {
       const moving = Math.abs(was.vLeft) + Math.abs(was.vRight) > 1;
       const hold = moving ? 0 : now + delay;
       const resized = Math.abs((was.right - was.left) - c.width) > 1;
+      const shrinking = was.right - was.left > c.width;
       const presenceNow = old ? this.value(old.presence, now) : was.presence;
       const card: Card = {
         el: c.el, width: c.width, leaving: false, styled: old?.styled ?? false,
@@ -249,9 +255,11 @@ export class DockFlow {
         if (holder && copy) {
           holder.replaceChildren(copy);
           holder.style.width = `${was.right - was.left}px`;
-          card.was = { from: was.content, to: 0, at: now, dur: timing.exit * 0.55 };
+          // Shrinking, the old (wider) layout would spill out of the frame: it goes quickly and the
+          // new one, which fits, comes early. Growing, the old one fits and stays a little longer.
+          card.was = { from: was.content, to: 0, at: now, dur: shrinking ? timing.exit * 0.5 : timing.move * 0.5 };
         }
-        card.content = { from: 0, to: 1, at: (hold || now) + timing.move * 0.45, dur: timing.exit * 1.1 };
+        card.content = { from: 0, to: 1, at: (hold || now) + timing.move * (shrinking ? 0.1 : 0.35), dur: timing.exit };
       }
       this.cards.set(c.el, card);
     });
@@ -271,9 +279,10 @@ export class DockFlow {
     if (!this.frame) this.frame = requestAnimationFrame(this.tick);
   }
 
-  private tick = (now: number) => {
+  // The clock the moves were set on (a frame's own timestamp can run on another base).
+  private tick = () => {
     this.frame = 0;
-    if (this.draw(now)) this.frame = requestAnimationFrame(this.tick);
+    if (this.draw(performance.now())) this.frame = requestAnimationFrame(this.tick);
   };
 
   /** Write every card's pieces for this moment. True while anything is still moving. */

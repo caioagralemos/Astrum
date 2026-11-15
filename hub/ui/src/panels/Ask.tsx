@@ -13,6 +13,7 @@ import type { FactItem, HubAnswer, QuotedPassage, Who } from '../../../engine/an
 import type { CardView } from '../../../engine/cards.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Person } from '../../../engine/types.ts';
+import { AstraMark } from '../AstraMark.tsx';
 import { hubAddress } from '../data.ts';
 import { Sheet } from './Sheet.tsx';
 import { HubSaid, usePoll, viewerOf } from './common.tsx';
@@ -135,9 +136,10 @@ export function AskPanel({ crew, selected, lang, s, onClose }: AskProps) {
   const busy = progress !== null;
 
   return (
-    <Sheet id="ask" title={s('ask.title')} s={s} onClose={onClose} focus={box}
+    <Sheet id="ask" title="Astra" s={s} onClose={onClose} focus={box}
+      mark={<AstraMark size={28} working={busy || st?.state === 'loading'} />}
       sub={<span className="status-word" data-status={st?.state === 'ready' ? 'live' : st?.state === 'unavailable' ? 'off' : undefined}>
-        {st ? s('ask.status', { state: s(`ask.state.${st.state}`) }) : s('settings.loading')}
+        {busy ? s('ask.mark.working') : st ? s(`ask.mark.${st.state}`) : s('settings.loading')}
         {st && st.waiting > 0 ? ` · ${s('bench.ask.waiting', { count: st.waiting })}` : ''}
       </span>}>
       {st?.reason && st.state !== 'ready' && <p className="quiet xhub" lang="en">{st.reason}</p>}

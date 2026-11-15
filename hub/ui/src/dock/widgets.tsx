@@ -148,6 +148,33 @@ export function Portrait({ src }: { src?: string }) {
   );
 }
 
+/**
+ * Placeholder portraits for a simulated crew (public/crew, each marked "AI"): three of women, three of men.
+ * A crewmate gets one from the set that goes with their pronouns or, for the names the hub picks
+ * (engine/names.ts), with the name; anyone else keeps the line figure. Handed out in crew order.
+ */
+const PORTRAITS = { she: ['crew/crew-2.jpg', 'crew/crew-1.jpg', 'crew/crew-3.jpg'], he: ['crew/crew-4.jpg', 'crew/crew-5.jpg', 'crew/crew-6.jpg'] };
+const NAMES_SHE = new Set(['Sally', 'Mae', 'Peggy', 'Christina', 'Jessica', 'Kathleen', 'Anne', 'Nicole', 'Kayla', 'Jasmin', 'Serena', 'Megan', 'Karen',
+  'Tracy', 'Ellen', 'Eileen', 'Mary', 'Joan', 'Shannon', 'Kate', 'Sunita', 'Kalpana', 'Valentina', 'Elena', 'Anna', 'Svetlana', 'Marina', 'Samantha',
+  'Sophie', 'Rosemary', 'Sara', 'Naoko', 'Chiaki', 'Yaping', 'Julie', 'Roberta', 'Jenni', 'Katya', 'Soyeon', 'Reyes', 'Okafor']);
+const NAMES_HE = new Set(['Marcos', 'Pedro', 'José', 'Fernando', 'Carlos', 'Victor', 'Raja', 'Michael', 'Scott', 'Mark', 'Robert', 'Warren', 'Frank',
+  'Franklin', 'Neil', 'Sidney', 'Reid', 'Yuri', 'Alexei', 'Sergei', 'Oleg', 'Gennady', 'Anton', 'Mikhail', 'Dmitri', 'Pyotr', 'Andrei', 'Nikolai', 'Ivan',
+  'Talgat', 'Leonid', 'Luca', 'Thomas', 'Alexander', 'Matthias', 'Tim', 'André', 'Andreas', 'Christer', 'Marcus', 'Pablo', 'Paolo', 'Umberto', 'Dirk',
+  'Franz', 'Bertalan', 'Tibor', 'Vladimír', 'Dumitru', 'Georgi', 'Mirosław', 'Raphaël', 'John', 'Koichi', 'Satoshi', 'Akihiko', 'Kimiya', 'Norishige',
+  'Soichi', 'Takuya', 'Mamoru', 'Makoto', 'Liwei', 'Haipeng', 'Zhigang', 'Haisheng', 'Chris', 'Marc', 'David', 'Jeremy', 'Joshua', 'Rakesh', 'Sultan',
+  'Ali', 'Mohammed', 'Rodolfo', 'Arnaldo', 'Abdul', 'Ilan', 'Eytan', 'Alper', 'Leo', 'Tanaka',
+  // Once in the list, and still saved on missions started then.
+  'Claude']);
+function demoPortraits(people: { id: string; name: string; pronouns?: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const used = { she: 0, he: 0 };
+  for (const p of people) {
+    const set = p.pronouns === 'she' ? 'she' : p.pronouns === 'he' ? 'he' : NAMES_SHE.has(p.name) ? 'she' : NAMES_HE.has(p.name) ? 'he' : null;
+    if (set) out[p.id] = PORTRAITS[set][used[set]++ % PORTRAITS[set].length];
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- Crew
 
 const crew: Widget = {
@@ -156,6 +183,10 @@ const crew: Widget = {
   problem: (c) => Object.values(c.personStatus).some((x) => x === 'watch' || x === 'over'),
   score: () => 60,
   render: (c) => {
+    // The example crew is simulated: its portraits are AI-generated pictures of nobody, and the card says so.
+    const simulatedCrew = c.values.some((r) => Boolean(r.person) && r.kind === 'simulated');
+    const demo = simulatedCrew ? demoPortraits(c.profile.crew) : {};
+    const shown = c.profile.crew.some((p) => !p.portrait && demo[p.id]);
     const doing = (p: Person) => {
       const status = c.personStatus[p.id];
       if (status === 'over') return { text: c.s('dock.needsHelp'), tone: 'over' };
@@ -175,7 +206,7 @@ const crew: Widget = {
               <li key={p.id}>
                 <button type="button" className="dw-tile" data-tone={d.tone || undefined} onClick={() => c.onSelect({ kind: 'person', id: p.id })}
                   aria-label={label} title={label}>
-                  <Portrait src={p.portrait} />
+                  <Portrait src={p.portrait ?? demo[p.id]} />
                   <span className="dw-tile-name" aria-hidden="true">
                     {d.tone && <span className="dw-dot" data-tone={d.tone} />}
                     <span>{p.name}</span>
@@ -185,6 +216,7 @@ const crew: Widget = {
             );
           })}
         </ul>
+        {simulatedCrew && shown && <p className="dw-crew-note">{c.s('dock.crewPortraits')}</p>}
       </>
     );
   },
@@ -272,10 +304,16 @@ const alerts: Widget = {
   score: () => 45,
   render: (c) => {
     const open = c.world.alarms.length + shared(c).length;
-    const first = shared(c)[0];
+    // A declared base-wide event leads, as its own line: its kind and its stage, never a person's level.
+    const event = shared(c).filter((a) => a.reason === 'declared' && a.declared).sort((a, b) => b.level - a.level)[0];
+    const first = event ?? shared(c)[0];
     const alarm = c.world.alarms[0];
     const name = (id: string) => c.profile.crew.find((p) => p.id === id)?.name ?? id;
-    const line = first ? `${name(first.person)}${first.room ? `, ${roomName(c, first.room)}` : ''}: ${c.s(`level.${first.level}`)}`
+    const stage = (d: NonNullable<typeof first.declared>) => (d.stage === 'warning' && d.expectedAt !== null
+      ? c.s('event.wasExpected', { time: new Date(d.expectedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) })
+      : c.s('event.now'));
+    const line = event?.declared ? `${c.s(`event.${event.declared.kind}`)}: ${stage(event.declared)}`
+      : first ? `${name(first.person)}${first.room ? `, ${roomName(c, first.room)}` : ''}: ${c.s(`level.${first.level}`)}`
       : alarm ? `${roomName(c, alarm.room)}: ${c.s('status.over')}`
       : c.s('dock.noRoomOver');
     return (

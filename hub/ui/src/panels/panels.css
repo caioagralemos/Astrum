@@ -68,7 +68,8 @@
 .xgrow { flex: 1 1 auto !important; }
 .xfield { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .xfield .label { margin-bottom: 6px; }
-.xpanel input[type='text'], .xpanel input[type='date'], .xpanel input[type='number'], .xpanel select, .xpanel textarea {
+.xpanel input[type='text'], .xpanel input[type='date'], .xpanel input[type='number'], .xpanel select, .xpanel textarea,
+#panel-alerts input[type='number'], #panel-alerts select, #panel-alerts textarea {
   box-sizing: border-box;
   width: 100%;
   min-height: 44px;
@@ -80,12 +81,13 @@
   font: inherit;
   font-size: 0.9375rem;
 }
-.xpanel textarea { resize: vertical; line-height: 1.45; }
+.xpanel textarea, #panel-alerts textarea { resize: vertical; line-height: 1.45; }
 .xpanel select:disabled { opacity: 1; color: var(--text-muted); }
-.xpanel input:focus-visible, .xpanel select:focus-visible, .xpanel textarea:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.xpanel input:focus-visible, .xpanel select:focus-visible, .xpanel textarea:focus-visible,
+#panel-alerts input:focus-visible, #panel-alerts select:focus-visible, #panel-alerts textarea:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
 .xpanel [aria-invalid='true'] { border-color: var(--soft-over); }
 .xpanel button:focus-visible, .xpanel a:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-.xpanel .btn[disabled], .xpanel .btn[aria-disabled='true'] { opacity: 0.45; cursor: default; }
+.xpanel .btn[disabled], .xpanel .btn[aria-disabled='true'], #panel-alerts .btn[disabled] { opacity: 0.45; cursor: default; }
 .xerror { margin: 6px 0 0 !important; font-size: 0.8125rem; color: var(--soft-over); }
 .xerror ul { margin-top: 4px; padding-left: 1.1em; list-style: disc; }
 .xsaid { margin-top: 10px !important; font-size: 0.875rem; }
@@ -207,3 +209,8 @@
 .xconfirm { margin-top: 12px; padding: 12px 14px; border-radius: 6px; background: var(--w-card); box-shadow: var(--w-card-edge); }
 .xconfirm p { margin-top: 0 !important; }
 .btn[data-danger] { color: var(--soft-over); }
+
+/* A sheet with a mark (Ask Astra): the mark, the name, the status, centred as Messages heads a thread.
+   Padded on the left by what the close button takes on the right, so the centre is the sheet's. */
+.panel-named { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding-left: 42px; }
+.panel-named .astra-mark { margin-bottom: 6px; }

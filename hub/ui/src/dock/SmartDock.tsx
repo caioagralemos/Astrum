@@ -54,6 +54,28 @@ function choose(ranked: { widget: Widget; score: number }[]): Slot[] {
   return [];
 }
 
+/**
+ * The cards of the new row that change order with the others: everything but the
+ * largest set that keeps its order (preferring cards that keep their size, then
+ * the more important).
+ */
+function crossers(row: Slot[], next: Slot[]): Set<string> {
+  const was = new Map(row.map((s, i) => [s.widget.id, { at: i, size: s.size }]));
+  const kept = next.filter((s) => was.has(s.widget.id));
+  const worth = kept.map((s, i) => 1 + (was.get(s.widget.id)?.size === s.size ? 0.1 : 0) + (kept.length - i) * 0.01);
+  // Heaviest increasing run of old places, over the new order.
+  const best = kept.map((_, i) => worth[i]);
+  const from = kept.map(() => -1);
+  kept.forEach((s, i) => {
+    for (let j = 0; j < i; j++) {
+      if (was.get(kept[j].widget.id)!.at < was.get(s.widget.id)!.at && best[j] + worth[i] > best[i]) { best[i] = best[j] + worth[i]; from[i] = j; }
+    }
+  });
+  const stay = new Set<string>();
+  for (let i = best.indexOf(Math.max(...best, 0)); i >= 0; i = from[i]) stay.add(kept[i].widget.id);
+  return new Set(kept.filter((s) => !stay.has(s.widget.id)).map((s) => s.widget.id));
+}
+
 export function SmartDock({ context }: { context: DockContext }) {
   const ranked = WIDGETS
     .map((widget) => {
@@ -81,13 +103,17 @@ export function SmartDock({ context }: { context: DockContext }) {
     const el = rowRef.current;
     const taken = el && flow.current ? flow.current.capture(el) : null;
     const staying = new Set(next.map((s) => s.widget.id));
-    const gone = row.filter((s) => !staying.has(s.widget.id)).flatMap((slot): Leaving[] => {
+    // A card never slides across another: the fewest cards that change order fade out where they
+    // were and rise in where they go, while the rest slide (and resize) to make room.
+    const jumps = crossers(row, next);
+    const gone = row.filter((s) => !staying.has(s.widget.id) || jumps.has(s.widget.id)).flatMap((slot): Leaving[] => {
       const box = taken?.boxes.get(slot.widget.id);
       return box && box.presence > 0.01 ? [{ key: `gone-${slot.widget.id}-${++leavingCount}`, slot, left: box.left, width: box.right - box.left }] : [];
     });
+    for (const id of jumps) taken?.boxes.delete(id);
     shot.current = taken;
-    // A widget that comes back while still fading out returns from where its fading copy is.
-    setLeaving((all) => [...all.filter((l) => !staying.has(l.slot.widget.id)), ...gone]);
+    // A widget that comes back while its old copy is still fading rises in afresh; the copy finishes.
+    setLeaving((all) => [...all, ...gone]);
     setRow(next);
   }, [nextKey]);
 

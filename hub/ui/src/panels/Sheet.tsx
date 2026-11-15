@@ -12,6 +12,8 @@ export interface SheetProps {
   id: string;
   title: string;
   sub?: ReactNode;
+  /** Drawn above the title, centred over it with the line under it. */
+  mark?: ReactNode;
   s: S;
   onClose: () => void;
   /** What gets focus on opening; the sheet itself when absent. */
@@ -21,7 +23,7 @@ export interface SheetProps {
 
 const SIDES = ['--scene-inset-right', '--scene-inset-bottom'] as const;
 
-export function Sheet({ id, title, sub, s, onClose, focus, children }: SheetProps) {
+export function Sheet({ id, title, sub, mark, s, onClose, focus, children }: SheetProps) {
   const node = useRef<HTMLElement>(null);
 
   // Focus in on open, back to the opener on close.
@@ -62,7 +64,8 @@ export function Sheet({ id, title, sub, s, onClose, focus, children }: SheetProp
   return (
     <section ref={node} id={`panel-${id}`} className="panel frame xpanel" aria-labelledby={`panel-${id}-title`} tabIndex={-1}>
       <div className="panel-head">
-        <div>
+        <div className={mark ? 'panel-named' : undefined}>
+          {mark}
           <h2 id={`panel-${id}-title`}>{title}</h2>
           {sub && <div className="panel-sub">{sub}</div>}
         </div>

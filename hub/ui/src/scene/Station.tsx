@@ -77,6 +77,14 @@ const FALLBACK: Record<Status, string> = { ok: '#4fd18b', watch: '#f2c14e', over
 const ROOM_LIGHT: Record<Status, number> = { ok: 0, unknown: 0, watch: 0.11, over: 0.32 };
 const HALO: Record<Status, number> = { ok: 0, unknown: 0, watch: 0.14, over: 0.3 };
 
+/**
+ * When nothing in the view has changed for SETTLE_MS (no camera move, easing, pulse, movement or
+ * selected person), only the sky's slow drift moves, a few pixels a second: it is drawn at most once
+ * every IDLE_FRAME_MS (about 30 frames a second) instead of on every display frame.
+ */
+const SETTLE_MS = 3000;
+const IDLE_FRAME_MS = 30;
+
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const COS_8 = Math.cos(Math.PI / 8);
 const turnY = new THREE.Quaternion();
@@ -139,6 +147,8 @@ interface State {
   /** Back to the default view of the whole place, whatever the viewer has done. */
   home: () => void;
   backdrop: Backdrop;
+  /** Something in the view has changed: draw every frame again until it has settled. */
+  wake: () => void;
 }
 
 /** What each person is doing: the hub's activity, or else only who is asleep. */
@@ -278,6 +288,8 @@ export function Station(raw: StationProps) {
     const { root } = ship;
     (ship.stars.material as THREE.PointsMaterial).size = 1.5 * renderer.getPixelRatio();
 
+    /** When something in the view last changed (see SETTLE_MS). */
+    let busyAt = performance.now();
     const rootInverse = new THREE.Quaternion();
     const dir = new THREE.Vector3();
     const state: State = {
@@ -286,6 +298,7 @@ export function Station(raw: StationProps) {
       goal: { position: new THREE.Vector3(), target: new THREE.Vector3(), active: false },
       aim: () => {},
       home: () => {},
+      wake: () => { busyAt = performance.now(); },
     };
 
     // Frame a set of points (in station coordinates) so they fill `fill` of the view, seen from
@@ -412,6 +425,7 @@ export function Station(raw: StationProps) {
     });
     controls.addEventListener('end', () => { grabbing = false; });
     controls.addEventListener('change', () => {
+      state.wake();
       if (!grabbing || camera.position.distanceToSquared(grabbedAt) < 1e-4) return;
       state.moved = true;
       turned = true;
@@ -458,6 +472,7 @@ export function Station(raw: StationProps) {
       if (!w || !h) return;
       width = w;
       height = h;
+      state.wake();
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       readInsets();
@@ -939,9 +954,13 @@ export function Station(raw: StationProps) {
     groundBase.value = groundGoal.value;
     const draw = (time: number) => {
       frameId = requestAnimationFrame(draw);
+      if (document.hidden || !onScreen) {
+        last = time;
+        return;
+      }
+      if (time - busyAt > SETTLE_MS && time - last < IDLE_FRAME_MS) return;
       const dt = Math.min(0.1, (time - last) / 1000);
       last = time;
-      if (document.hidden || !onScreen) return;
       const calm = still.matches;
       const ease = calm ? 1 : 1 - Math.exp(-dt * 5);
 
@@ -960,14 +979,16 @@ export function Station(raw: StationProps) {
         }
         applyShift();
         camera.updateProjectionMatrix();
+        busyAt = time;
       }
       if (state.goal.active) {
+        busyAt = time;
         camera.position.lerp(state.goal.position, ease);
         controls.target.lerp(state.goal.target, ease);
         if (camera.position.distanceToSquared(state.goal.position) < 1e-4) state.goal.active = false;
       }
       controls.enableDamping = !calm;
-      controls.update();
+      if (controls.update()) busyAt = time;
       const reach = camera.position.distanceTo(controls.target);
       // The fade starts just behind what the camera looks at, so the subject itself is never dimmed;
       // a bigger place fades over a longer reach.
@@ -1017,12 +1038,14 @@ export function Station(raw: StationProps) {
         room.wall.uniforms.strength.value = room.glow * (room.pulse ? breath : 1);
         const fade = room.wall.uniforms.fade;
         fade.value += (room.wallsShown - fade.value) * (calm ? 1 : 1 - Math.exp(-dt * 6));
+        if ((room.pulse && !calm) || Math.abs(room.wallsShown - fade.value) > 1e-3) busyAt = time;
       }
 
       facing.copy(rootInverse).multiply(camera.quaternion);
       for (let i = 0; i < peopleList.length; i++) {
         const person = peopleList[i];
         if (!person.holder.visible) continue;
+        if (person.at.distanceToSquared(person.goal) > 1e-6 || person.moving || (person.haloPulse && !calm)) busyAt = time;
         person.at.lerp(person.goal, person.placed ? ease : 1);
         person.placed = true;
         person.holder.position.copy(person.at);
@@ -1039,9 +1062,12 @@ export function Station(raw: StationProps) {
       if (ship.ground) {
         const g = ship.ground.uniforms.strength;
         g.value += (groundGoal.value - g.value) * (calm ? 1 : 1 - Math.exp(-dt * 3));
+        if (Math.abs(groundGoal.value - g.value) > 1e-3) busyAt = time;
       }
       const dim = dimMaterial.uniforms.strength;
       dim.value += ((chosen ? 1 : 0) - dim.value) * (calm ? 1 : 1 - Math.exp(-dt * 6));
+      // A person in close-up drifts and sways at full size on screen: drawn on every frame.
+      if (chosen || Math.abs((chosen ? 1 : 0) - dim.value) > 1e-3) busyAt = time;
       if (dim.value > 0.01) {
         lift(chosen);
         dimMaterial.uniforms.portrait.value = state.portrait ? 1 : 0;
@@ -1072,7 +1098,14 @@ export function Station(raw: StationProps) {
       controls.dispose();
       state.backdrop.dispose();
       ship.dispose();
+      dimScene.traverse((object) => {
+        if (object instanceof THREE.Mesh) object.geometry.dispose();
+      });
+      dimMaterial.dispose();
       renderer.dispose();
+      // Free the drawing buffer and the context now rather than whenever the canvas is collected
+      // (a hot reload in development rebuilds the scene on every edit).
+      renderer.forceContextLoss();
       renderer.domElement.remove();
       built.current = null;
     };
@@ -1085,6 +1118,7 @@ export function Station(raw: StationProps) {
     const state = built.current;
     if (!state) return;
     const { ship } = state;
+    state.wake();
     const ink = cssColour('--scene-line', '#f2f3f5');
     const bg = cssColour('--bg', '#0b0c0e');
     const colour = (status: Status) => cssColour(`--status-${status}`, FALLBACK[status]);

@@ -10,6 +10,7 @@ import type { Mission } from '../../../engine/mission.ts';
 import type { Profile } from '../../../engine/types.ts';
 import { MISSIONS, placedAt } from '../scene/missions.ts';
 import type { MissionName } from '../scene/demo.ts';
+import { AstraMark } from '../AstraMark.tsx';
 import { AskPanel } from './Ask.tsx';
 import { EarthPanel } from './Earth.tsx';
 import { SettingsPanel } from './Settings.tsx';
@@ -21,13 +22,17 @@ export { isMainPanel };
 export type { MainPanel };
 
 const ICONS: Record<MainPanel, ReactNode> = {
-  // A four-pointed star: Astra's mark, not a face.
-  ask: <path d="M12 3.5c.6 4.6 1.9 5.9 6.5 6.5c-4.6.6-5.9 1.9-6.5 6.5c-.6-4.6-1.9-5.9-6.5-6.5c4.6-.6 5.9-1.9 6.5-6.5zM18.5 16.5l.5 2l2 .5l-2 .5l-.5 2l-.5-2l-2-.5l2-.5z" />,
+  // Astra's own mark (AstraMark below): the orbit light, not a face.
+  ask: null,
   // Earth: a globe, its equator and a meridian.
   earth: <><circle className="xline" cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z" /></>,
   // Settings: a gear.
   settings: <><circle className="xline" cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" /><circle className="xline" cx="12" cy="12" r="6.6" /></>,
 };
+/** A button's icon: Astra's mark at rest for Ask Astra, a 24-unit drawing for the rest. */
+const icon = (p: MainPanel) => p === 'ask'
+  ? <AstraMark size={24} />
+  : <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS[p]}</svg>;
 const TITLES: Record<MainPanel, string> = { ask: 'ask.title', earth: 'earth.title', settings: 'top.settings' };
 const ORDER: MainPanel[] = ['ask', 'earth', 'settings'];
 
@@ -57,7 +62,7 @@ export function TopActions({ open, onToggle, s }: TopActionsProps) {
       <div className="xtop-wide">
         {ORDER.map((p) => (
           <button key={p} type="button" className="topbar-icon" aria-expanded={open === p} aria-controls={`panel-${p}`} aria-label={s(TITLES[p])} title={s(TITLES[p])} onClick={() => onToggle(p)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS[p]}</svg>
+            {icon(p)}
           </button>
         ))}
       </div>
@@ -71,7 +76,7 @@ export function TopActions({ open, onToggle, s }: TopActionsProps) {
             {ORDER.map((p) => (
               <li key={p}>
                 <button type="button" aria-pressed={open === p} onClick={() => { setMenu(false); more.current?.focus(); onToggle(p); }}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">{ICONS[p]}</svg>
+                  {icon(p)}
                   {s(TITLES[p])}
                 </button>
               </li>

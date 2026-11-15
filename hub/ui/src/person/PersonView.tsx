@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useHub } from '../hub.ts';
-import { personSummary } from '../../../engine/baseline.ts';
+import { isCurrentReading, personSummary } from '../../../engine/baseline.ts';
 import type { Judged, SignalBaseline } from '../../../engine/baseline.ts';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
 import type { Evidence } from '../../../engine/evidence.ts';
@@ -40,6 +40,17 @@ const DAILY_WINDOW = 14 * DAY;
 const VITALS = ['heart_rate', 'blood_pressure_systolic', 'sleep_duration', 'exercise_minutes', 'hrv', 'sleep_efficiency', 'sleep_awakenings'];
 /** Shown with its partner, never on its own. */
 const PARTNER: Record<string, string> = { blood_pressure_systolic: 'blood_pressure_diastolic' };
+/**
+ * What may be a reading on this sheet, in the strip's order: body readings by
+ * family (heart, breathing, sleep, activity, how they feel), then check-in
+ * answers. Nothing else: a message to Earth, a typed note or a blood result is not a tile.
+ */
+const READINGS = ['heart_rate', 'resting_heart_rate', 'hrv', 'blood_pressure_systolic', 'breathing_rate', 'respiratory_rate', 'blood_oxygen', 'body_temperature',
+  'sleep_duration', 'sleep_efficiency', 'sleep_awakenings', 'exercise_minutes', 'steps', 'active_energy', 'sound_level', 'mood.stress', 'mood.fatigue', 'mood.sleepy'];
+const readingRank = (signal: string) => {
+  const i = READINGS.indexOf(signal);
+  return i >= 0 ? i : signal.startsWith('checkin.') ? READINGS.length : -1;
+};
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -82,7 +93,10 @@ export function PersonView({ person, rooms, crew, latest, room, now, s, lang, ow
   // Order of importance: what the hub finds unusual, furthest first; with nothing unusual, the heart rate.
   const unusual = evidence.state === 'ready' ? [...evidence.value.unusual.signals].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)) : [];
   const isUnusual = (signal: string) => unusual.some((u) => u.signal === signal);
-  const all = [...new Set([...mine.map((r) => r.signal), ...summary.signals.map((b) => b.signal)])].filter((k) => !Object.values(PARTNER).includes(k));
+  // Readings only (READINGS), with a number or a yes/no: typed words are never a tile.
+  const all = [...new Set([...mine.map((r) => r.signal), ...summary.signals.map((b) => b.signal)])]
+    .filter((k) => readingRank(k) >= 0 && latestOf(k)?.value != null)
+    .sort((a, b) => readingRank(a) - readingRank(b) || a.localeCompare(b));
   const fallback = has('heart_rate') ? 'heart_rate' : all[0] ?? null;
   const hero = picked && all.includes(picked) ? picked : unusual.find((u) => all.includes(u.signal))?.signal ?? fallback;
   const vitals = VITALS.filter((k) => k !== hero && has(k)).slice(0, 4);
@@ -225,11 +239,13 @@ export function PersonView({ person, rooms, crew, latest, room, now, s, lang, ow
         <nav className="mods-strip person-strip" aria-label={s('person.tracking')}>
           {rest.slice(0, 5).map((signal) => {
             const row = latestOf(signal);
+            // Past its freshness (engine/baseline.ts): shown as old, never as current.
+            const old = row && !isCurrentReading(signal, row.t, now) ? ago(now - row.t, s) : '';
             return (
-              <button key={signal} type="button" className="mod-mini" data-unusual={isUnusual(signal) ? '' : undefined} onClick={() => pick(signal)}
-                aria-label={[s(`signal.${signal}`), row ? formatValue(row, s) : '', row ? s(`kind.${row.kind}`) : '', isUnusual(signal) ? s('person.unusual') : ''].filter(Boolean).join(', ')}>
+              <button key={signal} type="button" className="mod-mini" data-unusual={isUnusual(signal) ? '' : undefined} data-stale={old ? '' : undefined} onClick={() => pick(signal)}
+                aria-label={[s(`signal.${signal}`), row ? formatValue(row, s) : '', old, row ? s(`kind.${row.kind}`) : '', isUnusual(signal) ? s('person.unusual') : ''].filter(Boolean).join(', ')}>
                 <span className="mod-mini-head" aria-hidden="true"><SignalIcon signal={signal} />{row && <KindMark kind={row.kind} s={s} />}</span>
-                <span className="mod-mini-value" aria-hidden="true">{row ? formatValue(row, s, true) : '–'}</span>
+                <span className="mod-mini-value" aria-hidden="true">{row ? formatValue(row, s, true) : '–'}{old && <span className="mod-mini-ago">{old}</span>}</span>
                 {row?.unit === '0-100' ? <Scale value={row.value as number} /> : <span className="scale scale-empty" />}
                 <span className="mod-mini-name" aria-hidden="true">{s(`signal.${signal}.short`)}</span>
               </button>
@@ -286,6 +302,12 @@ function MiniTrace({ points }: { points: Point[] }) {
 /** A 0 to 100 answer on its own scale. */
 function Scale({ value }: { value: number }) {
   return <span className="scale" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, value))}%` }} /></span>;
+}
+
+/** How long ago, as "14 h ago". */
+function ago(ms: number, s: S): string {
+  const hours = Math.round(ms / 3600_000);
+  return hours >= 48 ? s('reading.agoDays', { days: Math.round(hours / 24) }) : s('reading.agoHours', { hours: Math.max(1, hours) });
 }
 
 function bigValue(row: Row): string {

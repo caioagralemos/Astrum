@@ -1,0 +1,23 @@
+/* The orbit light (AstraMark.tsx): the ring at the logo's 60%, the light in the
+   same colour. It runs only inside [data-working], one lap every 1.8 s. */
+.orbit-ring { fill: currentColor; fill-opacity: 0.6; stroke: none; }
+
+.orbit-light path {
+  fill: none;
+  stroke: currentColor;
+  stroke-dashoffset: 0;
+}
+[data-working] .orbit-light path {
+  animation: orbit-lap 1.8s linear infinite;
+  animation-delay: var(--orbit-phase, 0ms);
+}
+@keyframes orbit-lap {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+
+.astra-mark { display: block; height: auto; flex: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-working] .orbit-light path { animation: none; stroke-dashoffset: 0; }
+}
