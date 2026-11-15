@@ -190,8 +190,8 @@ The owner's dev server on 5173 also serves the page, but captures are steadier f
 
 ```sh
 cd ~/Desktop/Astrum/hub
-npx vite build --config ui/src/steps-demo/vite.demo.config.ts --outDir /private/tmp/claude-501/steps-dist-<you>
-cd /private/tmp/claude-501/steps-dist-<you> && python3 -m http.server <PORT> --bind 127.0.0.1 &
+npx vite build --config ui/src/steps-demo/vite.demo.config.ts --outDir /tmp/astrum/steps-dist-<you>
+cd /tmp/astrum/steps-dist-<you> && python3 -m http.server <PORT> --bind 127.0.0.1 &
 # Note its PID and kill only that PID when done.
 ```
 
@@ -200,7 +200,7 @@ cd /private/tmp/claude-501/steps-dist-<you> && python3 -m http.server <PORT> --b
 ```sh
 cd ~/Desktop/Astrum/hub/ui/src/steps-demo
 node capture.mjs --url "http://127.0.0.1:<PORT>/steps-demo.html?capture=1&move=<name>&gravity=<weightless|gravity>" \
-  --out /private/tmp/claude-501/<you>/<name>-frames --at 0,0.5,1,1.5,2,2.5,2.98 --w 720 --h 720 --dpr 1
+  --out /tmp/astrum/<you>/<name>-frames --at 0,0.5,1,1.5,2,2.5,2.98 --w 720 --h 720 --dpr 1
 ```
 
 Read the PNGs and check:
@@ -217,7 +217,7 @@ The second-to-last line is the **contact check**, `contact misses {"worst": …}
 ### 4. The 720×720 loop and a still
 
 ```sh
-D=/private/tmp/claude-501/<you>/<name>-loop
+D=/tmp/astrum/<you>/<name>-loop
 node capture.mjs --url "http://127.0.0.1:<PORT>/steps-demo.html?capture=1&move=<name>&gravity=<g>" \
   --out $D --from 0 --to end --fps 60 --w 720 --h 720 --dpr 2
 /opt/homebrew/bin/ffmpeg -y -framerate 60 -i $D/f%05d.png -vf "scale=720:720:flags=lanczos,format=yuv420p" \
