@@ -31,41 +31,69 @@ const char *FW = "0.3";
 // The same UUID is in the phone app (RoomLocator.swift) and chip/README.md.
 const char *ASTRUM_BLE_SERVICE = "A5A273B7-39C1-4BF4-B86C-5D4BB3B06B1F";
 
+// Analog parts and the buzzer.
 const int PIN_MIC = 34, PIN_LDR = 35, PIN_BUZZER = 25;
-const int BMP_SDA = 16, BMP_SCL = 15;   // pressure
-const int AIR_SDA = 23, AIR_SCL = 22;   // AHT21 + ENS160 board
-const int MPU_SDA = 4, MPU_SCL = 5;     // vibration, on the second I2C controller
+const unsigned BUZZER_HZ = 2000;
 
-// ---------- I2C helpers ----------
+// ---------- I2C ----------
+// Each sensor board has its own pin pair. The ESP32 has two I2C controllers:
+// Wire1 stays on the vibration board; Wire is moved between the pressure board
+// and the air board before each one is read.
 
-// The pressure board and the air board share the first controller, on
-// different pins, so the bus is moved before talking to each.
-void useBus(int sda, int scl) {
+struct I2cPins { int sda, scl; };
+const I2cPins PRESSURE_PINS = {16, 15};  // BMP280
+const I2cPins AIR_PINS = {23, 22};       // AHT21 + ENS160 board
+const I2cPins MOTION_PINS = {4, 5};      // MPU6050, on Wire1
+const uint16_t I2C_TIMEOUT_MS = 20;
+
+void attachBus(TwoWire &bus, I2cPins pins) {
+  bus.begin(pins.sda, pins.scl);
+  bus.setTimeOut(I2C_TIMEOUT_MS);
+}
+
+// Stopping the controller first releases the pins it was on.
+void moveWire(I2cPins pins) {
   Wire.end();
-  Wire.begin(sda, scl);
-  Wire.setTimeOut(20);
-  delay(3);
+  attachBus(Wire, pins);
+  delay(3);  // let the lines settle on the new pins
 }
 
-bool ping(TwoWire &w, uint8_t addr) {
-  w.beginTransmission(addr);
-  return w.endTransmission() == 0;
+// An empty write: a device acknowledges its address or it does not.
+bool answers(TwoWire &bus, uint8_t addr) {
+  bus.beginTransmission(addr);
+  return bus.endTransmission() == 0;
 }
 
-bool readReg(TwoWire &w, uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t n) {
-  w.beginTransmission(addr);
-  w.write(reg);
-  if (w.endTransmission(false) != 0) return false;
-  if (w.requestFrom(addr, n) != n) return false;
-  for (uint8_t i = 0; i < n; i++) buf[i] = w.read();
+// The first of two possible addresses that answers, or 0 when neither does.
+uint8_t findAddress(TwoWire &bus, uint8_t first, uint8_t second) {
+  if (answers(bus, first)) return first;
+  if (answers(bus, second)) return second;
+  return 0;
+}
+
+bool readBytes(TwoWire &bus, uint8_t addr, uint8_t *out, uint8_t count) {
+  if (bus.requestFrom(addr, count) != count) return false;
+  for (uint8_t i = 0; i < count; i++) out[i] = bus.read();
   return true;
 }
 
-bool writeReg(TwoWire &w, uint8_t addr, uint8_t reg, uint8_t value) {
-  w.beginTransmission(addr);
-  w.write(reg);
-  w.write(value);
-  return w.endTransmission() == 0;
+// Register read: the register index, a repeated start instead of a stop, then the bytes.
+bool readRegs(TwoWire &bus, uint8_t addr, uint8_t reg, uint8_t *out, uint8_t count) {
+  bus.beginTransmission(addr);
+  bus.write(reg);
+  if (bus.endTransmission(false) != 0) return false;
+  return readBytes(bus, addr, out, count);
+}
+
+bool writeBytes(TwoWire &bus, uint8_t addr, const uint8_t *data, size_t count) {
+  bus.beginTransmission(addr);
+  bus.write(data, count);
+  return bus.endTransmission() == 0;
+}
+
+bool writeReg(TwoWire &bus, uint8_t addr, uint8_t reg, uint8_t value) {
+  const uint8_t frame[2] = {reg, value};
+  return writeBytes(bus, addr, frame, sizeof frame);
 }
 
 // ---------- BMP280: pressure ----------
@@ -74,11 +102,14 @@ uint8_t bmpAddr = 0;
 uint16_t digT1, digP1;
 int16_t digT2, digT3, digP2, digP3, digP4, digP5, digP6, digP7, digP8, digP9;
 
+// Bosch BMP280 datasheet (BST-BMP280-DS001): address 0x76 or 0x77 by the SDO pin
+// (section 5.2); calibration words little-endian from 0x88 (section 3.11.2, table 17);
+// config 0xF5 and ctrl_meas 0xF4, measurements from 0xF7 (section 4.3).
 bool bmpSetup() {
-  bmpAddr = ping(Wire, 0x76) ? 0x76 : (ping(Wire, 0x77) ? 0x77 : 0);
+  bmpAddr = findAddress(Wire, 0x76, 0x77);
   if (!bmpAddr) return false;
   uint8_t c[24];
-  if (!readReg(Wire, bmpAddr, 0x88, c, 24)) return false;
+  if (!readRegs(Wire, bmpAddr, 0x88, c, 24)) return false;
   digT1 = c[0] | c[1] << 8;   digT2 = c[2] | c[3] << 8;   digT3 = c[4] | c[5] << 8;
   digP1 = c[6] | c[7] << 8;   digP2 = c[8] | c[9] << 8;   digP3 = c[10] | c[11] << 8;
   digP4 = c[12] | c[13] << 8; digP5 = c[14] | c[15] << 8; digP6 = c[16] | c[17] << 8;
@@ -87,10 +118,11 @@ bool bmpSetup() {
   return writeReg(Wire, bmpAddr, 0xF5, 0x08) && writeReg(Wire, bmpAddr, 0xF4, 0x27);
 }
 
-// Bosch's compensation formula from the BMP280 datasheet. Result in hPa.
+// Bosch's floating-point compensation formula, BMP280 datasheet section 8.1,
+// unchanged. Result in hPa.
 bool bmpRead(float &hPa) {
   uint8_t d[6];
-  if (!readReg(Wire, bmpAddr, 0xF7, d, 6)) return false;
+  if (!readRegs(Wire, bmpAddr, 0xF7, d, 6)) return false;
   int32_t adcP = ((int32_t)d[0] << 12) | ((int32_t)d[1] << 4) | (d[2] >> 4);
   int32_t adcT = ((int32_t)d[3] << 12) | ((int32_t)d[4] << 4) | (d[5] >> 4);
   if (adcP == 0x80000 || adcT == 0x80000) return false;  // no measurement yet
@@ -115,17 +147,28 @@ bool bmpRead(float &hPa) {
 
 // ---------- AHT21: temperature and humidity ----------
 
+// Aosong AHT21 datasheet, sensor reading process: send the trigger command
+// 0xAC with its two parameters 0x33 0x00, wait at least 80 ms, then read six
+// bytes with no register index. Byte 0 is the status (bit 7 set: still busy);
+// bytes 1 to 5 hold two 20-bit values, humidity then temperature.
+// Signal conversion: RH = S / 2^20 * 100 %, T = S / 2^20 * 200 - 50 C.
+
+const uint8_t AHT_ADDR = 0x38;
+const uint8_t AHT_TRIGGER[] = {0xAC, 0x33, 0x00};
+const unsigned long AHT_MEASURE_MS = 85;  // the datasheet's 80 ms, with a margin
+const double AHT_FULL_SCALE = 1048576.0;  // 2^20
+
 bool ahtRead(float &celsius, float &percent) {
-  Wire.beginTransmission(0x38);
-  Wire.write(0xAC); Wire.write(0x33); Wire.write(0x00);
-  if (Wire.endTransmission() != 0) return false;
-  delay(85);
-  if (Wire.requestFrom((uint8_t)0x38, (uint8_t)6) != 6) return false;
-  uint8_t b[6];
-  for (int i = 0; i < 6; i++) b[i] = Wire.read();
-  if (b[0] & 0x80) return false;  // still measuring
-  percent = (((uint32_t)b[1] << 12) | ((uint32_t)b[2] << 4) | (b[3] >> 4)) * 100.0 / 1048576.0;
-  celsius = ((((uint32_t)b[3] & 0x0F) << 16) | ((uint32_t)b[4] << 8) | b[5]) * 200.0 / 1048576.0 - 50.0;
+  if (!writeBytes(Wire, AHT_ADDR, AHT_TRIGGER, sizeof AHT_TRIGGER)) return false;
+  delay(AHT_MEASURE_MS);
+  uint8_t frame[6];
+  if (!readBytes(Wire, AHT_ADDR, frame, sizeof frame)) return false;
+  bool busy = frame[0] & 0x80;
+  if (busy) return false;
+  uint32_t humidityRaw = (uint32_t)frame[1] << 12 | (uint32_t)frame[2] << 4 | frame[3] >> 4;
+  uint32_t temperatureRaw = (uint32_t)(frame[3] & 0x0F) << 16 | (uint32_t)frame[4] << 8 | frame[5];
+  percent = humidityRaw / AHT_FULL_SCALE * 100.0;
+  celsius = temperatureRaw / AHT_FULL_SCALE * 200.0 - 50.0;
   return true;
 }
 
@@ -138,18 +181,18 @@ bool ahtRead(float &celsius, float &percent) {
 uint8_t ensAddr = 0;
 
 bool ensSetup() {
-  ensAddr = ping(Wire, 0x53) ? 0x53 : (ping(Wire, 0x52) ? 0x52 : 0);
+  ensAddr = findAddress(Wire, 0x53, 0x52);
   if (!ensAddr) return false;
   uint8_t id[2];
-  if (!readReg(Wire, ensAddr, 0x00, id, 2) || id[0] != 0x60 || id[1] != 0x01) return false;
+  if (!readRegs(Wire, ensAddr, 0x00, id, 2) || id[0] != 0x60 || id[1] != 0x01) return false;
   return writeReg(Wire, ensAddr, 0x10, 0x02);  // standard operating mode
 }
 
 bool ensRead(float &co2ppm, float &aqi) {
   uint8_t status, a, c[2];
-  if (!readReg(Wire, ensAddr, 0x20, &status, 1)) return false;
+  if (!readRegs(Wire, ensAddr, 0x20, &status, 1)) return false;
   if (((status >> 2) & 0x03) != 0) return false;  // warming up or invalid
-  if (!readReg(Wire, ensAddr, 0x21, &a, 1) || !readReg(Wire, ensAddr, 0x24, c, 2)) return false;
+  if (!readRegs(Wire, ensAddr, 0x21, &a, 1) || !readRegs(Wire, ensAddr, 0x24, c, 2)) return false;
   aqi = a & 0x07;
   co2ppm = c[0] | c[1] << 8;
   return true;
@@ -157,20 +200,46 @@ bool ensRead(float &co2ppm, float &aqi) {
 
 // ---------- MPU6050: vibration ----------
 
+// MPU-6000/6050 register map: writing 0 to PWR_MGMT_1 (0x6B, section 4.28)
+// takes the part out of sleep; ACCEL_XOUT_H (0x3B, section 4.17) starts six
+// bytes, X, Y and Z, each a signed big-endian count. At the power-on range of
+// +/-2 g, one g is 16384 counts.
+
+const uint8_t MPU_ADDR = 0x68;
+const uint8_t MPU_PWR_MGMT_1 = 0x6B, MPU_ACCEL_XOUT_H = 0x3B;
+const float MPU_COUNTS_PER_G = 16384.0;
+
 bool mpuReady = false;
 
 bool mpuSetup() {
-  return ping(Wire1, 0x68) && writeReg(Wire1, 0x68, 0x6B, 0x00);  // wake up
+  return answers(Wire1, MPU_ADDR) && writeReg(Wire1, MPU_ADDR, MPU_PWR_MGMT_1, 0x00);
 }
 
+// Total acceleration, in g, from one sample of the three axes.
 bool mpuMagnitude(float &g) {
-  uint8_t d[6];
-  if (!readReg(Wire1, 0x68, 0x3B, d, 6)) return false;
-  float x = (int16_t)(d[0] << 8 | d[1]) / 16384.0;
-  float y = (int16_t)(d[2] << 8 | d[3]) / 16384.0;
-  float z = (int16_t)(d[4] << 8 | d[5]) / 16384.0;
-  g = sqrtf(x * x + y * y + z * z);
+  uint8_t axes[6];
+  if (!readRegs(Wire1, MPU_ADDR, MPU_ACCEL_XOUT_H, axes, sizeof axes)) return false;
+  float sumOfSquares = 0;
+  for (int i = 0; i < 6; i += 2) {
+    float a = (int16_t)(axes[i] << 8 | axes[i + 1]) / MPU_COUNTS_PER_G;
+    sumOfSquares += a * a;
+  }
+  g = sqrtf(sumOfSquares);
   return true;
+}
+
+// ---------- Microphone: noise ----------
+
+// Loudness over one short window: the swing between the lowest and the
+// highest sample, in raw 12-bit counts.
+int micSwing(unsigned long windowMs) {
+  int lowest = 4095, highest = 0;
+  for (unsigned long start = millis(); millis() - start < windowMs;) {
+    int sample = analogRead(PIN_MIC);
+    lowest = min(lowest, sample);
+    highest = max(highest, sample);
+  }
+  return highest - lowest;
 }
 
 // ---------- Buzzer ----------
@@ -183,13 +252,13 @@ void buzzerTick() {
   if (buzz != BUZZ_ALARM) return;
   if (millis() - alarmSince > 60000UL) { buzz = BUZZ_OFF; noTone(PIN_BUZZER); return; }
   // Half a second on, half a second off.
-  if ((millis() - alarmSince) % 1000 < 500) tone(PIN_BUZZER, 2000); else noTone(PIN_BUZZER);
+  if ((millis() - alarmSince) % 1000 < 500) tone(PIN_BUZZER, BUZZER_HZ); else noTone(PIN_BUZZER);
 }
 
 void handleCommand(const String &line) {
   if (line.indexOf("\"buzz\"") < 0) return;
   if (line.indexOf("\"alarm\"") >= 0) { buzz = BUZZ_ALARM; alarmSince = millis(); }
-  else if (line.indexOf("\"beep\"") >= 0) { buzz = BUZZ_OFF; tone(PIN_BUZZER, 2000, 150); }
+  else if (line.indexOf("\"beep\"") >= 0) { buzz = BUZZ_OFF; tone(PIN_BUZZER, BUZZER_HZ, 150); }
   else if (line.indexOf("\"off\"") >= 0) { buzz = BUZZ_OFF; noTone(PIN_BUZZER); }
 }
 
@@ -233,11 +302,10 @@ void setup() {
   Serial.begin(115200);
   pinMode(PIN_BUZZER, OUTPUT);
   analogReadResolution(12);
-  Wire1.begin(MPU_SDA, MPU_SCL);
-  Wire1.setTimeOut(20);
+  attachBus(Wire1, MOTION_PINS);
   delay(200);
   bleOn = bleStart();
-  tone(PIN_BUZZER, 2000, 80);  // one short beep: the chip started
+  tone(PIN_BUZZER, BUZZER_HZ, 80);  // one short beep: the chip started
 }
 
 void loop() {
@@ -248,14 +316,7 @@ void loop() {
   int samples = 0;
   unsigned long cycleStart = millis();
   while (millis() - cycleStart < 900) {
-    int lo = 4095, hi = 0;
-    unsigned long windowStart = millis();
-    while (millis() - windowStart < 40) {
-      int v = analogRead(PIN_MIC);
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-    }
-    if (hi - lo > noisePeak) noisePeak = hi - lo;
+    noisePeak = max(noisePeak, micSwing(40));
 
     if (!mpuReady) mpuReady = mpuSetup();
     float g;
@@ -279,12 +340,12 @@ void loop() {
   };
 
   // Pressure. Set up again every cycle it is not answering.
-  useBus(BMP_SDA, BMP_SCL);
+  moveWire(PRESSURE_PINS);
   float hPa;
   if (bmpSetup() && (delay(10), bmpRead(hPa))) add("pressure", hPa, 1, "hPa", "m"); else miss("pressure");
 
   // Temperature, humidity, and the air sensor on the same board.
-  useBus(AIR_SDA, AIR_SCL);
+  moveWire(AIR_PINS);
   float celsius, percent;
   if (ahtRead(celsius, percent)) {
     add("temperature", celsius, 1, "C", "m");

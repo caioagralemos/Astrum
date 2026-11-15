@@ -16,7 +16,7 @@ The full drawing, four sheets (board as built, schematic, pin table, slots with 
 | LDR + resistor | Light | GPIO 35 |
 | Buzzer | Room alarm | GPIO 25 |
 
-The ESP32 is a 3.3 V board. The jumper on the expansion board stays on V + 3.3V.
+Everything runs at 3.3 V, so the expansion board's jumper is set to V + 3.3V.
 
 ## Slots with no part fitted
 
