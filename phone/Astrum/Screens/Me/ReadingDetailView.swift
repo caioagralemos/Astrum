@@ -37,21 +37,28 @@ struct ReadingDetailView: View {
 
     private func details(_ reading: Reading, now: Double) -> some View {
         List {
-            Section {
+            ProjectionSection {
                 value(reading)
             }
-            Section("Your usual") {
+            ProjectionSection {
                 usual(reading)
+            } header: {
+                ProjectionHeader(.dot, "Your usual")
             }
-            Section("History") {
+            ProjectionSection {
                 history(reading, now: now)
+            } header: {
+                ProjectionHeader(.clock, "History")
             }
             if let evidence = relevantEvidence(for: reading) {
-                Section("Where it points") {
+                ProjectionSection {
                     EvidenceLines(evidence: evidence, now: now)
+                } header: {
+                    ProjectionHeader(.up, "Where it points")
                 }
             }
         }
+        .tint(.white)
     }
 
     // MARK: Parts
@@ -61,7 +68,7 @@ struct ReadingDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(number)
-                    .font(.largeTitle.weight(.medium).monospacedDigit())
+                    .font(.largeTitle.weight(.light).monospacedDigit())
                 if !unit.isEmpty {
                     Text(unit).foregroundStyle(.secondary)
                 }

@@ -11,9 +11,14 @@
 	<array>
 		<string>_astrum._tcp</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Astrum uses the camera to photograph the blood analyser's results screen and read the numbers on this phone, for you to check before they are sent. The photo is not kept.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Astrum listens for the cabin sensor board's Bluetooth signal to tell the station's hub which room you are near. It never connects to anything.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>bluetooth-central</string>
 	</array>
 </dict>
 </plist>

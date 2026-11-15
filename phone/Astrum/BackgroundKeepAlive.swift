@@ -48,7 +48,7 @@ final class BackgroundKeepAlive {
         }
     }
 
-    /// A call or another app can stop our audio; start again when it ends.
+    /// A call or another app can stop our audio, and iOS can reset audio altogether; start again after either.
     private func observeInterruptions() {
         guard observers.isEmpty else { return }
         let center = NotificationCenter.default
@@ -59,6 +59,13 @@ final class BackgroundKeepAlive {
         })
         observers.append(center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.start() }
+        })
+        // iOS can reset the whole audio system (rare, but it happens); the engine stops without an interruption.
+        observers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.engine.stop()
+                self?.start()
+            }
         })
     }
 

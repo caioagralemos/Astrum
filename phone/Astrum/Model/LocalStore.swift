@@ -1,6 +1,7 @@
 // What the phone keeps on disk besides the reading queue: the last world the
 // hub sent and the owner's recent rows (so Me opens offline), and check-ins
-// answered while the hub was out of reach (sent on reconnect).
+// answered while the hub was out of reach (sent on reconnect), and Ask
+// Astra's thread, per crewmate.
 
 import Foundation
 
@@ -36,6 +37,14 @@ actor LocalStore {
     func removeCheckin(id: UUID) {
         save(pendingCheckins().filter { $0.id != id }, to: "checkins.json")
     }
+
+    // MARK: Ask Astra's thread
+
+    func loadAsk(person: String) -> [AskExchange] { load([AskExchange].self, from: askFile(person)) ?? [] }
+
+    func save(ask: [AskExchange], person: String) { save(ask, to: askFile(person)) }
+
+    private func askFile(_ person: String) -> String { "ask-\(person).json" }
 
     // MARK: Files
 

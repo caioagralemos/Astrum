@@ -77,6 +77,12 @@ final class AppModel {
     var pendingCheckins = 0
     /// Level 3 alerts (by key) the owner has closed after they were seen; shown as a banner instead.
     var closedAlerts: Set<String> = []
+    /// Answers sent to "Are you OK?" (alert id to "ok" or "help"), shown at once until the hub's state confirms them.
+    var pendingAnswers: [String: String] = [:]
+    /// When the socket last connected; nil while it is not connected.
+    private(set) var connectedSince: Date?
+    /// The "alerts cannot reach this phone" notice was posted for this disconnection.
+    @ObservationIgnored private var warnedOffline = false
     @ObservationIgnored let store = LocalStore()
     @ObservationIgnored var saveTask: Task<Void, Never>?
 
@@ -89,8 +95,12 @@ final class AppModel {
     private let queue: ReadingQueue
     private let health: HealthSync
     private let queued: AsyncStream<Void>
-    private let notifier = AlarmNotifier()
+    let notifier = AlarmNotifier()
     private let keepAlive = BackgroundKeepAlive()
+    /// Which board's room the owner is near, from its Bluetooth beacon (AppModel+Room.swift).
+    let roomLocator = RoomLocator()
+    @ObservationIgnored let stayOutbox = StayOutbox()
+    @ObservationIgnored var isSendingStays = false
     @ObservationIgnored private var unlockObserver: NSObjectProtocol?
 
     private enum Key {
@@ -146,6 +156,7 @@ final class AppModel {
         keepAlive.start()
         finder.start()
         connect()
+        startRoomLocation()
 
         // Health data cannot be read while the phone is locked; catch up on unlock.
         unlockObserver = NotificationCenter.default.addObserver(
@@ -179,6 +190,7 @@ final class AppModel {
         if link != .connected { connect() }
         flush()
         flushCheckins()
+        flushStays()
         Task { await refreshPermissions() }
     }
 
@@ -203,6 +215,7 @@ final class AppModel {
         UserDefaults.standard.set(person, forKey: Key.person)
         if let hello = helloText { socket.update(hello: hello) }
         personChanged()
+        startRoomLocation()
         Task {
             if healthState == .asked { await health.start(person: person) }
         }
@@ -240,6 +253,19 @@ final class AppModel {
 
     // MARK: Hub
 
+    /// Asks the hub for its whole state again, as this phone's owner may see it (a fresh hello).
+    func refreshFromHub() {
+        if let hello = helloText { socket.update(hello: hello) }
+    }
+
+    /// The app is going to the background. Alerts are local notifications made from the socket's
+    /// messages, so with no connection none can arrive: say so once per disconnection.
+    func wentToBackground() {
+        guard !needsSetup, link != .connected, !warnedOffline else { return }
+        warnedOffline = true
+        notifier.postNotConnected()
+    }
+
     private var helloText: String? {
         let hello = HubHello(person: person.isEmpty ? nil : person)
         guard let data = try? JSONEncoder().encode(hello) else { return nil }
@@ -259,17 +285,26 @@ final class AppModel {
         // (a new address from the router) and the old one came from Bonjour too.
         if address == nil || (addressIsAutomatic && link != .connected && hub.address != address) {
             choose(address: hub.address, automatic: true)
+        } else if hub.address == address && link != .connected {
+            // The hub is announcing itself again (it restarted): connect now, not after the socket's backoff.
+            connect()
         }
     }
 
     private func socketChanged(_ state: HubSocket.State) {
         switch state {
-        case .connecting: link = .connecting
+        case .connecting:
+            link = .connecting
+            connectedSince = nil
         case .connected:
             link = .connected
+            connectedSince = Date()
+            warnedOffline = false
             flush()
             flushCheckins()
-        case .retrying: link = .retrying
+        case .retrying:
+            link = .retrying
+            connectedSince = nil
         }
     }
 
@@ -281,6 +316,8 @@ final class AppModel {
         // Room alarms sound the room's buzzer. Phones announce alerts, which carry who is told.
         if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew) }
         apply(message)
+        // The hub's view of where everyone is just arrived: send waiting room changes, then check it against ours.
+        if message.type == "state", message.scenario == nil { flushStays() }
     }
 
     // MARK: Sending readings

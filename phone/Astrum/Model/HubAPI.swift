@@ -1,6 +1,7 @@
 // The hub's HTTP routes the phone calls (hub/core/server.ts and main.ts).
 // Every call runs and decodes off the main actor; a refusal comes back with
-// the hub's own words, a network failure as `unreachable`.
+// the hub's own words, a network failure as `unreachable`. The hub's words are
+// for logs and Settings, never for an alert screen (AppModel+Companion.swift).
 
 import Foundation
 
@@ -9,6 +10,10 @@ enum HubError: Error, Sendable {
     case refused(String)
     /// The hub could not be reached.
     case unreachable
+    /// The alert has no question (or level 3) waiting any more: answered, escalated or ended. Refresh, do not show it.
+    case notWaiting
+    /// A recorded story is playing: its alerts are not in the hub's alert engine.
+    case recorded
 }
 
 struct HubAPI: Sendable {
@@ -63,11 +68,13 @@ struct HubAPI: Sendable {
         try await post("/api/readings", body: Body(source: source, rows: rows))
     }
 
-    /// POST /api/blood: typed results, all or nothing.
+    /// POST /api/blood: typed results, all or nothing. `fromPhoto` names the
+    /// values read from a photo of the analyser's screen and checked by the
+    /// person; the hub stores those as such.
     @concurrent
-    func postBlood(person: String, values: [String: Double]) async throws {
-        struct Body: Encodable { let person: String; let values: [String: Double] }
-        try await post("/api/blood", body: Body(person: person, values: values))
+    func postBlood(person: String, values: [String: Double], fromPhoto: [String] = []) async throws {
+        struct Body: Encodable { let person: String; let values: [String: Double]; let from_photo: [String]? }
+        try await post("/api/blood", body: Body(person: person, values: values, from_photo: fromPhoto.isEmpty ? nil : fromPhoto))
     }
 
     /// POST /api/alerts/answer: "ok" or "help" to "Are you OK?".
@@ -82,6 +89,25 @@ struct HubAPI: Sendable {
     func acknowledgeAlert(id: String, by person: String) async throws {
         struct Body: Encodable { let id: String; let by: String }
         try await post("/api/alerts/acknowledge", body: Body(id: id, by: person))
+    }
+
+    /// POST /api/stays: the owner entered a room (`room`) or left for nowhere known (nil), measured, at `t` on the hub's clock.
+    @concurrent
+    func postStay(person: String, room: String?, t: Int64, source: String) async throws {
+        struct Body: Encodable {
+            let person: String; let room: String?; let t: Int64; let kind: String; let source: String
+            // `room` goes out as null when leaving, never left out.
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(person, forKey: .person)
+                try c.encode(room, forKey: .room)
+                try c.encode(t, forKey: .t)
+                try c.encode(kind, forKey: .kind)
+                try c.encode(source, forKey: .source)
+            }
+            enum CodingKeys: String, CodingKey { case person, room, t, kind, source }
+        }
+        try await post("/api/stays", body: Body(person: person, room: room, t: t, kind: "measured", source: source))
     }
 
     /// POST /api/earth/messages.
@@ -182,9 +208,19 @@ struct HubAPI: Sendable {
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
-            throw HubError.refused(Self.hubWords(data) ?? String(status))
+            switch Self.hubCode(data) {
+            case "not-waiting": throw HubError.notWaiting
+            case "recorded": throw HubError.recorded
+            default: throw HubError.refused(Self.hubWords(data) ?? String(status))
+            }
         }
         return data
+    }
+
+    /// The `code` the hub puts in some refusals, so the app can act on them.
+    private static func hubCode(_ data: Data) -> String? {
+        struct Refusal: Decodable { let code: String? }
+        return (try? JSONDecoder().decode(Refusal.self, from: data))?.code
     }
 
     /// The `error` the hub puts in a refusal.
@@ -228,8 +264,18 @@ enum AskEvent: Sendable {
     case result(AskResult)
 }
 
-struct AskResult: Decodable, Sendable, Hashable {
-    struct Check: Decodable, Sendable, Hashable { let discarded: Bool }
+/// Codable so Ask Astra's thread can keep answers on the phone as the hub sent them.
+struct AskResult: Codable, Sendable, Hashable {
+    struct Check: Codable, Sendable, Hashable { let discarded: Bool }
+    /// The question the hub asks back, in the asker's language, and the check-in signal its answer goes to.
+    struct FollowUp: Codable, Sendable, Hashable { let question: String; let signal: String }
+    /// The medical lead's ask-first rule: an intro and its questions, each yes/no or a typed value.
+    struct AskFirst: Codable, Sendable, Hashable {
+        struct Words: Codable, Sendable, Hashable { let en: String; let pt: String }
+        struct Question: Codable, Sendable, Hashable { let signal: String; let kind: String }
+        let intro: Words
+        let questions: [Question]
+    }
 
     /// "answer", "crisis", "card", "fixed", "unavailable" or "fallback".
     let route: String
@@ -245,24 +291,26 @@ struct AskResult: Decodable, Sendable, Hashable {
     let check: Check?
     let facts: HubAnswer?
     let ms: Double
+    var followUp: FollowUp? = nil
+    var askFirst: AskFirst? = nil
 }
 
 /// NASA's words, quoted unchanged with their source.
-struct Passage: Decodable, Sendable, Hashable {
+struct Passage: Codable, Sendable, Hashable {
     let name: String
     let url: String
     let text: String
 }
 
 /// The hub-written answer (engine/answer.ts).
-struct HubAnswer: Decodable, Sendable, Hashable {
+struct HubAnswer: Codable, Sendable, Hashable {
     let items: [FactItem]
     let passages: [Passage]
     let factsText: String
 }
 
-struct FactItem: Decodable, Sendable, Hashable {
-    struct Part: Decodable, Sendable, Hashable {
+struct FactItem: Codable, Sendable, Hashable {
+    struct Part: Codable, Sendable, Hashable {
         let what: String
         let kind: Kind
     }
@@ -275,7 +323,7 @@ struct FactItem: Decodable, Sendable, Hashable {
 }
 
 /// A sentence's blank: the hub sends numbers and words.
-struct FactValue: Decodable, Sendable, Hashable {
+struct FactValue: Codable, Sendable, Hashable {
     let text: String
 
     init(from decoder: Decoder) throws {
@@ -286,10 +334,16 @@ struct FactValue: Decodable, Sendable, Hashable {
             text = (try? container.decode(String.self)) ?? ""
         }
     }
+
+    /// Kept as words: a saved number reads back as the same text.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(text)
+    }
 }
 
 /// A steps card as the medical lead wrote it, in one language (CardView in cards.ts).
-struct CardView: Decodable, Sendable, Hashable, Identifiable {
+struct CardView: Codable, Sendable, Hashable, Identifiable {
     let id: String
     let lang: String
     let title: String

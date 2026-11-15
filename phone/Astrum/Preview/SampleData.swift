@@ -54,7 +54,8 @@ enum SampleData {
         id: "base-moon", place: "place.base-moon", missionStart: "2026-10-01T00:00:00Z", delayToEarthSeconds: 1.3,
         rooms: ["commons", "command", "lab", "medical", "greenhouse", "quarters-2"].map { HubRoom(id: $0, name: "room.\($0)") },
         mission: MissionFacts(id: "base-moon", kind: "base", where: .init(body: "moon", situation: "surface"),
-                              gravity: 0.166, plannedDays: 180, destination: nil, nameText: nil)
+                              gravity: 0.166, plannedDays: 180, destination: nil, nameText: nil),
+        chips: nil
     )
 
     private static func body(_ signal: String, _ value: Double?, _ unit: String, _ kind: Kind = .measured, ago: Double = 0, text: String? = nil) -> Row {
@@ -153,4 +154,25 @@ enum SampleData {
         """
         return try! JSONDecoder().decode(AskResult.self, from: Data(json.utf8))
     }
+
+    /// Ask Astra's thread: one answered yesterday (a fact and a NASA quote), one that failed, one on its way.
+    static var askThread: AskThread {
+        let yesterday = Date().addingTimeInterval(-26 * 3_600)
+        return AskThread(person: me, exchanges: [
+            AskExchange(question: "Is the CO2 in my room dangerous?", askedAt: yesterday,
+                        state: .answered(answer, at: yesterday.addingTimeInterval(3))),
+            AskExchange(question: "How much should I exercise?", askedAt: Date().addingTimeInterval(-20 * 60),
+                        state: .failed("The hub is out of reach.", reached: false)),
+            AskExchange(question: "Why do I keep waking up with a headache?", askedAt: Date(),
+                        state: .pending("Astra is working: 4 s")),
+        ])
+    }
+
+    /// The hub's seven blood entries (ids, names, units and ranges from hub/medical/blood.json).
+    static let bloodEntries: [BloodEntry] = [
+        ("glucose", "Glucose", "Glicose", "mg/dL", 70.0, 105.0), ("sodium", "Sodium", "Sódio", "mmol/L", 138, 146),
+        ("potassium", "Potassium", "Potássio", "mmol/L", 3.5, 5.3), ("ionized-calcium", "Ionized calcium", "Cálcio ionizado", "mmol/L", 1.12, 1.32),
+        ("ph", "Blood pH", "pH do sangue", "pH units", 7.31, 7.41), ("hematocrit", "Hematocrit", "Hematócrito", "%PCV", 38, 51),
+        ("hemoglobin", "Hemoglobin", "Hemoglobina", "g/dL", nil, nil),
+    ].map { BloodEntry(id: $0.0, name: .init(en: $0.1, pt: $0.2), unit: $0.3, reference_range: .init(low: $0.4, high: $0.5)) }
 }

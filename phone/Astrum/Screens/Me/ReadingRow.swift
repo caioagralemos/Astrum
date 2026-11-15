@@ -35,7 +35,7 @@ struct ReadingRow: View {
                 if reading.stale {
                     Text("Not current · \(reading.row.date.formatted(date: .omitted, time: .shortened))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HubStyle.muted)
                 }
             }
         }
@@ -47,7 +47,6 @@ struct ReadingRow: View {
     private var name: some View {
         HStack(spacing: 8) {
             HubIcon(signal: reading.signal)
-                .foregroundStyle(.secondary)
             Text(reading.name)
                 .font(.body)
         }
@@ -57,13 +56,13 @@ struct ReadingRow: View {
         let (number, unit) = Signals.display(reading.row)
         return HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(number)
-                .font(.title3.weight(.medium).monospacedDigit())
+                .font(.title3.weight(.light).monospacedDigit())
             if !unit.isEmpty {
                 Text(unit)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HubStyle.muted)
             }
         }
-        .foregroundStyle(reading.stale ? .secondary : .primary)
+        .foregroundStyle(reading.stale ? HubStyle.faint : .white)
     }
 }

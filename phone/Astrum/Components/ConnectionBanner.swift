@@ -13,8 +13,8 @@ struct ConnectionBanner: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
                 .accessibilityElement(children: .combine)
+                .projectionRow()
         }
     }
 

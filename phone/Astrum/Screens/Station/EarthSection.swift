@@ -12,8 +12,9 @@ struct EarthSection: View {
 
     var body: some View {
         let world = model.world
-        Section {
+        ProjectionSection {
             Button("Contact Earth") { composing = true }
+                .buttonStyle(.projectionProminent)
                 .disabled(!model.isConnected || model.person.isEmpty)
             if !model.isConnected {
                 Text("Messages to Earth go through the hub, and the hub is out of reach.")
@@ -27,7 +28,7 @@ struct EarthSection: View {
                 EarthMessageRow(message: message, now: now)
             }
         } header: {
-            Text("Earth")
+            ProjectionHeader(.earth, "Earth")
         }
         .sheet(isPresented: $composing) {
             ContactEarthView()
@@ -52,7 +53,7 @@ private struct EarthMessageRow: View {
                 .foregroundStyle(.secondary)
             Text(message.delivered || now >= message.arrivesAt
                  ? String(localized: "Delivered")
-                 : String(localized: "Reaches Earth in \(Countdown.text(ms: message.arrivesAt - now))"))
+                 : String(localized: "Reaches Earth in \(Countdown.minutes(ms: message.arrivesAt - now))"))
                 .font(.footnote)
             if let reply = message.reply {
                 VStack(alignment: .leading, spacing: 4) {
@@ -67,7 +68,7 @@ private struct EarthMessageRow: View {
             } else {
                 Text(now >= message.replyAt
                      ? String(localized: "A reply can be here now")
-                     : String(localized: "A reply can be back in \(Countdown.text(ms: message.replyAt - now))"))
+                     : String(localized: "A reply can be back in \(Countdown.minutes(ms: message.replyAt - now))"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

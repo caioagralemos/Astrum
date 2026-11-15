@@ -142,6 +142,7 @@ enum Signals {
         if source.hasPrefix("chip:") { return String(localized: "Station sensor board, \(kind)") }
         if source.hasPrefix("nasa:osdr-inspiration4") { return String(localized: "NASA, Inspiration4 record, \(kind)") }
         if source.hasPrefix("nasa:") { return String(localized: "NASA, ISS record, \(kind)") }
+        if source == "istat:photo" { return String(localized: "Blood result read from a photo, \(kind)") }
         if source.hasPrefix("istat:") { return String(localized: "Typed blood result, \(kind)") }
         if source.hasPrefix("sim:") { return String(localized: "The hub's simulation, \(kind)") }
         return "\(source), \(kind)"

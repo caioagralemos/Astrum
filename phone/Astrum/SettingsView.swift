@@ -1,5 +1,5 @@
-// The settings sheet: which hub (found automatically, or typed in), whose
-// phone this is, the Health permission, a test alert, the language, and a
+// The settings sheet: which hub (found automatically, or typed in), the room
+// the phone measures the owner in, whose phone this is, the Health permission, a test alert, the language, and a
 // link to the hub's own page.
 
 import SwiftUI
@@ -21,6 +21,7 @@ struct SettingsView: View {
                 languageSection
                 hubPageSection
             }
+            .tint(.white)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -35,8 +36,19 @@ struct SettingsView: View {
     // MARK: Hub
 
     private var hubSection: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Using", value: model.address?.display ?? "None yet")
+            // Alerts are made on this phone from the hub's live messages: say plainly whether they can arrive.
+            if let since = model.connectedSince {
+                Label(String(localized: "Connected to the hub since \(since.formatted(date: .omitted, time: .shortened))"), systemImage: "checkmark.circle.fill")
+            } else {
+                Label(String(localized: "Not connected: alerts cannot reach this phone"), systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(HubStyle.over)
+            }
+            LabeledContent("Room location", value: model.roomLocationText)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Room location")
+                .accessibilityValue(model.roomLocationSpoken)
 
             ForEach(model.finder.hubs) { hub in
                 let chosen = model.address == hub.address
@@ -74,17 +86,19 @@ struct SettingsView: View {
                 .autocorrectionDisabled()
                 .submitLabel(.done)
                 .onSubmit(useTypedAddress)
+                .projectionField()
                 .accessibilityLabel("Hub address")
 
             Button("Use this address", action: useTypedAddress)
+                .buttonStyle(.projectionProminent)
                 .disabled(typedAddress.trimmingCharacters(in: .whitespaces).isEmpty)
 
             if let addressProblem {
                 Label(addressProblem, systemImage: "exclamationmark.circle")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(HubStyle.over)
             }
         } header: {
-            Text("Hub")
+            ProjectionHeader(.wifi, "Hub")
         } footer: {
             Text("The hub is found automatically on the station's Wi-Fi. If no port is given, \(String(HubAddress.defaultPort)) is used.")
         }
@@ -103,7 +117,7 @@ struct SettingsView: View {
     // MARK: Person
 
     private var personSection: some View {
-        Section {
+        ProjectionSection {
             if model.crew.isEmpty {
                 Text("Connect to the hub to see the crew.")
                     .foregroundStyle(.secondary)
@@ -116,7 +130,7 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            Text("Whose phone")
+            ProjectionHeader(.crew, "Whose phone")
         } footer: {
             Text("This phone sends its Health readings as this crewmate's.")
         }
@@ -125,13 +139,14 @@ struct SettingsView: View {
     // MARK: Health
 
     private var healthSection: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Access", value: model.healthState.title)
             if model.healthState == .notAsked {
                 Button("Allow Health access") { model.requestHealthAccess() }
+                    .buttonStyle(.projection)
             }
         } header: {
-            Text("Health")
+            ProjectionHeader(.heart, "Health")
         } footer: {
             if model.healthState == .asked {
                 Text("iOS does not tell apps what you allowed. To check or change it, open the Settings app, then Health, Data Access & Devices, Astrum.")
@@ -143,13 +158,14 @@ struct SettingsView: View {
 
     /// iOS keeps a per-app language: it follows the device unless changed in the Settings app.
     private var languageSection: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Language", value: Locale.current.localizedString(forLanguageCode: model.lang) ?? model.lang)
             Button("Change in the Settings app") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }
+            .buttonStyle(.projection)
         } header: {
-            Text("Language")
+            ProjectionHeader(.earth, "Language")
         } footer: {
             Text("English or Portuguese. Astrum follows the device's language unless you choose another for Astrum in the Settings app.")
         }
@@ -160,7 +176,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var hubPageSection: some View {
         if let url = model.pageURL {
-            Section {
+            ProjectionSection {
                 NavigationLink("Open the hub's page") {
                     HubWebView(url: url, hubReachable: model.link == .connected)
                         .ignoresSafeArea(edges: .bottom)
@@ -176,12 +192,13 @@ struct SettingsView: View {
     // MARK: Alerts
 
     private var alertSection: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Notifications", value: model.notificationText)
             Button("Send a test alert") { model.sendTestAlert() }
+                .buttonStyle(.projection)
                 .accessibilityHint("Arrives in five seconds")
         } header: {
-            Text("Alerts")
+            ProjectionHeader(.alerts, "Alerts")
         } footer: {
             Text("The test alert arrives after five seconds, so there is time to lock the phone. On a locked phone, alerts also show on the Apple Watch.")
         }

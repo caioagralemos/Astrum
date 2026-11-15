@@ -19,11 +19,11 @@ struct HistoryChart: View {
                     xStart: .value("From", first.date), xEnd: .value("To", last.date),
                     yStart: .value("Usual low", band.lowerBound), yEnd: .value("Usual high", band.upperBound)
                 )
-                .foregroundStyle(.white.opacity(0.12))
+                .foregroundStyle(.white.opacity(0.07))
             }
             ForEach(levels, id: \.self) { level in
                 RuleMark(y: .value("NASA level", level))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(HubStyle.faint)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .annotation(position: .top, alignment: .leading) {
                         Text("NASA \(Signals.number(level)) \(unit)")

@@ -7,7 +7,7 @@ The iPhone app: a native companion to the hub. The hub shows the whole station; 
 1. First run: find the hub, choose who you are from the hub's crew, Health access, notifications.
 2. **Me** (home): a body figure with five regions (head, heart, lungs and air, body and activity, blood), one line that sums up today, then every reading with its value, a bar against your own usual, and its label (Measured, Estimated, Reported, Replayed, Simulated).
 3. Tap a region to filter the list; tap a reading for its detail: your usual, its history, its source, and where the hub's evidence points.
-4. **Check-in**: the daily questions (headache, mood, stress, tiredness, a note) and the blood test entries.
+4. **Check-in**: the daily questions (headache, mood, stress, tiredness, a note) and the blood test entries, typed or read from a photo of the analyser's screen (below). Number fields have previous / next / Done over the keyboard.
 5. **Ask Astra**: a question about yourself to the hub's model, answered with the hub's facts and NASA's words.
 6. **Station**: your room's air, the crew by name and room, the mission day, and Earth (delay, messages, Contact Earth).
 7. Alerts take over the screen above any tab: "Are you OK?" at level 2 (yours), the danger screen at level 3 (anyone). Level 1 is a quiet banner on Me.
@@ -20,12 +20,23 @@ The iPhone app: a native companion to the hub. The hub shows the whole station; 
 | Tab | Reads | Writes |
 |---|---|---|
 | Me | socket `/ws` (`state`, `rows`, `stay`, `alerts`, `evidence`, `clock`...), `GET /api/rows?person=` (15 days, for your usual and the charts), `GET /api/rows?room=&signal=co2` (room chart), `GET /api/blood` | nothing |
-| Check-in | `GET /api/rows?person=` (earlier check-ins), `GET /api/blood` | `POST /api/checkin`; offline check-ins later through `POST /api/readings` (kind `reported`, the time they were answered); `POST /api/blood` |
+| Check-in | `GET /api/rows?person=` (earlier check-ins), `GET /api/blood` | `POST /api/checkin`; offline check-ins later through `POST /api/readings` (kind `reported`, the time they were answered); `POST /api/blood` (with `from_photo` for values read from a photo) |
 | Ask Astra | `GET /api/ask/status` every 5 s | `POST /api/ask` (newline-delimited JSON) |
 | Station | the socket (stays, latest cabin rows, alarms, activity, earth messages, profile) | `POST /api/earth/messages` |
 | Alerts | the socket (`alerts`, `earth`), `GET /api/cards?lang=` | `POST /api/alerts/answer`, `POST /api/alerts/acknowledge` |
 
 The phone never shows another crewmate's readings, mood or check-ins: only names, rooms and what the hub shares (asleep, exercising, needs help), and only alerts the hub says this person is told.
+
+## Blood results from a photo of the analyser
+
+"Scan the analyser's screen" in Check-in's blood section. It reads a screen; it is **not a data connection** to the analyser (none could be tested).
+
+1. Take a photo of the i-STAT 1 or i-STAT Alinity results screen, or choose one from the library (the simulator, a demo photo, or when the camera is awkward).
+2. On the phone, Vision reads the text (accurate, no language correction) and the rows are levelled (`Model/BloodScanReader.swift`). `Model/BloodScan.swift` then finds each of the hub's seven entries by the analyser's label (Na, K, iCa, Glu, pH, Hct, Hb) with the number beside it (i-STAT 1) or under it (Alinity tile). It fills a value only if the number is clean, inside the analyser's reportable range (a plausibility limit, not a medical range), has no more decimals than the analyser shows, and is in the hub's unit. Flagged values (`***`, `<>`, `<`, `>`, arrows), another unit (never converted), and anything unclear are left empty with the reason.
+3. Review: the photo (pinch or double-tap to zoom) over one field per entry. A value from the photo says "Read from the photo: check it" until it is confirmed or typed over; only confirmed or typed values are saved. Saved through `POST /api/blood`, all or nothing, like typed results (kind `measured`); confirmed photo values are stored with source `istat:photo`, the rest `istat:typed`.
+4. The photo stays in that screen's memory and is gone when it closes. Nothing goes over the network but the confirmed numbers.
+
+Limits: tested on Abbott's own result-screen pictures (manual and quick reference guide) and degraded copies of them, not on a real analyser or a real photo of one. An arrow after a number can be read as a digit; for most tests the extra decimal gives it away, but a low glucose with an arrow ("60↓" read as "601") would pass the checks. The person's check against the photo is the safeguard, by design. Parser test (no app build): see `SKETCH-NOTES.md`.
 
 ## The body avatar
 
@@ -47,9 +58,10 @@ Where the code is: `Model/` (the hub's types, the world the socket builds, the h
 
 1. Open `Astrum.xcodeproj` in Xcode.
 2. Target Astrum, Signing & Capabilities: choose your team. Change the bundle id from `space.astrum.phone` if Xcode says it is taken.
-3. Check that these capabilities show (they come from `Astrum.entitlements`; add them with "+ Capability" if not): HealthKit with Background Delivery ticked, Time Sensitive Notifications, Background Modes with Audio ticked.
+3. Check that these capabilities show (they come from `Astrum.entitlements`; add them with "+ Capability" if not): HealthKit with Background Delivery ticked, Time Sensitive Notifications, Background Modes with Audio and "Uses Bluetooth LE accessories" ticked (the second is for room location, `RoomLocator.swift`).
 4. Run on a real iPhone (HealthKit and Bonjour need one). Phone and hub on the same Wi-Fi, hub started.
 5. On first launch allow local network and notifications, then follow the first-run screens: the hub, your crewmate, "Allow Health access".
+6. Once a crewmate is chosen the app asks for Bluetooth: allow it. Settings then shows "Room location": "In Galley (Measured)" near the cabin board, otherwise "Board not seen". The phone tells the hub when the owner enters or leaves the board's room. It means near the board, not inside the room; the thresholds are untuned (see `chip/README.md`).
 
 The silent-audio keep-alive is in `BackgroundKeepAlive.swift`; set `isEnabled` to false to switch it off. It is for this prototype only, installed from Xcode, never the App Store.
 

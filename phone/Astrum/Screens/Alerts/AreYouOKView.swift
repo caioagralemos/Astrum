@@ -1,6 +1,8 @@
 // Level 2, on the affected person's phone: "Are you OK?" with the countdown
-// to the hub's `answerBy` and two large answers. The screen goes away when
-// the hub has the answer (or raises the alert to level 3).
+// to the hub's `answerBy` and two large answers. An answer stops the countdown
+// at once; the screen goes away when the hub's state has the answer (or raises
+// the alert to level 3, or ends it). In a recorded story the buttons are
+// disabled and the screen says why (AlertOriginNotice).
 
 import SwiftUI
 
@@ -26,8 +28,10 @@ struct AreYouOKView: View {
         let left = (alert.answerBy ?? now) - now
         let world = model.world
         let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) } ?? ""
+        let sent = alert.answer
         return ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                AlertOriginNotice(alert: alert)
                 StatusBadge(text: String(localized: "Concerning"), tone: .watch)
 
                 Text(alert.askKey == "alert.enteredOverLimit"
@@ -36,9 +40,14 @@ struct AreYouOKView: View {
                     .font(.largeTitle.weight(.bold))
                     .accessibilityAddTraits(.isHeader)
 
-                Text(left > 0 ? String(localized: "\(Countdown.text(ms: left)) to answer") : String(localized: "Time is up. The crew is being told."))
-                    .font(.title2.monospacedDigit())
-                    .accessibilityAddTraits(.updatesFrequently)
+                if let sent {
+                    Label(sent == "ok" ? String(localized: "Answer sent: I am OK.") : String(localized: "Answer sent: I need help."), systemImage: "checkmark.circle")
+                        .font(.title2)
+                } else {
+                    Text(left > 0 ? String(localized: "\(Countdown.text(ms: left)) to answer") : String(localized: "Time is up. The crew is being told."))
+                        .font(.title2.monospacedDigit())
+                        .accessibilityAddTraits(.updatesFrequently)
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("\(Signals.name(alert.signal)) in \(room) is over NASA's limit.")
@@ -48,25 +57,28 @@ struct AreYouOKView: View {
                     }
                     if let kind = alert.kind { KindBadge(kind: kind) }
                 }
+                .projectionCard()
                 .accessibilityElement(children: .combine)
 
                 VStack(spacing: 12) {
                     Button { answer(alert, ok: true) } label: {
                         Text("I am OK").frame(maxWidth: .infinity, minHeight: 56)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                    .buttonStyle(.projection)
+                    .accessibilityHint(hint(alert))
 
                     Button { answer(alert, ok: false) } label: {
                         Text("I need help").frame(maxWidth: .infinity, minHeight: 56)
                     }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle(radius: HubStyle.controlRadius))
                     .tint(.red)
+                    .accessibilityHint(hint(alert))
                 }
                 .font(.title3.weight(.semibold))
-                .disabled(sending)
+                .disabled(sending || sent != nil || alert.isRecorded)
 
-                if sending { ProgressView("Sending…") }
+                if sending || sent != nil { ProgressView("Waiting for the hub…") }
                 if let problem {
                     Text(problem).foregroundStyle(.secondary)
                 }
@@ -75,7 +87,13 @@ struct AreYouOKView: View {
         }
     }
 
+    /// Why the buttons do nothing in a recorded story, for VoiceOver.
+    private func hint(_ alert: HubAlert) -> Text {
+        alert.isRecorded ? Text(AlertWords.recordedNotSent) : Text(verbatim: "")
+    }
+
     private func answer(_ alert: HubAlert, ok: Bool) {
+        guard !alert.isRecorded else { return }
         sending = true
         problem = nil
         Task {

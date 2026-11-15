@@ -36,7 +36,7 @@ struct BloodResultRow: View {
                 Text(name)
                 Spacer(minLength: 8)
                 Text(Signals.text(result.row))
-                    .font(.body.monospacedDigit().weight(.medium))
+                    .font(.body.monospacedDigit().weight(.light))
             }
             HStack(spacing: 8) {
                 KindBadge(kind: result.row.kind)

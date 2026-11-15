@@ -18,17 +18,20 @@ struct StationView: View {
                     ConnectionBanner()
                     if !widgets.isEmpty {
                         Section {
+                            // As wide as the list's frames.
                             WidgetGrid(items: widgets)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                                .listRowInsets(EdgeInsets(top: 4, leading: HubStyle.listInset, bottom: 4, trailing: HubStyle.listInset))
                                 .listRowBackground(Color.clear)
                         }
                     }
                     if model.world.crew.isEmpty {
                         Text("Connect to the hub to see the crew.").foregroundStyle(.secondary)
+                            .projectionRow()
                     }
                     RoomAirSection(now: now)
                     EarthSection(now: now)
                 }
+                .tint(.white)
             }
             .navigationTitle("Station")
             .toolbar {
@@ -52,7 +55,7 @@ private struct RoomAirSection: View {
     var body: some View {
         let world = model.world
         let room = world.room(of: model.person)
-        Section {
+        ProjectionSection {
             if let room {
                 let all = world.currentRows(inRoom: room, now: now)
                 let rows = all
@@ -76,9 +79,9 @@ private struct RoomAirSection: View {
             }
         } header: {
             if let room {
-                Text("Where you are: \(Signals.roomName(room, rooms: world.profile?.rooms ?? []))")
+                ProjectionHeader(.home, "Where you are: \(Signals.roomName(room, rooms: world.profile?.rooms ?? []))")
             } else {
-                Text("Where you are")
+                ProjectionHeader(.home, "Where you are")
             }
         }
     }
@@ -95,7 +98,7 @@ private struct AirRow: View {
                 Text(Signals.name(row.signal))
                 Spacer()
                 Text(Signals.text(row))
-                    .font(.body.monospacedDigit().weight(.medium))
+                    .font(.body.monospacedDigit().weight(.light))
             }
             HStack(spacing: 8) {
                 KindBadge(kind: row.kind)

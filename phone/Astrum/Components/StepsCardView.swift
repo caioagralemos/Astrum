@@ -11,8 +11,8 @@ struct StepsCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Steps card: \(card.title)")
-                .font(.headline)
+            ProjectionHeader(.warn, "Steps card: \(card.title)")
+                .accessibilityAddTraits(.isHeader)
             if otherLanguage {
                 Text("This card is only written in another language.")
                     .font(.footnote)

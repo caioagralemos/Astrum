@@ -5,18 +5,31 @@
 
 import SwiftUI
 
+/// The tab's fields, in screen order, for the keyboard's previous / next.
+enum CheckInField: Hashable {
+    case note
+    case blood(String)
+}
+
 struct CheckInView: View {
     @Environment(AppModel.self) private var model
     @State private var showingSettings = false
+    @FocusState private var focus: CheckInField?
+    @State private var bloodIDs: [String] = []
 
     var body: some View {
         NavigationStack {
-            Form {
-                ConnectionBanner()
-                CheckInForm()
-                PastCheckIns()
-                BloodSection()
+            ScrollViewReader { proxy in
+                Form {
+                    ConnectionBanner()
+                    CheckInForm(focus: $focus)
+                    PastCheckIns()
+                    BloodSection(focus: $focus, ids: $bloodIDs)
+                }
+                .keyboardFields($focus, order: [.note] + bloodIDs.map(CheckInField.blood))
+                .scrollsToFocus(focus, with: proxy)
             }
+            .tint(.white)
             .navigationTitle("Check-in")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -31,6 +44,7 @@ struct CheckInView: View {
 
 /// Today's questions. Only what the hub accepts: yes/no, 0 to 100, a text.
 private struct CheckInForm: View {
+    var focus: FocusState<CheckInField?>.Binding
     @Environment(AppModel.self) private var model
     @State private var headache: Bool?
     @State private var mood = 50.0
@@ -41,7 +55,7 @@ private struct CheckInForm: View {
     @State private var outcome: CheckinOutcome?
 
     var body: some View {
-        Section {
+        ProjectionSection {
             Picker("Headache", selection: $headache) {
                 Text("Not answered").tag(Bool?.none)
                 Text("Yes").tag(Bool?.some(true))
@@ -52,6 +66,9 @@ private struct CheckInForm: View {
             slider("Tiredness", value: $tiredness)
             TextField("Note (optional)", text: $note, axis: .vertical)
                 .lineLimit(1...5)
+                .projectionField()
+                .focused(focus, equals: .note)
+                .id(CheckInField.note)
             Button(action: send) {
                 if sending {
                     ProgressView()
@@ -59,13 +76,14 @@ private struct CheckInForm: View {
                     Text("Send check-in")
                 }
             }
+            .buttonStyle(.projectionProminent)
             .disabled(sending || model.person.isEmpty)
             if let outcome {
                 Text(words(for: outcome))
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Today")
+            ProjectionHeader(.mood, "Today")
         } footer: {
             Text("Your answers are stored as Reported: said by you, not measured.")
         }
@@ -101,6 +119,7 @@ private struct CheckInForm: View {
         if !text.isEmpty { answers.append(CheckinAnswer(signal: "note", value: nil, text: text, unit: "")) }
 
         sending = true
+        focus.wrappedValue = nil
         Task {
             outcome = await model.submitCheckin(answers)
             sending = false
@@ -129,7 +148,7 @@ private struct PastCheckIns: View {
         let groups = Dictionary(grouping: model.history.rows.filter { $0.signal.hasPrefix("checkin.") }, by: \.t)
             .sorted { $0.key > $1.key }
             .prefix(10)
-        Section("Earlier check-ins") {
+        ProjectionSection {
             if model.pendingCheckins > 0 {
                 Label("\(model.pendingCheckins) waiting to send", systemImage: "clock")
             }
@@ -153,6 +172,8 @@ private struct PastCheckIns: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+        } header: {
+            ProjectionHeader(.clock, "Earlier check-ins")
         }
     }
 }

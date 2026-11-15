@@ -1,9 +1,11 @@
 // The live connection to the hub's WebSocket (/ws). Keeps it open, notices
-// when it drops (a ping every 20 seconds), and reconnects with a growing wait:
-// 1, 2, 4 ... up to 30 seconds. Decodes each message off the main actor and
+// when it drops (a ping every 20 seconds; no pong within 10 closes it), and
+// reconnects with a growing wait: 1, 2, 4 ... up to 30 seconds, forever, for
+// as long as the app runs. Decodes each message off the main actor and
 // hands it to its owner, in the order it arrived.
 
 import Foundation
+import os
 
 @MainActor
 final class HubSocket {
@@ -54,9 +56,15 @@ final class HubSocket {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(20))
                     if Task.isCancelled { break }
+                    // A ping that never comes back (the Wi-Fi went, the Mac slept) would leave the socket
+                    // looking open while nothing arrives: give it 10 seconds, then reconnect.
+                    let pong = OSAllocatedUnfairLock(initialState: false)
                     task.sendPing { error in
-                        if error != nil { task.cancel(with: .goingAway, reason: nil) }
+                        if error != nil { task.cancel(with: .goingAway, reason: nil) } else { pong.withLock { $0 = true } }
                     }
+                    try? await Task.sleep(for: .seconds(10))
+                    if Task.isCancelled { break }
+                    if !pong.withLock({ $0 }) { task.cancel(with: .goingAway, reason: nil) }
                 }
             }
 

@@ -23,7 +23,7 @@ struct RangeBar: View {
         Canvas { context, size in
             let mid = size.height / 2
             let track = Path(roundedRect: CGRect(x: 0, y: mid - 1, width: size.width, height: 2), cornerRadius: 1)
-            context.fill(track, with: .color(.white.opacity(0.18)))
+            context.fill(track, with: .color(.white.opacity(0.12)))
 
             let extent = extent
             func x(_ v: Double) -> CGFloat {
@@ -47,7 +47,7 @@ struct RangeBar: View {
             }
 
             let dot = CGRect(x: x(value) - 4, y: mid - 4, width: 8, height: 8)
-            context.fill(Path(ellipseIn: dot), with: .color(marked ? .orange : .white))
+            context.fill(Path(ellipseIn: dot), with: .color(marked ? HubStyle.watch : .white))
         }
         .frame(height: 12)
         .accessibilityHidden(true)

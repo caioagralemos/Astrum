@@ -17,6 +17,8 @@ enum HubIconName: String, CaseIterable, Sendable {
     case dot
     // The dock widgets' headers (dock/widgets.tsx) that the list above lacks.
     case crew, alerts, earth, mission, exposure, board
+    // The dock's footer glyphs (dock/widgets.tsx) and the top bar's (App.tsx, panels/MainPanels.tsx).
+    case home, clock, send, warn, wifi, ask
 
     /// The SVG path, copied from the hub as is.
     var d: String {
@@ -51,6 +53,12 @@ enum HubIconName: String, CaseIterable, Sendable {
         case .mission: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2"
         case .exposure: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7v5h4.5"
         case .board: "M5 5h14v14H5zM9 9h6v6H9zM9 2.5V5M15 2.5V5M9 19v2.5M15 19v2.5M2.5 9H5M2.5 15H5M19 9h2.5M19 15h2.5"
+        case .home: "M4 10.5 12 4l8 6.5v9a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5z"
+        case .clock: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2"
+        case .send: "M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z"
+        case .warn: "M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.1"
+        case .wifi: "M2.5 9a14 14 0 0 1 19 0M5.5 12.2a9.5 9.5 0 0 1 13 0M8.6 15.4a5 5 0 0 1 6.8 0"
+        case .ask: "M12 3.5c.6 4.6 1.9 5.9 6.5 6.5c-4.6.6-5.9 1.9-6.5 6.5c-.6-4.6-1.9-5.9-6.5-6.5c4.6-.6 5.9-1.9 6.5-6.5zM18.5 16.5l.5 2l2 .5l-2 .5l-.5 2l-.5-2l-2-.5l2-.5z"
         }
     }
 

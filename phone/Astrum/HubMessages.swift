@@ -32,9 +32,11 @@ struct HubIncoming: Decodable, Sendable {
     /// restarting: the mission file the hub is restarting on.
     let to: String?
     let scenario: ScenarioFlag?
+    /// state and sources: the hub's devices, each with the room it is in.
+    let sources: [HubSource]?
 
     private enum CodingKeys: String, CodingKey {
-        case type, now, profile, latest, stays, rows, alarms, alerts, earthMessages, asleep, activity, evidence, person, to, scenario
+        case type, now, profile, latest, stays, rows, alarms, alerts, earthMessages, asleep, activity, evidence, person, to, scenario, sources
     }
 
     init(from decoder: Decoder) throws {
@@ -46,13 +48,20 @@ struct HubIncoming: Decodable, Sendable {
         stays = try? c.decodeIfPresent([Stay].self, forKey: .stays)
         rows = try? c.decodeIfPresent([Row].self, forKey: .rows)
         alarms = try? c.decodeIfPresent([HubAlarm].self, forKey: .alarms)
-        alerts = try? c.decodeIfPresent([HubAlert].self, forKey: .alerts)
+        let decodedAlerts = try? c.decodeIfPresent([HubAlert].self, forKey: .alerts)
         earthMessages = try? c.decodeIfPresent([EarthMessage].self, forKey: .earthMessages)
         asleep = try? c.decodeIfPresent([String].self, forKey: .asleep)
         activity = try? c.decodeIfPresent([String: Activity].self, forKey: .activity)
         person = try? c.decodeIfPresent(String.self, forKey: .person)
         to = try? c.decodeIfPresent(String.self, forKey: .to)
         scenario = try? c.decodeIfPresent(ScenarioFlag.self, forKey: .scenario)
+        // An alert inside a recorded story exists only in the recording: marked, so nothing offers to answer it.
+        alerts = scenario == nil ? decodedAlerts : decodedAlerts?.map { alert in
+            var recorded = alert
+            recorded.recorded = true
+            return recorded
+        }
+        sources = try? c.decodeIfPresent([HubSource].self, forKey: .sources)
         // `evidence` is a map in `state` and a single card in `evidence`.
         if type == "state" {
             evidenceByPerson = try? c.decodeIfPresent([String: Evidence].self, forKey: .evidence)
@@ -76,6 +85,16 @@ struct HubProfile: Codable, Sendable, Hashable {
     let delayToEarthSeconds: Double?
     let rooms: [HubRoom]?
     let mission: MissionFacts?
+    /// Each sensor board's id and the room it is in.
+    let chips: [String: String]?
+}
+
+/// One of the hub's devices (SourceStatus in types.ts), as far as the phone needs it.
+struct HubSource: Codable, Sendable, Hashable {
+    /// "chip:cabin-1" for a sensor board.
+    let id: String
+    let connected: Bool
+    let room: String?
 }
 
 struct CrewMember: Codable, Identifiable, Hashable, Sendable {
@@ -110,6 +129,8 @@ struct HubAlarm: Codable, Sendable, Hashable {
     /// The source went quiet while over the limit: never show it as live.
     var stale: Bool? = nil
     var lastReading: LastReading? = nil
+    /// Raised by a drill's simulated reading (hub/core/drill.ts), never by the room's air.
+    var drill: Bool? = nil
 
     /// Identifies one alarm across messages, so it is announced once.
     var key: String { "\(room)|\(signal)|\(Int64(since))" }
@@ -168,6 +189,14 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
     var seenAt: Double? = nil
     var actWithinSeconds: Double? = nil
     var earthInTime: Bool? = nil
+    /// A drill (hub/core/drill.ts): the hub's real alert engine on a simulated reading. It is answered like any alert.
+    var drill: Bool? = nil
+    /// Set on this phone when the alert came inside a recorded story (the message carried `scenario`).
+    /// It exists only in the recording, so it cannot be answered or acknowledged.
+    var recorded: Bool? = nil
+
+    var isDrill: Bool { drill == true }
+    var isRecorded: Bool { recorded == true }
 
     enum Audience: Codable, Sendable, Hashable {
         case everyone

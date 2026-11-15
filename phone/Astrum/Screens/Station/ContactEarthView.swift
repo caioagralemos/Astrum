@@ -14,10 +14,11 @@ struct ContactEarthView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
+                ProjectionSection {
                     TextField("Message", text: $text, axis: .vertical)
                         .lineLimit(4...12)
                         .focused($focused)
+                        .projectionField()
                 } footer: {
                     if let delay = model.world.profile?.delayToEarthSeconds {
                         Text("It reaches Earth in \(Countdown.text(ms: delay * 1000)). A reply can be back in \(Countdown.text(ms: delay * 2000)) at the earliest.")
@@ -25,8 +26,10 @@ struct ContactEarthView: View {
                 }
                 if let problem {
                     Text(problem).foregroundStyle(.secondary)
+                        .projectionRow()
                 }
             }
+            .tint(.white)
             .navigationTitle("Contact Earth")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

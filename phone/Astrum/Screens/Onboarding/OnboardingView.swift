@@ -22,6 +22,7 @@ struct OnboardingView: View {
                 case .notifications: NotificationStep()
                 }
             }
+            .tint(.white)
             .navigationTitle(title)
             .toolbar {
                 if step != .hub {
@@ -70,7 +71,7 @@ private struct HubStep: View {
     @State private var problem: String?
 
     var body: some View {
-        Section {
+        ProjectionSection {
             ForEach(model.finder.hubs) { hub in
                 Button {
                     model.choose(address: hub.address, automatic: true)
@@ -90,26 +91,30 @@ private struct HubStep: View {
                 .padding(.vertical, 12)
             }
         } header: {
-            Text("On this Wi-Fi")
+            ProjectionHeader(.wifi, "On this Wi-Fi")
         } footer: {
             Text("Astrum is a companion to the station's hub. It finds the hub on the station's Wi-Fi.")
         }
 
-        Section("Or type its address") {
+        ProjectionSection {
             TextField("Address, for example 192.168.1.20", text: $typed)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .onSubmit(useTyped)
+                .projectionField()
             Button("Use this address", action: useTyped)
+                .buttonStyle(.projectionProminent)
                 .disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty)
             if let problem {
                 Text(problem).foregroundStyle(.secondary)
             }
+        } header: {
+            ProjectionHeader(.wifi, "Or type its address")
         }
 
         if let address = model.address {
-            Section {
+            ProjectionSection {
                 LabeledContent("Using", value: address.display)
                 Label(model.link.title, systemImage: model.link.symbol)
             }
@@ -131,7 +136,7 @@ private struct PersonStep: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        Section {
+        ProjectionSection {
             if model.crew.isEmpty {
                 Text("Waiting for the hub to send the crew.")
                     .foregroundStyle(.secondary)
@@ -166,10 +171,11 @@ private struct HealthStep: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Access", value: model.healthState.title)
             if model.healthState == .notAsked {
                 Button("Allow Health access") { model.requestHealthAccess() }
+                    .buttonStyle(.projection)
             }
         } footer: {
             Text("Astrum reads your Apple Watch's readings from Health and sends them to the hub. It writes nothing to Health. You can skip this.")
@@ -181,11 +187,12 @@ private struct NotificationStep: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        Section {
+        ProjectionSection {
             LabeledContent("Notifications", value: model.notificationText)
             Button("Open the Settings app") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }
+            .buttonStyle(.projection)
         } footer: {
             Text("Alerts about you, and alerts everyone is told, arrive as time-sensitive notifications, also on a locked phone and the Apple Watch.")
         }

@@ -281,6 +281,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Astrum/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Astrum;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Astrum reads your heart, breathing, blood oxygen, sleep, activity and sound readings and sends them to the station's hub, so the crew's health system can watch over you.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Astrum does not write anything to Health.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Astrum finds the station's hub on this Wi-Fi network and sends your Health readings to it.";
@@ -319,6 +320,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Astrum/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Astrum;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Astrum reads your heart, breathing, blood oxygen, sleep, activity and sound readings and sends them to the station's hub, so the crew's health system can watch over you.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Astrum does not write anything to Health.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Astrum finds the station's hub on this Wi-Fi network and sends your Health readings to it.";

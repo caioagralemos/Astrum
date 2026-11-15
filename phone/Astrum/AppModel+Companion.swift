@@ -24,8 +24,19 @@ extension AppModel {
     /// The hub's clock at a moment on this phone, in milliseconds.
     func hubNow(_ date: Date = .now) -> Double { world.now(at: date) }
 
-    /// The alerts the owner is told about. Nothing else is ever shown.
-    var visibleAlerts: [HubAlert] { person.isEmpty ? [] : world.visibleAlerts(to: person) }
+    /// The alerts the owner is told about. Nothing else is ever shown. An answer just sent shows at
+    /// once (the countdown stops), until the hub's own state confirms it.
+    var visibleAlerts: [HubAlert] {
+        guard !person.isEmpty else { return [] }
+        let alerts = world.visibleAlerts(to: person)
+        guard !pendingAnswers.isEmpty else { return alerts }
+        return alerts.map { alert in
+            guard alert.answer == nil, alert.level == 2, let sent = pendingAnswers[alert.id] else { return alert }
+            var answered = alert
+            answered.answer = sent
+            return answered
+        }
+    }
 
     /// The owner's current readings, as Me lists them.
     func readings(now: Double) -> [Reading] {
@@ -36,6 +47,12 @@ extension AppModel {
 
     func apply(_ message: HubIncoming) {
         world.apply(message, at: Date())
+        // An answer is confirmed once the hub's alert has one, has moved on from level 2, or has ended.
+        if !pendingAnswers.isEmpty, message.alerts != nil {
+            pendingAnswers = pendingAnswers.filter { id, _ in
+                world.alerts.contains { $0.id == id && $0.level == 2 && $0.answer == nil }
+            }
+        }
         if let rows = message.rows, !person.isEmpty {
             history.append(rows.filter { $0.person == person && !$0.signal.hasPrefix("blood.") })
         }
@@ -119,29 +136,75 @@ extension AppModel {
 
     // MARK: Alerts
 
-    /// "I am OK" or "I need help". Returns the hub's words if it refused, or a reason it could not be sent.
+    /// "I am OK" or "I need help". Shown at once; returns a plain sentence if it could not be sent
+    /// (never the hub's own words). If the hub no longer has the question, the screen follows the
+    /// hub's state instead of showing an error.
     func answer(_ alert: HubAlert, ok: Bool) async -> String? {
-        guard let api else { return String(localized: "The hub is out of reach.") }
+        await answer(alertID: alert.id, recorded: alert.isRecorded, ok: ok)
+    }
+
+    func answer(alertID: String, recorded: Bool, ok: Bool) async -> String? {
+        if recorded { return AlertWords.recordedNotSent }
+        guard let api else { return AlertWords.outOfReach }
+        pendingAnswers[alertID] = ok ? "ok" : "help"
         do {
-            try await api.answerAlert(id: alert.id, answer: ok ? "ok" : "help")
+            try await api.answerAlert(id: alertID, answer: ok ? "ok" : "help")
+            refreshFromHub()
             return nil
-        } catch HubError.refused(let words) {
-            return words
+        } catch HubError.notWaiting {
+            pendingAnswers[alertID] = nil
+            refreshFromHub()
+            return nil
+        } catch HubError.recorded {
+            pendingAnswers[alertID] = nil
+            return AlertWords.recordedNotSent
+        } catch HubError.refused {
+            pendingAnswers[alertID] = nil
+            return AlertWords.answerRefused
         } catch {
-            return String(localized: "The hub is out of reach.")
+            pendingAnswers[alertID] = nil
+            return AlertWords.outOfReach
         }
     }
 
-    /// "I've seen it" on a level 3.
+    /// "I've seen it" on a level 3. Returns a plain sentence if it could not be sent.
     func acknowledge(_ alert: HubAlert) async -> String? {
-        guard let api, !person.isEmpty else { return String(localized: "The hub is out of reach.") }
+        await acknowledge(alertID: alert.id, recorded: alert.isRecorded)
+    }
+
+    func acknowledge(alertID: String, recorded: Bool) async -> String? {
+        if recorded { return AlertWords.recordedNotSent }
+        guard let api, !person.isEmpty else { return AlertWords.outOfReach }
         do {
-            try await api.acknowledgeAlert(id: alert.id, by: person)
+            try await api.acknowledgeAlert(id: alertID, by: person)
+            refreshFromHub()
             return nil
-        } catch HubError.refused(let words) {
-            return words
+        } catch HubError.notWaiting {
+            // Someone saw it first, or it ended: the hub's state says which.
+            refreshFromHub()
+            return nil
+        } catch HubError.recorded {
+            return AlertWords.recordedNotSent
+        } catch HubError.refused {
+            return AlertWords.seenRefused
         } catch {
-            return String(localized: "The hub is out of reach.")
+            return AlertWords.outOfReach
+        }
+    }
+
+    /// An action button on an alert notification (AlarmNotifier), possibly with the app just woken
+    /// in the background. On success the notification goes; if the hub cannot be reached, a
+    /// follow-up notification says so rather than failing silently.
+    func handleNotificationAction(_ action: AlarmNotifier.Action, alertID: String, level: Int, recorded: Bool) async {
+        let problem: String? = switch action {
+        case .ok: await answer(alertID: alertID, recorded: recorded, ok: true)
+        case .help: await answer(alertID: alertID, recorded: recorded, ok: false)
+        case .seen: await acknowledge(alertID: alertID, recorded: recorded)
+        }
+        if let problem {
+            notifier.postUnsent(alertID: alertID, reason: problem == AlertWords.outOfReach ? AlertWords.unreachableOpen : AlertWords.refusedOpen)
+        } else {
+            notifier.removeDelivered(alertID: alertID, level: level)
         }
     }
 
@@ -151,4 +214,15 @@ extension AppModel {
         openedAlertID = String(identifier[..<bar])
         selectedTab = .me
     }
+}
+
+/// The plain sentences the alert screens and notifications use. The hub's own words never reach them.
+enum AlertWords {
+    static var recordedNotSent: String { String(localized: "Simulated scenario: a recorded story is playing. Your answers are not sent.") }
+    static var outOfReach: String { String(localized: "The hub is out of reach.") }
+    static var answerRefused: String { String(localized: "The hub did not take your answer. If you need help, tell the crew directly.") }
+    static var seenRefused: String { String(localized: "The hub did not take this. Try again.") }
+    static var unreachableOpen: String { String(localized: "Could not reach the hub: open Astrum to answer.") }
+    static var refusedOpen: String { String(localized: "The hub did not take your answer: open Astrum to answer.") }
+    static var drillNotice: String { String(localized: "Drill: the reading is simulated. The alert and your answers are real.") }
 }

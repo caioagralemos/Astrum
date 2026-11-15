@@ -1,7 +1,9 @@
 // Level 3, on every phone: who, where, why it is level 3, the number against
 // the limit with its label, the steps card word for word (or that none is
 // approved), the message to Earth with its countdown, and "I've seen it".
-// Several rooms over the same limit are one event.
+// Several rooms over the same limit are one event. A drill says so at the
+// top and works like any alert; in a recorded story "I've seen it" is
+// disabled, says why, and the screen can be closed at any time.
 
 import SwiftUI
 
@@ -29,13 +31,16 @@ struct DangerView: View {
     private func content(_ alert: HubAlert, now: Double) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                AlertOriginNotice(alert: alert)
                 StatusBadge(text: String(localized: "Dangerous"), tone: .danger)
                     .font(.title3)
                     .accessibilityAddTraits(.isHeader)
 
                 whoAndWhere(alert)
                 number(alert, now: now)
+                    .projectionCard()
                 steps(alert)
+                    .projectionCard()
                 earth(alert, now: now)
                 seen(alert)
             }
@@ -125,9 +130,11 @@ struct DangerView: View {
     private func earth(_ alert: HubAlert, now: Double) -> some View {
         if let message = model.world.earthMessages.first(where: { $0.id == alert.earthId }) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Earth").font(.headline)
+                ProjectionHeader(.earth, "Earth")
+                    .accessibilityAddTraits(.isHeader)
+                if alert.isDrill { Text("Drill: a simulated message to Earth.") }
                 if now < message.replyAt {
-                    Text("Message to Earth sent. A reply can arrive in \(Countdown.text(ms: message.replyAt - now)).")
+                    Text("Message to Earth sent. A reply can arrive in \(Countdown.minutes(ms: message.replyAt - now)).")
                 } else {
                     Text("Earth's reply can be here now.")
                 }
@@ -137,9 +144,11 @@ struct DangerView: View {
                          : String(localized: "This card says act within \(Countdown.text(ms: seconds * 1000)): act on board now."))
                 }
             }
+            .projectionCard()
             .accessibilityElement(children: .combine)
         } else if let sent = alert.earth {
-            Text("Message to Earth sent. A reply can arrive in \(Countdown.text(ms: sent.replyAt - now)).")
+            Text("Message to Earth sent. A reply can arrive in \(Countdown.minutes(ms: sent.replyAt - now)).")
+                .projectionCard()
         }
     }
 
@@ -154,15 +163,17 @@ struct DangerView: View {
                     Text("I've seen it").frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: HubStyle.controlRadius))
                 .tint(.red)
                 .font(.title3.weight(.semibold))
-                .disabled(sending || !model.isConnected)
+                .disabled(sending || !model.isConnected || alert.isRecorded)
+                .accessibilityHint(alert.isRecorded ? Text(AlertWords.recordedNotSent) : Text(verbatim: ""))
             }
-            if alert.seenAt != nil {
+            if alert.seenAt != nil || alert.isRecorded {
                 Button { model.closedAlerts.insert(alert.key) } label: {
                     Text("Close").frame(maxWidth: .infinity, minHeight: 44)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.projection)
                 .accessibilityHint(Text("The alert stays on Me until it ends"))
             }
             if let problem {
@@ -178,6 +189,7 @@ struct DangerView: View {
     }
 
     private func acknowledge(_ alert: HubAlert) {
+        guard !alert.isRecorded else { return }
         sending = true
         Task {
             problem = await model.acknowledge(alert)

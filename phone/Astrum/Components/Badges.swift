@@ -11,25 +11,30 @@ enum StatusTone {
 
     var color: Color {
         switch self {
-        case .quiet: .secondary
-        case .watch: .orange
-        case .danger: .red
+        case .quiet: HubStyle.muted
+        case .watch: HubStyle.watch
+        case .danger: HubStyle.over
         }
     }
 }
 
-/// The label on every value: how it came to exist.
+/// The label on every value: how it came to exist, the hub's mark and its word
+/// in a small outlined tag (the hub's label chip, radius 3).
 struct KindBadge: View {
     let kind: Kind
 
     var body: some View {
-        Text(Signals.kindName(kind))
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .overlay(Capsule().strokeBorder(.secondary.opacity(0.5), lineWidth: 0.5))
-            .accessibilityLabel(Text("Label: \(Signals.kindName(kind))"))
+        HStack(spacing: 4) {
+            KindMark(kind: kind)
+            Text(Signals.kindName(kind))
+        }
+        .font(.caption)
+        .foregroundStyle(HubStyle.muted)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .overlay(RoundedRectangle(cornerRadius: 3, style: .circular).strokeBorder(.white.opacity(HubStyle.hairline), lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Label: \(Signals.kindName(kind))"))
     }
 }
 

@@ -19,6 +19,9 @@ struct MeView: View {
                 content(readings: model.readings(now: now))
             }
             .listStyle(.plain)
+            // The frames line up with the widgets (16 from the screen's edges); controls are white.
+            .environment(\.projectionListInset, 16)
+            .tint(.white)
             // The title names the screen for VoiceOver and the back button; it is not drawn.
             .navigationTitle(String(localized: "Me"))
             .navigationBarTitleDisplayMode(.inline)
@@ -62,7 +65,7 @@ struct MeView: View {
                 }
             }
 
-            Section {
+            ProjectionSection {
                 if region == .blood {
                     BloodResultsList(reply: blood, person: model.person)
                 } else if shown.isEmpty {
@@ -76,7 +79,7 @@ struct MeView: View {
                     }
                 }
             } header: {
-                Text(region?.title ?? String(localized: "All readings"))
+                ProjectionHeader(region?.icon ?? .vibration, region?.title ?? String(localized: "All readings"))
             }
         }
     }
@@ -107,6 +110,19 @@ struct MeView: View {
     }
 }
 
+private extension BodyRegion {
+    /// The hub's icon for the region, beside its name in the list's header.
+    var icon: HubIconName {
+        switch self {
+        case .head: .head
+        case .heart: .heart
+        case .lungs: .air
+        case .body: .dumbbell
+        case .blood: .humidity
+        }
+    }
+}
+
 /// The regions as a plain row of choices: the figure's regions without the figure.
 private struct RegionPicker: View {
     @Binding var selected: BodyRegion?
@@ -131,18 +147,29 @@ private struct RegionPicker: View {
         return Button {
             selected = region
         } label: {
+            // The hub's labels: outlined on the tint; the chosen one solid white with dark words.
             HStack(spacing: 4) {
                 Text(title)
                 if isMarked {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(HubStyle.watch)
                         .accessibilityHidden(true)
                 }
             }
             .font(.subheadline)
+            .foregroundStyle(isSelected ? HubStyle.solidFill : .white)
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
-            .background(Capsule().fill(.white.opacity(isSelected ? 0.18 : 0.06)))
+            .background {
+                let shape = RoundedRectangle(cornerRadius: HubStyle.controlRadius, style: .circular)
+                if isSelected {
+                    shape.fill(.white)
+                } else {
+                    shape.fill(HubStyle.fill)
+                        .overlay(shape.strokeBorder(.white.opacity(0.5), lineWidth: 1))
+                }
+            }
+            .padding(.vertical, 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))

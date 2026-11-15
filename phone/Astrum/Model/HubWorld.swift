@@ -16,6 +16,8 @@ struct HubWorld: Codable, Sendable {
     var asleep: [String] = []
     var activity: [String: Activity] = [:]
     var evidence: [String: Evidence] = [:]
+    /// The hub's devices. Optional so a world saved before it existed still loads.
+    var sources: [HubSource]?
     /// Set while what the hub sends is a simulated scenario.
     var scenario: ScenarioFlag?
     /// Set when the hub said it is restarting; cleared by its next state.
@@ -50,6 +52,7 @@ struct HubWorld: Codable, Sendable {
             asleep = message.asleep ?? []
             activity = message.activity ?? [:]
             evidence = message.evidenceByPerson ?? [:]
+            sources = message.sources
             restarting = nil
         case "rows":
             merge(rows: message.rows ?? [])
@@ -67,6 +70,8 @@ struct HubWorld: Codable, Sendable {
             activity = message.activity ?? activity
         case "evidence":
             if let person = message.person, let card = message.evidence { evidence[person] = card }
+        case "sources":
+            sources = message.sources ?? sources
         case "restarting":
             restarting = message.to ?? ""
         default:
@@ -110,6 +115,11 @@ extension HubWorld {
     /// The room a crewmate is in now: their open stay, the newest if there are several.
     func room(of person: String) -> String? {
         stays.filter { $0.person == person && $0.until == nil }.max { $0.from < $1.from }?.room
+    }
+
+    /// The room a sensor board is in: from the hub's live sources, else the profile's list of boards.
+    func room(ofBoard board: String) -> String? {
+        sources?.first { $0.id == "chip:\(board)" }?.room ?? profile?.chips?[board]
     }
 
     func occupants(of room: String) -> [String] {

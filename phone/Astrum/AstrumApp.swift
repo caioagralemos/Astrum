@@ -1,9 +1,11 @@
 // The app's entry point. Creates the one shared model at launch (also when iOS
 // wakes the app in the background for new Health data), shows the main screen,
-// lets alerts appear as banners while the app is open, and opens the alert a
-// tapped notification is about.
+// lets alerts appear as banners while the app is open, opens the alert a
+// tapped notification is about, and sends the answer given with a
+// notification's button (AlarmNotifier), even when iOS wakes the app for it.
 
 import SwiftUI
+import UIKit
 import UserNotifications
 
 @main
@@ -15,7 +17,16 @@ struct AstrumApp: App {
     init() {
         let model = AppModel()
         _model = State(initialValue: model)
-        presenter = NotificationPresenter { identifier in model.openAlert(notification: identifier) }
+        presenter = NotificationPresenter(
+            open: { identifier in model.openAlert(notification: identifier) },
+            act: { action, alertID, level in
+                // Keeps the app running until the hub has answered, if iOS woke it in the background for this.
+                let task = UIApplication.shared.beginBackgroundTask(withName: "Alert answer", expirationHandler: nil)
+                await model.handleNotificationAction(action, alertID: alertID, level: level, recorded: false)
+                UIApplication.shared.endBackgroundTask(task)
+            }
+        )
+        AlarmNotifier.registerCategories()
         UNUserNotificationCenter.current().delegate = presenter
     }
 
@@ -26,24 +37,34 @@ struct AstrumApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { model.becameActive() }
+            if phase == .background { model.wentToBackground() }
         }
     }
 }
 
-/// Shows alerts even while Astrum is the app on screen, and opens the alert a tapped notification is about.
+/// Shows alerts even while Astrum is the app on screen, opens the alert a tapped notification is
+/// about, and hands a notification's action button to the model.
 final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, Sendable {
     private let open: @MainActor @Sendable (String) -> Void
+    private let act: @MainActor @Sendable (AlarmNotifier.Action, String, Int) async -> Void
 
-    init(open: @escaping @MainActor @Sendable (String) -> Void) {
+    init(open: @escaping @MainActor @Sendable (String) -> Void, act: @escaping @MainActor @Sendable (AlarmNotifier.Action, String, Int) async -> Void) {
         self.open = open
+        self.act = act
     }
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let identifier = response.notification.request.identifier
-        await open(identifier)
+        let request = response.notification.request
+        let info = request.content.userInfo
+        if let action = AlarmNotifier.Action(rawValue: response.actionIdentifier), let alertID = info["alertID"] as? String {
+            // iOS keeps the app running until this returns.
+            await act(action, alertID, info["level"] as? Int ?? 0)
+        } else {
+            await open(request.identifier)
+        }
     }
 
     func userNotificationCenter(

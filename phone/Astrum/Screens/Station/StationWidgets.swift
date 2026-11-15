@@ -71,7 +71,7 @@ private struct AlertsWidget: View {
                 Spacer(minLength: 0)
                 Text(line)
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(first == nil && world.alarms.isEmpty ? 0.5 : 0.7))
+                    .foregroundStyle(first == nil && world.alarms.isEmpty ? HubStyle.faint : HubStyle.muted)
             }
         }
         let spoken = [String(localized: "Alerts"), open == 0 ? sub : "\(open) \(sub)", line].joined(separator: ", ")
@@ -140,13 +140,13 @@ private struct EarthWidget: View {
                         Spacer()
                         Text("Reply")
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.45))
+                    .font(.caption)
+                    .foregroundStyle(HubStyle.faint)
                     .accessibilityHidden(true)
                     if let from { foot(String(localized: "Last message from \(from)")) }
                 }
             }
-            return (AnyView(view), [String(localized: "A reply can arrive in"), Countdown.text(ms: message.replyAt - now)].joined(separator: " "))
+            return (AnyView(view), [String(localized: "A reply can arrive in"), Countdown.minutes(ms: message.replyAt - now)].joined(separator: " "))
         }
         let minutes = Int((delayMs / 60_000).rounded())
         let view = VStack(alignment: .leading, spacing: 6) {
@@ -162,7 +162,7 @@ private struct EarthWidget: View {
     }
 
     private func foot(_ text: String) -> some View {
-        Text(text).font(.caption).foregroundStyle(.white.opacity(0.6))
+        Text(text).font(.caption).foregroundStyle(HubStyle.muted)
     }
 
     /// The hub's countdown: minutes and seconds, "4:05".
@@ -248,8 +248,8 @@ private struct CO2Widget: View {
             HStack(spacing: 8) {
                 ForEach(columns) { column in
                     Text(column.name)
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.caption)
+                        .foregroundStyle(HubStyle.faint)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity)
                 }
@@ -282,8 +282,8 @@ private struct CO2Widget: View {
                     .stroke(level.color.opacity(level.strength), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     // The limit's words above its line, the headache level's below its own.
                     Text(level.words)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .font(.system(size: 12))
+                        .foregroundStyle(HubStyle.faint)
                         .fixedSize()
                         .offset(y: level.value == Signals.co2Limit ? top - 14 : top + 3)
                 }
@@ -352,7 +352,7 @@ private struct CrewWidget: View {
                     .frame(minHeight: 28)
                     .padding(.vertical, 2)
                     .overlay(alignment: .top) {
-                        if index > 0 { Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5) }
+                        if index > 0 { Rectangle().fill(.white.opacity(HubStyle.hairline)).frame(height: 1) }
                     }
                 }
             }
@@ -429,7 +429,7 @@ private struct MissionWidget: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(HubStyle.muted)
             }
         }
         .accessibilityElement(children: .ignore)
