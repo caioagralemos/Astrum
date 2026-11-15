@@ -75,6 +75,12 @@ export const FIRST_TOKEN_MS = 8_000;
 export const ANSWER_MS = 25_000;
 const URGENT_MS = 8_000;
 const READY_MS = 180_000;
+/**
+ * How long the warm-up may take before the server is taken for stuck. Long on purpose: a slow computer (an
+ * Intel build run by emulation on an ARM PC reads 3 to 16 tokens a second) needs minutes to read the fixed
+ * prompts once, and killing it at one minute only made it start over, for ever. A working Mac takes under a second.
+ */
+const WARM_MS = 600_000;
 const MAX_QUEUE = 8;
 const MAX_RESTARTS = 4;
 /** How often a ready server is checked, and how many missed checks in a row mean it is gone. */
@@ -507,8 +513,8 @@ export class AiRuntime {
   private async warm(): Promise<boolean> {
     const blank = { readings: null, detectorLine: null, passages: [], question: 'Hello.' };
     const results = await Promise.allSettled([
-      this.client.chat({ messages: buildMessages(blank), maxTokens: 1, firstTokenMs: 60_000, totalMs: 60_000 }),
-      this.client.chat({ messages: buildUrgentMessages(blank), maxTokens: 1, responseFormat: URGENT_FORMAT, firstTokenMs: 60_000, totalMs: 60_000 }),
+      this.client.chat({ messages: buildMessages(blank), maxTokens: 1, firstTokenMs: WARM_MS, totalMs: WARM_MS }),
+      this.client.chat({ messages: buildUrgentMessages(blank), maxTokens: 1, responseFormat: URGENT_FORMAT, firstTokenMs: WARM_MS, totalMs: WARM_MS }),
     ]);
     return results.every((r) => r.status === 'fulfilled');
   }

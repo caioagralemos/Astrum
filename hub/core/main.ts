@@ -120,7 +120,9 @@ if (missionFile === null) {
 if (profile.mission) profile.mission.clockOffsetMinutes = -new Date().getTimezoneOffset();
 if (!setupDone(dataDir)) profile.setupDone = false;
 // Every crewmate carries a face in the state (engine/portraits.ts): their own, else the default pairing, so the hub's screens and the phone show the same one.
-profile.crew = withPortraits(profile.crew);
+// Demo mode only: the simulated crew gets the sample pictures. In production a crewmate with no photo keeps none
+// (the screens draw the line figure): a real person is never given an AI-made face.
+if (process.env.ASTRUM_MODE !== 'production') profile.crew = withPortraits(profile.crew);
 /** Which room plays each part of the simulated crew's day. An old profile with no mission file keeps the ship's, as before. */
 const places = mission ? placesOf(mission) : SHIP_PLACES;
 const gravity = mission?.gravity ?? null;

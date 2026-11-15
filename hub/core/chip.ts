@@ -147,9 +147,12 @@ export class ChipAdapter implements Adapter {
   }
 }
 
-/** The ESP32 board shows up as a CP2102 USB serial port. */
+/**
+ * The ESP32 board shows up as a USB serial port: a CP2102 (Silicon Labs, vendor 10c4) or, on other DevKits, a CH340
+ * (WCH, vendor 1a86). On a Mac the port's name says so; on Windows it is only "COM3", so the vendor decides.
+ */
 async function findChipPort(): Promise<string | null> {
   const ports = await SerialPort.list();
-  const hit = ports.find((p) => /usbserial|SLAB_USBtoUART|wchusbserial/i.test(p.path) || /10c4/i.test(p.vendorId ?? ''));
+  const hit = ports.find((p) => /usbserial|SLAB_USBtoUART|wchusbserial/i.test(p.path) || /10c4|1a86/i.test(p.vendorId ?? ''));
   return hit?.path ?? null;
 }
