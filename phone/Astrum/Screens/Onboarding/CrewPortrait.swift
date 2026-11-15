@@ -114,14 +114,41 @@ struct CrewPortrait: View {
         }
     }
 
-    /// The fallback: the first letter of the name on a faint fill.
+    /// The fallback, with no photo: the same line figure the hub's crew card draws (hub/ui/src/dock/widgets.tsx,
+    /// Portrait), a faceted head and shoulders, on a faint fill. The same for everyone; the name is beside it.
     private var initial: some View {
         GeometryReader { geometry in
-            Text(verbatim: member.name.first.map { String($0).uppercased() } ?? "")
-                .font(.system(size: geometry.size.width * 0.42, weight: .light))
-                .foregroundStyle(HubStyle.faint)
+            PortraitFigure()
+                .stroke(Color.white.opacity(0.42), style: StrokeStyle(lineWidth: max(0.75, geometry.size.width * 0.9 / 48), lineCap: .round, lineJoin: .round))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white.opacity(HubStyle.fieldFill))
         }
+    }
+}
+
+/// The hub's placeholder portrait, as lines on its 48 by 48 grid, scaled to fill the width and sit on the bottom edge.
+private struct PortraitFigure: Shape {
+    private static let closed: [[(CGFloat, CGFloat)]] = [
+        [(23, 7), (30, 9.5), (33, 15), (35, 20), (33, 25.5), (28, 29.5), (21, 29), (16, 25), (14, 17), (16, 10)],
+    ]
+    private static let open: [[(CGFloat, CGFloat)]] = [
+        [(30, 9.5), (27, 16), (33, 15)], [(27, 16), (35, 20)], [(16, 10), (22, 19), (27, 16)], [(14, 17), (22, 19), (21, 29)],
+        [(27, 16), (29, 23), (35, 20)], [(29, 23), (33, 25.5)], [(29, 23), (28, 29.5)], [(22, 19), (29, 23)],
+        [(19.5, 29.2), (18.5, 34)], [(27.5, 29.8), (28, 34)],
+        [(1, 48), (4, 40), (14, 35.5), (18.5, 34), (23.5, 39), (28, 34), (35, 36), (44, 40), (47, 48)],
+        [(14, 35.5), (16, 48)], [(35, 36), (33, 48)], [(23.5, 39), (23.5, 48)], [(4, 40), (9, 48)], [(44, 40), (40, 48)],
+    ]
+
+    func path(in rect: CGRect) -> Path {
+        let scale = rect.width / 48
+        let top = rect.maxY - 48 * scale
+        func point(_ p: (CGFloat, CGFloat)) -> CGPoint { CGPoint(x: rect.minX + p.0 * scale, y: top + p.1 * scale) }
+        var path = Path()
+        for line in Self.closed {
+            path.addLines(line.map(point))
+            path.closeSubpath()
+        }
+        for line in Self.open { path.addLines(line.map(point)) }
+        return path
     }
 }
