@@ -472,6 +472,20 @@ const UNSAFE: [RegExp, string][] = [
   [/(do not|don'?t|no need to) (go|relocate|move|shelter)\b.{0,30}shelter/i, 'keeping the crew out of shelter'],
 ];
 
+/**
+ * The output check's diagnosis and unsafe-phrase rules on any text, sentence by
+ * sentence, as the reasons checkAnswer would give. For the hub's own fixed
+ * texts (medical/run-cases.ts), which never go through the model.
+ */
+export function phraseProblems(text: string): { diagnosis: string[]; unsafe: string[] } {
+  const out = { diagnosis: [] as string[], unsafe: [] as string[] };
+  for (const s of text.split(SENTENCE_SPLIT).map((x) => x.trim()).filter(Boolean)) {
+    if (DIAGNOSIS.some((re) => re.test(s))) out.diagnosis.push(s);
+    for (const [re, why] of UNSAFE) if (re.test(s)) out.unsafe.push(`${why}: "${s}"`);
+  }
+  return out;
+}
+
 const WORD_NUMBERS: Record<string, number> = {
   two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
   fifteen: 15, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, hundred: 100, thousand: 1000,

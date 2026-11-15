@@ -24,6 +24,9 @@ import type { Evidence } from '../engine/evidence.ts';
 import type { CrewWatch } from '../engine/sensors.ts';
 import { sleepersOf } from '../engine/activity.ts';
 import type { Activity } from '../engine/activity.ts';
+import { alertsFor, evidenceFor, rowsFor } from '../engine/privacy.ts';
+import type { Viewer } from '../engine/privacy.ts';
+import type { CardLang, CardView } from '../engine/cards.ts';
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -70,9 +73,20 @@ export class Hub {
   /** Set by the alert watcher: "I've seen it" on a level 3, from anyone (a crew id, or null from a shared screen). */
   seeAlert: (id: string, by: string | null) => boolean = () => false;
 
+  /** Her cards' text by id, set by main.ts (engine/cards.ts cardView). None until then. */
+  cardViews: (ids: string[], lang: CardLang) => CardView[] = () => [];
+
+  /** The alerts as one viewer receives them, each with the text of the cards it shows. */
+  private alertsAs(alerts: Alert[], viewer: Viewer): Alert[] {
+    return alertsFor(alerts, viewer).map((a) => {
+      const ids = [a.card, a.alsoCard].filter((id): id is string => !!id);
+      return ids.length ? { ...a, cardViews: this.cardViews(ids, 'en') } : a;
+    });
+  }
+
   setAlerts(alerts: Alert[]): void {
     this.alerts = alerts;
-    this.broadcast({ type: 'alerts', alerts });
+    this.broadcastFor((viewer) => ({ type: 'alerts', alerts: this.alertsAs(alerts, viewer) }));
     this.soundBoard();
   }
 
@@ -130,7 +144,7 @@ export class Hub {
   /** One crewmate's evidence card changed (core/evidence.ts decides when): keep it and tell every screen. */
   setEvidence(person: string, evidence: Evidence & { computedAt?: number }): void {
     this.evidence = { ...this.evidence, [person]: evidence };
-    this.broadcast({ type: 'evidence', person, evidence });
+    this.broadcastFor((viewer) => ({ type: 'evidence', person, evidence: evidenceFor(evidence, viewer) }));
   }
 
   private alarms: RoomAlarm[] = [];
@@ -224,7 +238,7 @@ export class Hub {
     if (!rows.length) return [];
     for (const r of rows) if (r.room && !r.person && r.source !== STAND_IN) this.heard.set(`${r.room}|${r.signal}`, r.t);
     const saved = this.store.addRows(rows);
-    this.broadcast({ type: 'rows', rows: saved });
+    this.broadcastFor((viewer) => ({ type: 'rows', rows: rowsFor(saved, viewer) }));
     return saved;
   }
 
@@ -242,21 +256,22 @@ export class Hub {
     if (strip(before) !== strip(JSON.stringify(status))) this.broadcast({ type: 'sources', sources: [...this.sources.values()] });
   }
 
-  state(now = Date.now()): HubMessage {
+  /** Everything a screen needs first, as `viewer` may receive it (engine/privacy.ts). */
+  state(now = Date.now(), viewer: Viewer = 'common'): HubMessage {
     return {
       type: 'state',
       now,
       profile: this.profile,
-      latest: this.store.recent(now - STATE_WINDOW_MS),
+      latest: rowsFor(this.store.recent(now - STATE_WINDOW_MS), viewer),
       stays: this.store.stays(now - FRESH_MS, now),
       sources: [...this.sources.values()],
       alarms: this.alarms,
-      alerts: this.alerts,
+      alerts: this.alertsAs(this.alerts, viewer),
       quality: this.quality(),
       asleep: this.asleep,
       activity: this.activity,
       earthMessages: this.earthMessages,
-      evidence: this.evidence,
+      evidence: Object.fromEntries(Object.entries(this.evidence).map(([p, e]) => [p, evidenceFor(e, viewer)])),
       crewWatch: this.crewWatch,
     };
   }
@@ -295,12 +310,38 @@ export class Hub {
     if (!this.scenarioState) this.sendToScreens(message);
   }
 
+  /** Who each socket said it is ("hello" with a crew id). Anything else is a shared screen. */
+  private viewers = new WeakMap<WebSocket, string>();
+
+  /**
+   * Like broadcast, for a message that differs by viewer: each socket gets its
+   * own viewer's version, the recorder hears the shared screen's.
+   */
+  private broadcastFor(build: (viewer: Viewer) => HubMessage): void {
+    const common = build('common');
+    this.onBroadcast(common);
+    if (this.scenarioState) return;
+    const texts = new Map<Viewer, string>([['common', JSON.stringify(common)]]);
+    for (const client of this.wss.clients) {
+      if (client.readyState !== 1) continue;
+      const viewer = this.viewers.get(client) ?? 'common';
+      let text = texts.get(viewer);
+      if (text === undefined) texts.set(viewer, text = JSON.stringify(build(viewer)));
+      client.send(text);
+    }
+  }
+
   private onSocket(socket: WebSocket): void {
     socket.send(JSON.stringify(this.scenarioState ? this.scenarioState() : this.state()));
     socket.on('message', (data) => {
       let msg: ClientMessage;
       try { msg = JSON.parse(String(data)); } catch { return; }
-      if (msg?.type === 'readings') {
+      if (msg?.type === 'hello') {
+        const person = typeof msg.person === 'string' && this.profile.crew.some((p) => p.id === msg.person) ? msg.person : null;
+        if (person) this.viewers.set(socket, person); else this.viewers.delete(socket);
+        // Their own view now, with what only they may see.
+        if (person && !this.scenarioState) socket.send(JSON.stringify(this.state(Date.now(), person)));
+      } else if (msg?.type === 'readings') {
         const result = this.acceptReadings(msg);
         if ('error' in result) socket.send(JSON.stringify({ type: 'error', error: result.error }));
       }
@@ -338,12 +379,12 @@ export class Hub {
     if (url.pathname === '/api/rows' && req.method === 'GET') {
       const num = (k: string) => (url.searchParams.has(k) ? Number(url.searchParams.get(k)) : undefined);
       return send(res, 200, {
-        rows: this.store.rows({
+        rows: rowsFor(this.store.rows({
           signal: url.searchParams.get('signal') ?? undefined,
           person: url.searchParams.get('person') ?? undefined,
           room: url.searchParams.get('room') ?? undefined,
           from: num('from'), to: num('to'), limit: num('limit'),
-        }),
+        }), 'common'),
       });
     }
 

@@ -4,7 +4,7 @@
 // asleep: engine/activity.ts).
 
 import { answerAlert, seeAlert, stepAlerts, stepEarth } from '../engine/alerts.ts';
-import type { Alert, AlertEvent, EarthMessage, Unusual } from '../engine/alerts.ts';
+import type { Alert, AlertEvent, EarthMessage, Finding, Unusual } from '../engine/alerts.ts';
 import { occupants } from '../engine/timeline.ts';
 import type { Profile } from '../engine/types.ts';
 import { REAL_WITHIN_MS, decideActivity, settleActivity, sleepersOf } from '../engine/activity.ts';
@@ -34,6 +34,21 @@ export class AlertWatcher {
   cardFor: (signal: string) => string | null = () => null;
   /** Messages crewmates wrote to Earth (core/earth.ts), listed with the alerts' own. */
   crewMessages: (now: number) => EarthMessage[] = () => [];
+  /** What the medical lead's rules find now from the hub's records (engine/medical.ts): SpO2, blood, "did not get better". */
+  findings: (now: number) => Finding[] = () => [];
+  /** Findings raised by a question (a card her signs picked, a crisis), each kept until its time ends. */
+  private raised = new Map<string, { finding: Finding; until: number }>();
+
+  /** Keeps a finding for `keepMs` (the same person and key again restarts it), and looks at the station now. */
+  raise(finding: Finding, keepMs: number, now = Date.now()): void {
+    this.raised.set(`${finding.person}|${finding.key}`, { finding, until: now + keepMs });
+    this.check(now);
+  }
+
+  private allFindings(now: number): Finding[] {
+    for (const [key, r] of this.raised) if (now >= r.until) this.raised.delete(key);
+    return [...this.findings(now), ...[...this.raised.values()].map((r) => r.finding)];
+  }
 
   private hub: Hub;
   private store: Store;
@@ -90,6 +105,7 @@ export class AlertWatcher {
       asleep,
       actWithin: this.actWithin,
       cardFor: (signal) => this.cardFor(signal),
+      findings: this.allFindings(now),
     });
     const changed = out.events.length > 0 || JSON.stringify(out.alerts) !== JSON.stringify(this.alerts);
     this.alerts = out.alerts;

@@ -36,6 +36,9 @@ import type { ChatMessage, CheckResult, PersonReadings, PromptPassage, Reading, 
 import { cardView, pickCard } from '../engine/cards.ts';
 import type { CardLang, CardView, Facts, ParsedCards } from '../engine/cards.ts';
 import { search } from '../engine/search.ts';
+import { CARD_FINDING_KEEP_MS, FOLLOW_UP_QUESTION, FOLLOW_UP_SIGNAL, cardFinding } from '../engine/medical.ts';
+import type { LevelOverride } from '../engine/medical.ts';
+import type { Finding } from '../engine/alerts.ts';
 import type { SearchIndex } from '../engine/search.ts';
 
 /** llama-server's port. Two hubs on one computer need two ports: set ASTRUM_LLAMA_PORT. */
@@ -562,6 +565,14 @@ export interface AskContext {
   facts: (person: string) => Facts;
   /** Called with the person's id when a message looks like a crisis. Return true once a crewmate has been told. */
   onCrisis?: (person: string) => boolean;
+  /**
+   * Called when her signs pick a card for the question (engine/medical.ts
+   * cardFinding), with how long to keep it: the hub raises the alert her level
+   * gives. Never called for "no card fits", nor with any of the words.
+   */
+  onFinding?: (finding: Finding, keepMs: number) => void;
+  /** Her levels per situation (medical/level-overrides.json, engine/medical.ts cardLevel). Unset: each card's own level. */
+  levelOverrides?: () => LevelOverride[];
   /** That person's evidence card (engine/evidence.ts), or null. */
   evidenceFor?: (person: string) => Evidence | null;
   /** How rooms and crewmates are named in the hub's sentences. Default: their ids. */
@@ -617,6 +628,14 @@ export interface AskResult {
   /** The hub-written answer (engine/answer.ts), always, except on the crisis and card routes. */
   facts: HubAnswer | null;
   ms: number;
+  /**
+   * No card of hers fits: the question to ask later, in her words, and the
+   * check-in answer the hub understands for it (1 yes, 0 no). A "no" tells the
+   * medical officer (engine/medical.ts followUpFinding).
+   */
+  followUp?: { question: string; signal: string };
+  /** Her signs matched only cards written for another gravity: their ids, for the screen to name as a choice. */
+  otherGravity?: string[];
 }
 
 /** Not in the spec's fixed texts: the spec's "not covered" rule (§4) in words, for when no approved card exists. */
@@ -679,10 +698,31 @@ export interface AskOptions {
 }
 
 /**
- * The whole path for one question: input screen, readings, passages, the
- * model (one question at a time), the output check. Null if the asker left.
+ * The whole path for one question, then her rules on it: the card her signs
+ * pick raises the alert its level gives (ctx.onFinding); with no card, the
+ * "Did it get better?" follow-up. Null if the asker left.
  */
 export async function askQuestion(
+  ctx: AskContext, q: { person: string; question: string; lang: CardLang; about?: string }, opts: AskOptions = {},
+): Promise<AskResult | { error: string } | null> {
+  const result = await answerQuestion(ctx, q, opts);
+  if (!result || 'error' in result || result.route === 'crisis') return result;
+  const about = q.about ?? q.person;
+  const cards = ctx.cards().cards;
+  const picked = pickCard(cards, { ...ctx.facts(about), text: q.question }, ctx.gravity ?? null);
+  const finding = cardFinding(picked, about, cards, 'reported', ctx.levelOverrides?.() ?? []);
+  if (finding) { try { ctx.onFinding?.(finding, CARD_FINDING_KEEP_MS); } catch { /* the hub's side failed; the answer still goes out */ } }
+  const out: AskResult = { ...result };
+  if (picked?.otherGravity) out.otherGravity = picked.otherGravity;
+  if (!finding) out.followUp = { question: FOLLOW_UP_QUESTION, signal: FOLLOW_UP_SIGNAL };
+  return out;
+}
+
+/**
+ * The answer to one question: input screen, readings, passages, the model
+ * (one question at a time), the output check. Null if the asker left.
+ */
+async function answerQuestion(
   ctx: AskContext, q: { person: string; question: string; lang: CardLang; about?: string }, opts: AskOptions = {},
 ): Promise<AskResult | { error: string } | null> {
   const started = Date.now();
@@ -736,7 +776,9 @@ export async function askQuestion(
     return { ...base, route: 'card', by: 'fixed', text: card ? FIXED_TEXTS['ai.card'] : URGENT_NO_CARD, key: card ? 'ai.card' : 'ai.urgentNoCard', card, urgent: true, ms: Date.now() - started };
   }
   // From here on the hub has its own answer, built from its numbers and NASA's words only.
-  const evidence = (() => { try { return ctx.evidenceFor?.(about) ?? null; } catch { return null; } })();
+  const evidenceCard = (() => { try { return ctx.evidenceFor?.(about) ?? null; } catch { return null; } })();
+  // What another person reported (their check-ins) is theirs: a question about them gets their readings, not their reports.
+  const evidence = evidenceCard && about !== person ? { ...evidenceCard, reported: { rows: [], runs: [] } } : evidenceCard;
   const roomName = ctx.roomName ?? ((id: string) => id);
   const danger = dangerCheck(question, readings);
   const quoted = passages.map((p) => ({ name: p.name, url: p.url, text: p.text }));

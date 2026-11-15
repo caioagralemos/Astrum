@@ -10,9 +10,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { bloodSignal, judge, parseBloodExport, toRows } from '../engine/blood.ts';
+import { bloodSignal, entryOfSignal, judge, parseBloodExport, toRows } from '../engine/blood.ts';
 import type { BloodEntry, BloodExport, Judgement, TypedResult } from '../engine/blood.ts';
 import { rowProblem } from '../engine/timeline.ts';
+import { FASTING_SIGNAL } from '../engine/medical.ts';
 import type { Row } from '../engine/types.ts';
 import type { Store } from './db.ts';
 
@@ -195,7 +196,6 @@ export interface BloodResult {
 
 /** The newest blood result of every kind for every person, compared with her entries. */
 export function latestResults(store: Store, entries: BloodEntry[]): Record<string, BloodResult[]> {
-  const byId = new Map(entries.map((e) => [e.id, e]));
   const newest = new Map<string, Row>();
   // Blood rows only, found through the signal index: a few per test day, however full the table is.
   for (const row of store.rows({ signalPrefix: 'blood.', limit: 50_000 })) {
@@ -206,8 +206,8 @@ export function latestResults(store: Store, entries: BloodEntry[]): Record<strin
   }
   const out: Record<string, BloodResult[]> = {};
   for (const row of newest.values()) {
-    const id = row.signal.slice('blood.'.length);
-    const entry = byId.get(id);
+    const entry = entryOfSignal(row.signal, entries);
+    const id = entry?.id ?? row.signal.slice('blood.'.length);
     const unitMatches = !!entry && entry.unit === row.unit;
     const judgement = unitMatches && row.value != null ? judge(entry!, row.value) : 'no-range';
     (out[row.person!] ??= []).push({ id, row, judgement, unitMatches });
@@ -219,8 +219,10 @@ export function latestResults(store: Store, entries: BloodEntry[]): Record<strin
 /**
  * GET /api/blood: her entries, the problems in her file, and each person's
  * newest results.
- * POST /api/blood: { person, t?, values: { id: number }, units?: { id: unit } }.
- * All or nothing: if any value is refused, none is stored.
+ * POST /api/blood: { person, t?, values: { id: number }, units?: { id: unit }, fasting?: boolean }.
+ * All or nothing: if any value is refused, none is stored. `fasting` is the
+ * person's answer to her fasting question, stored beside the results as a
+ * reported check-in answer (engine/medical.ts FASTING_SIGNAL) for glucose.
  * Returns false for any other path.
  */
 export async function handleBlood(req: IncomingMessage, res: ServerResponse, url: URL, ctx: BloodContext): Promise<boolean> {
@@ -236,7 +238,7 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
     return true;
   }
 
-  const b = (await readJson(req)) as { person?: unknown; t?: unknown; values?: unknown; units?: unknown } | undefined;
+  const b = (await readJson(req)) as { person?: unknown; t?: unknown; values?: unknown; units?: unknown; fasting?: unknown } | undefined;
   if (!b || typeof b !== 'object') return fail(res, 'body must be JSON');
   if (typeof b.person !== 'string' || !ctx.crew.includes(b.person)) return fail(res, 'needs a known person');
   const t = b.t ?? Date.now();
@@ -244,6 +246,7 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
   if (typeof b.values !== 'object' || b.values === null || Array.isArray(b.values) || !Object.keys(b.values).length) {
     return fail(res, 'values must be { id: number }, with at least one result');
   }
+  if (b.fasting !== undefined && typeof b.fasting !== 'boolean') return fail(res, 'fasting must be true or false, or left out');
   const units = (typeof b.units === 'object' && b.units !== null ? b.units : {}) as Record<string, unknown>;
 
   const byId = new Map(blood.entries.map((e) => [e.id, e]));
@@ -261,8 +264,12 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
     send(res, 400, { error: 'nothing was stored', refused });
     return true;
   }
+  const fastingRow: Row[] = typeof b.fasting === 'boolean'
+    ? [{ t, signal: FASTING_SIGNAL, value: b.fasting ? 1 : 0, text: null, unit: '', kind: 'reported', source: `checkin:${b.person}`, person: b.person }]
+    : [];
   const saved = ctx.ingest(made.rows);
-  send(res, 200, { saved: saved.map((row) => ({ row, judgement: judge(byId.get(row.signal.slice('blood.'.length))!, row.value!) })) });
+  if (fastingRow.length) ctx.ingest(fastingRow);
+  send(res, 200, { saved: saved.map((row) => ({ row, judgement: judge(entryOfSignal(row.signal, blood.entries)!, row.value!) })) });
   return true;
 }
 

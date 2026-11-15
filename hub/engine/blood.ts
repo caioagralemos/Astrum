@@ -16,7 +16,7 @@ export interface BloodSource {
 
 /** One entry of her export, exactly as she writes it. */
 export interface BloodEntry {
-  /** Lowercase English, e.g. "glucose". The timeline signal is "blood.<id>". */
+  /** Lowercase English, e.g. "glucose" or "ionized-calcium". The timeline signal is bloodSignal(id). */
   id: string;
   name: { en: string; pt: string };
   /** The one unit results are stored in, e.g. "mg/dL". */
@@ -41,12 +41,25 @@ export interface BloodExport {
 
 export type Judgement = 'no-range' | 'in-range' | 'below' | 'above' | 'urgent-below' | 'urgent-above';
 
-/** Where a blood result sits on the timeline. */
+/**
+ * Where a blood result sits on the timeline: "blood." and the id, with each
+ * hyphen written as "_", because a timeline signal allows only lowercase
+ * letters, digits, "_" and "." (timeline.ts rowProblem) and her card signs
+ * name blood signals the same way ("blood.ionized_calcium" in her cases).
+ * "ionized-calcium" is stored as "blood.ionized_calcium".
+ */
 export function bloodSignal(id: string): string {
-  return `blood.${id}`;
+  return `blood.${id.replace(/-/g, '_')}`;
 }
 
-const ID = /^[a-z0-9_]{1,48}$/;
+/** The entry a blood row belongs to, by its signal, or null. Two ids that differ only by "-" and "_" are refused at parse time, so this is one entry. */
+export function entryOfSignal<E extends { id: string }>(signal: string, entries: E[]): E | null {
+  return entries.find((e) => bloodSignal(e.id) === signal) ?? null;
+}
+
+/** Lowercase letters and digits, words joined by "_" or "-", as her card ids are. */
+const ID = /^[a-z0-9]+([_-][a-z0-9]+)*$/;
+const ID_MAX = 48;
 const LEVELS = ['flag_below', 'flag_above', 'urgent_below', 'urgent_above'] as const;
 
 /**
@@ -70,16 +83,16 @@ export function parseBloodExport(json: unknown): BloodExport {
     }
     const r = raw as Record<string, unknown>;
     const id = r.id;
-    if (typeof id !== 'string' || !ID.test(id)) {
-      problems.push(`${where}: the id must be lowercase letters, digits or _ (like "sodium"); left out.`);
+    if (typeof id !== 'string' || id.length > ID_MAX || !ID.test(id)) {
+      problems.push(`${where}: the id must be lowercase letters and digits, words joined by _ or - (like "sodium" or "ionized-calcium"); left out.`);
       return;
     }
     const name = `"${id}"`;
-    if (seen.has(id)) {
+    if (seen.has(bloodSignal(id))) {
       problems.push(`${name} appears more than once; only the first is used.`);
       return;
     }
-    seen.add(id);
+    seen.add(bloodSignal(id));
     const unit = typeof r.unit === 'string' ? r.unit.trim() : '';
     if (!unit || unit.length > 16) {
       problems.push(`${name} has no unit (or one longer than 16 characters); left out, because a result cannot be stored without its unit.`);
@@ -144,13 +157,17 @@ function contradiction(e: BloodEntry): string | null {
 /**
  * Compares one result with her numbers only. Urgent levels come first. Each
  * side uses her flag level, or her reference range where the flag level is not
- * set. A value equal to a limit counts as inside it. With neither side set the
- * answer is "no-range".
+ * set. A value equal to a flag or range limit counts as inside it, and so does
+ * one equal to urgent_below. A value equal to urgent_above is urgent: her own
+ * words for that field are "or more" (glucose 250, potassium 6.0, ionized
+ * calcium 1.60, pH 7.60); only hematocrit's says "above 60", and the stricter
+ * reading is kept for it too (listed as a question for her). With neither side
+ * set the answer is "no-range".
  */
 export function judge(entry: BloodEntry, value: number): Judgement {
   if (!Number.isFinite(value)) return 'no-range';
   if (entry.urgent_below != null && value < entry.urgent_below) return 'urgent-below';
-  if (entry.urgent_above != null && value > entry.urgent_above) return 'urgent-above';
+  if (entry.urgent_above != null && value >= entry.urgent_above) return 'urgent-above';
   const lower = entry.flag_below ?? entry.reference_range.low;
   const upper = entry.flag_above ?? entry.reference_range.high;
   if (lower == null && upper == null) return 'no-range';

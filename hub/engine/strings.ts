@@ -218,6 +218,12 @@ const table = {
   'alert.crewLevel.above': { en: '{person} is in {room}, where {signal} is above a level set by the crew ({value} {unit}, level {limit}).', pt: '{person} está em {room}, onde {signal} passou de um nível definido pela tripulação ({value} {unit}, nível {limit}).' },
   'alert.crewLevel.below': { en: '{person} is in {room}, where {signal} is below a level set by the crew ({value} {unit}, level {limit}).', pt: '{person} está em {room}, onde {signal} ficou abaixo de um nível definido pela tripulação ({value} {unit}, nível {limit}).' },
   'room.summary.crewWatch': { en: 'Past a warning level set by the crew', pt: 'Passou de um nível de aviso definido pela tripulação' },
+  // The medical lead's rules (engine/medical.ts). A private alert says only this, to anyone but the person.
+  'alert.needsSomeone': { en: '{person} needs someone with them.', pt: '{person} precisa de alguém por perto.' },
+  'alert.notAlone': { en: 'Not left alone: {who} has been told.', pt: 'Não fica sem companhia: {who} foi avisado.' },
+  'alert.medicalLead': { en: '{signal} for {person}: {value} {unit}, past the medical lead\'s limit of {limit}.', pt: '{signal} de {person}: {value} {unit}, além do limite da líder médica, {limit}.' },
+  'alert.notBetter': { en: '{person} said it did not get better.', pt: '{person} disse que não melhorou.' },
+  'alert.alsoCard': { en: 'Also the urgent card: {card}', pt: 'Também o cartão de urgência: {card}' },
   'alert.ok': { en: 'I am OK', pt: 'Estou bem' },
   'alert.help': { en: 'I need help', pt: 'Preciso de ajuda' },
   'alert.answeredOk': { en: 'Answered: OK.', pt: 'Respondeu: está bem.' },

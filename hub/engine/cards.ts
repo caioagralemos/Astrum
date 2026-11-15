@@ -41,6 +41,29 @@ export function gravityClass(g: number | null | undefined): GravityClass | null 
   return g < 0.9 ? 'partial_gravity' : 'earth_gravity';
 }
 
+/**
+ * Where her gravity cards apply, until her export carries "applies_in" itself.
+ * Her README: "The system picks the gravity cards by whether gravity is on:
+ * cardiac-arrest-gravity or cardiac-arrest; choking or choking-no-gravity.
+ * Where 'reduced' gravity ends is yours to define." Exactly these four ids, by
+ * her titles and notes:
+ *   - choking-no-gravity: "sem gravidade ou gravidade reduzida", so weightless
+ *     and partial gravity (the Moon, Mars);
+ *   - choking: "com gravidade": Earth's gravity only;
+ *   - cardiac-arrest: "when it [gravity] is off": weightless only;
+ *   - cardiac-arrest-gravity: "when gravity is on": Earth's gravity. She has not
+ *     said which cardiac arrest card holds in partial gravity, so neither is
+ *     shown there: the pick falls back to her urgent card and names both
+ *     (Picked.otherGravity), and the question is with her.
+ * A card whose file says "applies_in" keeps hers; this table never overrides it.
+ */
+export const GRAVITY_TABLE: Readonly<Record<string, readonly GravityClass[]>> = {
+  'choking-no-gravity': ['weightless', 'partial_gravity'],
+  choking: ['earth_gravity'],
+  'cardiac-arrest': ['weightless'],
+  'cardiac-arrest-gravity': ['earth_gravity'],
+};
+
 /** True when the card may be shown at this gravity. A card with no "applies_in" applies everywhere; one with it needs a known gravity it names. */
 export function appliesAt(card: Pick<Card, 'applies_in'>, gravity: number | null | undefined): boolean {
   if (!card.applies_in) return true;
@@ -97,6 +120,8 @@ export interface Card {
   pt_reviewed?: boolean;
   /** Where the card applies, by gravity. Absent: everywhere. */
   applies_in?: GravityClass[];
+  /** Set when applies_in came from the hub's GRAVITY_TABLE, not from her file. */
+  applies_in_from?: 'hub-table';
   notes: string;
 }
 
@@ -234,6 +259,10 @@ export function parseCards(json: unknown): ParsedCards {
     };
     if (typeof raw.pt_reviewed === 'boolean') card.pt_reviewed = raw.pt_reviewed;
     if (appliesIn) card.applies_in = appliesIn;
+    else if (GRAVITY_TABLE[id]) {
+      card.applies_in = [...GRAVITY_TABLE[id]];
+      card.applies_in_from = 'hub-table';
+    }
     if (displayLangs(card).length === 0) out.problems.push(`${name} is approved, but neither its English is checked nor its Portuguese reviewed, so it can't be shown yet.`);
     else if (!card.en_checked) out.problems.push(`${name}: the English is not checked yet, so the card shows in Portuguese only.`);
     if (card.id !== NO_CARD_FITS && readings.length === 0 && answers.length === 0 && !card.signs.words.en.length && !card.signs.words.pt.length) {
@@ -270,6 +299,8 @@ export interface CardView {
   unverified: string[];
   /** Where the card applies, when she wrote it for one gravity only. */
   appliesIn?: GravityClass[];
+  /** 'hub-table' when appliesIn is the hub's reading of her titles (GRAVITY_TABLE), not a field of hers. */
+  appliesInFrom?: 'hub-table';
 }
 
 export function cardView(card: Card, lang: CardLang): CardView | null {
@@ -282,6 +313,7 @@ export function cardView(card: Card, lang: CardLang): CardView | null {
     sources: card.sources, unverified: card.unverified,
   };
   if (card.applies_in) view.appliesIn = card.applies_in;
+  if (card.applies_in_from) view.appliesInFrom = card.applies_in_from;
   return view;
 }
 
@@ -303,14 +335,25 @@ export interface Facts {
   text?: string;
 }
 
+/** Her signs of one card that the facts matched, as she wrote them. */
+export interface MatchedSigns {
+  readings: ReadingSign[];
+  answers: AnswerSign[];
+  words: string[];
+}
+
 export interface Picked {
   card: Card;
   /** Which of her signs matched, in plain words. Empty for the "no card fits" card. */
   matched: string[];
+  /** The same signs, as she wrote them, for a rule that needs to know which ones (medical.ts cardLevel). Absent for the "no card fits" card. */
+  signs?: MatchedSigns;
   /** True when this is her "no card fits" card. */
   fallback: boolean;
   /** Set when her signs matched only cards written for another gravity: the reason her "no card fits" card is shown. */
   reason?: 'no-card-for-this-gravity';
+  /** With that reason: the cards her signs matched, written for other gravities, so a screen can name them as a choice. */
+  otherGravity?: string[];
 }
 
 const RANK: Record<CardLevel, number> = { unusual: 0, concerning: 1, dangerous: 2 };
@@ -325,8 +368,9 @@ function readingMatches(sign: ReadingSign, fact: ReadingFact): boolean {
   if (sign.threshold === null) return true;
   // Her number decides. With no value, or a value in another unit, it can't be compared, so it doesn't match.
   if (fact.value === undefined || !fact.unit || fact.unit.toLowerCase() !== sign.unit?.toLowerCase()) return false;
-  if (sign.direction === 'high' || sign.direction === 'rising') return fact.value >= sign.threshold;
-  if (sign.direction === 'low' || sign.direction === 'falling') return fact.value <= sign.threshold;
+  // Her words are "above" and "below" (SpO2 "95 or more normal", respiratory rate "above 20"): the threshold itself does not match.
+  if (sign.direction === 'high' || sign.direction === 'rising') return fact.value > sign.threshold;
+  if (sign.direction === 'low' || sign.direction === 'falling') return fact.value < sign.threshold;
   return true;
 }
 
@@ -348,28 +392,30 @@ function readingMatches(sign: ReadingSign, fact: ReadingFact): boolean {
 export function pickCard(cards: Card[], facts: Facts, gravity: number | null = null): Picked | null {
   const text = facts.text ? norm(facts.text) : '';
   let best: { picked: Picked; total: number } | null = null;
-  let elsewhere = false;
+  const elsewhere: string[] = [];
   for (const card of cards) {
     if (card.id === NO_CARD_FITS || displayLangs(card).length === 0) continue;
+    const signs: MatchedSigns = { readings: [], answers: [], words: [] };
     const matched: string[] = [];
     let strong = 0;
     for (const sign of card.signs.readings) {
       if (!facts.readings.some((f) => readingMatches(sign, f))) continue;
+      signs.readings.push(sign);
       matched.push(`${sign.signal} ${sign.direction} (${sign.basis.replace('_', ' ')})`);
       if (sign.basis !== 'personal_normal') strong++;
     }
     for (const sign of card.signs.answers) {
       const given = facts.answers.some((a) => norm(a.question) === norm(sign.question) && norm(a.answer) === norm(sign.answer));
-      if (given) { matched.push(`answered "${sign.answer}" to "${sign.question}"`); strong++; }
+      if (given) { signs.answers.push(sign); matched.push(`answered "${sign.answer}" to "${sign.question}"`); strong++; }
     }
     if (text) {
       for (const word of [...card.signs.words.en, ...card.signs.words.pt]) {
-        if (norm(word).trim() && text.includes(norm(word))) { matched.push(`typed "${word}"`); strong++; }
+        if (norm(word).trim() && text.includes(norm(word))) { signs.words.push(word); matched.push(`typed "${word}"`); strong++; }
       }
     }
     if (strong === 0) continue;
-    if (!appliesAt(card, gravity)) { elsewhere = true; continue; }
-    const cand = { picked: { card, matched, fallback: false }, total: matched.length };
+    if (!appliesAt(card, gravity)) { elsewhere.push(card.id); continue; }
+    const cand = { picked: { card, matched, signs, fallback: false }, total: matched.length };
     if (!best
       || cand.total > best.total
       || (cand.total === best.total && RANK[card.level] > RANK[best.picked.card.level])) best = cand;
@@ -377,5 +423,5 @@ export function pickCard(cards: Card[], facts: Facts, gravity: number | null = n
   if (best) return best.picked;
   const none = cards.find((c) => c.id === NO_CARD_FITS && displayLangs(c).length > 0 && appliesAt(c, gravity));
   if (!none) return null;
-  return elsewhere ? { card: none, matched: [], fallback: true, reason: 'no-card-for-this-gravity' } : { card: none, matched: [], fallback: true };
+  return elsewhere.length ? { card: none, matched: [], fallback: true, reason: 'no-card-for-this-gravity', otherGravity: elsewhere } : { card: none, matched: [], fallback: true };
 }

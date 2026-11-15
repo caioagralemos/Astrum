@@ -9,6 +9,7 @@
 // not move the baseline. Pure functions: no I/O, runs in the hub and the browser.
 
 import type { Kind, Row } from './types.ts';
+import { HEART_RATE_SIGNALS, heartRateRiseCounts } from './medical.ts';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -39,6 +40,11 @@ export interface BaselineOptions {
   dailyFreshMs?: number;
   /** |z| at or above this counts as unusual. */
   threshold?: number;
+  /**
+   * A second condition a rise must also meet to count, by signal: the medical
+   * lead's heart rate rule (engine/medical.ts) by default. Null turns it off.
+   */
+  riseCounts?: ((signal: string, usual: number, recent: number) => boolean) | null;
 }
 
 export const DEFAULTS = {
@@ -50,6 +56,8 @@ export const DEFAULTS = {
   minDaily: 3,
   dailyFreshMs: 36 * HOUR,
   threshold: 3,
+  /** Her rule: a heart rate rise counts only above 20 % or 20 bpm over the person's usual. */
+  riseCounts: (signal: string, usual: number, recent: number): boolean => !HEART_RATE_SIGNALS.includes(signal) || heartRateRiseCounts(usual, recent),
 };
 
 /**
@@ -179,7 +187,7 @@ export function signalBaseline(rows: Row[], signal: string, now: number, opts: B
   const flat = spread === 0;
   let z = flat ? (diff === 0 ? 0 : Math.sign(diff) * Z_CAP) : diff / spread;
   z = Math.max(-Z_CAP, Math.min(Z_CAP, z));
-  const unusual = Math.abs(z) >= o.threshold;
+  const unusual = Math.abs(z) >= o.threshold && (z < 0 || !o.riseCounts || o.riseCounts(signal, usual, recent));
   return {
     status: 'judged', ...common, recent, usual, spread, z, unusual,
     direction: unusual ? (z > 0 ? 'high' : 'low') : null,

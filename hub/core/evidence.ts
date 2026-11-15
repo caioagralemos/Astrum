@@ -13,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { evidenceFor, WINDOWS_MS } from '../engine/evidence.ts';
 import type { Evidence } from '../engine/evidence.ts';
 import { CHECKIN_PREFIX } from '../engine/checkin.ts';
+import { evidenceFor as evidenceSharedAs } from '../engine/privacy.ts';
 import { occupants } from '../engine/timeline.ts';
 import type { Profile, Row } from '../engine/types.ts';
 import type { RoomAlarms } from './alarms.ts';
@@ -195,7 +196,8 @@ export function evidenceRoute(profile: Profile, cards: EvidenceCards) {
       json(400, { error: 'person must be a crewmate in the profile' });
       return true;
     }
-    json(200, cards.get(person));
+    // A shared request: a typed check-in answer stays with its author (engine/privacy.ts).
+    json(200, evidenceSharedAs(cards.get(person), 'common'));
     return true;
   };
 }

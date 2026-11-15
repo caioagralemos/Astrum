@@ -10,7 +10,7 @@
 // its own database. ASTRUM_PROFILE=<file> still runs an old profile file from
 // hub/profiles instead, as before.
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
@@ -35,7 +35,9 @@ import { appliesAt, displayLangs, cardView } from '../engine/cards.ts';
 import { Baselines } from './baseline.ts';
 import { EvidenceCards, evidenceRoute } from './evidence.ts';
 import { ScenarioPlayer, listRecordings, loadRecording, scenarioRoute } from './scenario.ts';
-import { handleBlood, demoBloodRows, loadInspiration4, INSPIRATION4_SOURCE } from './blood.ts';
+import { handleBlood, demoBloodRows, loadInspiration4, loadBloodFile, latestResults, INSPIRATION4_SOURCE } from './blood.ts';
+import { CARD_FINDING_KEEP_MS, crisisFinding, findingsNow, parseLevelOverrides } from '../engine/medical.ts';
+import type { LevelOverride } from '../engine/medical.ts';
 import type { Profile } from '../engine/types.ts';
 import { AiRuntime, handleAsk } from './ai.ts';
 import { buildIndex } from '../engine/search.ts';
@@ -161,7 +163,30 @@ const ai = new AiRuntime();
 void ai.start();
 const passageIndex = buildIndex(JSON.parse(readFileSync(join(hubDir, 'data-nasa', 'passages', 'passages.json'), 'utf8')) as Passage[]);
 const cardsFile = process.env.ASTRUM_CARDS ?? join(hubDir, 'medical', 'cards.json');
-const loadCards = (): ParsedCards => { try { return parseCards(JSON.parse(readFileSync(cardsFile, 'utf8'))); } catch { return parseCards([]); } };
+// Read again only when the file changes, so the alert watcher can look every tick.
+let cardsCache: { mtimeMs: number; parsed: ParsedCards } | null = null;
+const loadCards = (): ParsedCards => {
+  try {
+    const { mtimeMs } = statSync(cardsFile);
+    if (cardsCache?.mtimeMs !== mtimeMs) cardsCache = { mtimeMs, parsed: parseCards(JSON.parse(readFileSync(cardsFile, 'utf8'))) };
+    return cardsCache.parsed;
+  } catch { return parseCards([]); }
+};
+// Her levels per situation (engine/medical.ts cardLevel), read again when the file or her cards change.
+const overridesFile = join(hubDir, 'medical', 'level-overrides.json');
+let overridesCache: { key: string; rows: LevelOverride[] } | null = null;
+const loadLevelOverrides = (): LevelOverride[] => {
+  try {
+    const parsed = loadCards();
+    const key = `${statSync(overridesFile).mtimeMs}:${cardsCache?.mtimeMs ?? ''}`;
+    if (overridesCache?.key !== key) {
+      const { overrides, problems } = parseLevelOverrides(JSON.parse(readFileSync(overridesFile, 'utf8')), parsed.cards);
+      for (const p of problems) console.warn(p);
+      overridesCache = { key, rows: overrides };
+    }
+    return overridesCache.rows;
+  } catch { return []; }
+};
 
 // The steps cards, for the screens that show them. Only approved cards are sent as
 // steps; drafts are listed by name so a screen can say "not approved yet". Re-read on
@@ -177,10 +202,43 @@ hub.routes.push(async (req, res, url) => {
     otherLanguageOnly: parsed.cards.filter((card) => !cardView(card, lang)).map((card) => ({ id: card.id, langs: displayLangs(card) })),
     notApproved: parsed.notApproved,
     problems: parsed.problems,
+    // Every card above is approved by the medical lead (her README: approved means the Portuguese, the
+    // levels and who is alerted; not that the steps are sourced). Each card lists its sources (is_nasa
+    // says which are NASA's) and what is unverified, for the screen to show beside the steps.
+    approvedBy: 'medical_lead',
+    // Her urgent card (xABCDE): shown beside any card on a level 3 alert (alert.alsoCard).
+    urgentCard: 'unknown-urgent',
   };
   res.writeHead(200, { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }).end(JSON.stringify(body));
   return true;
 });
+// Her rules on the hub's own records (engine/medical.ts): SpO2 from the watches, blood results, "it did not get better".
+// Worked out at most every 5 seconds; the blood file is read again only when it changes.
+let bloodCache: { mtimeMs: number; entries: ReturnType<typeof loadBloodFile>['entries'] } | null = null;
+const bloodEntries = () => {
+  try {
+    const { mtimeMs } = statSync(bloodFile);
+    if (bloodCache?.mtimeMs !== mtimeMs) bloodCache = { mtimeMs, entries: loadBloodFile(bloodFile).entries };
+    return bloodCache.entries;
+  } catch { return []; }
+};
+let findingsCache: { at: number; findings: ReturnType<typeof findingsNow> } | null = null;
+alerts.findings = (now) => {
+  if (findingsCache && now - findingsCache.at < 5000 && now >= findingsCache.at) return findingsCache.findings;
+  const entries = bloodEntries();
+  const findings = findingsNow({
+    people: crewIds, now, cards: loadCards().cards, entries,
+    rowsOf: (person, signal, from) => store.rows({ person, signal, from, to: now }),
+    latestBlood: Object.values(latestResults(store, entries)).flat().map((r) => r.row),
+  });
+  findingsCache = { at: now, findings };
+  return findings;
+};
+// What a screen shows for the cards on an alert: her text as /api/cards gives it.
+hub.cardViews = (ids, lang) => {
+  const parsed = loadCards();
+  return ids.map((id) => parsed.cards.find((c) => c.id === id)).filter((c) => !!c).map((c) => cardView(c, lang)).filter((v) => !!v);
+};
 const CARD_SIGNAL: Record<string, string> = { co2: 'cabin_co2', pressure: 'cabin_pressure', temperature: 'cabin_temperature', humidity: 'cabin_humidity', noise: 'cabin_noise', light: 'cabin_light', oxygen: 'cabin_oxygen' };
 // A level the crew set brings a steps card only if one of hers names that signal, for this gravity.
 alerts.cardFor = (signal) => loadCards().cards.find((c) => c.id !== 'unknown-urgent' && displayLangs(c).length > 0 && appliesAt(c, gravity)
@@ -219,8 +277,11 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   detectorLineFor: (person) => { const s = summaryOf(person); return s ? detectorLine(s, Object.fromEntries(s.signals.map((x) => [x.signal, nameOf(x.signal)]))) : null; },
   // Only NASA's limits are "nasa_limit" facts: a level the crew set never matches her NASA-limit signs.
   facts: (person) => { const room = roomOf(person); return { readings: alarms.list().filter((a) => a.room === room && a.limitSource !== 'crew').map((a) => ({ signal: CARD_SIGNAL[a.signal] ?? a.signal, direction: 'high' as const, basis: 'nasa_limit' as const, value: a.value, unit: a.unit })), answers: [] }; },
-  // Not built yet: telling a crewmate "<name> needs someone with them", never the words.
-  onCrisis: () => false,
+  // A crisis: the medical officer (or the commander in her place) is told "<name> needs someone with them", never the words.
+  onCrisis: (person) => { alerts.raise(crisisFinding(person), CARD_FINDING_KEEP_MS); return true; },
+  // A card her signs picked raises the alert her level gives; a private card's name stays with the person (engine/alerts.ts alertFor).
+  onFinding: (finding, keepMs) => alerts.raise(finding, keepMs),
+  levelOverrides: loadLevelOverrides,
   evidenceFor: (person) => cards.get(person),
   roomName: (id) => { const r = profile.rooms.find((x) => x.id === id); return r ? t(r.name, 'en') : id; },
   personName: (id) => profile.crew.find((p) => p.id === id)?.name ?? id,

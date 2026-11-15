@@ -19,6 +19,21 @@
 //     NASA's (its own alert, its own station-wide count), worded as set by the
 //     crew, and with no steps card unless her cards have one for that signal.
 //   - A reading unusual for the person (baseline): level 1.
+//   - A finding by the medical lead's rules (engine/medical.ts): a body
+//     reading or blood result past one of her limits, a card her signs
+//     picked, or "it did not get better". The finding's level is hers, and it
+//     moves when her limits say so; there is no countdown on it.
+//
+// Her rules on every alert (hub/medical/README.md):
+//   - level 2 tells the Crew Medical Officer and says the person is not left
+//     alone (notAlone). If the Crew Medical Officer is the person, the
+//     Commander is told instead; with neither aboard (or the only one is the
+//     person), the rest of the crew, by name, never the common screen;
+//   - level 3 shows her urgent card (alsoCard) beside any other card;
+//   - level 1 is never sent while the person sleeps, whatever raised it;
+//   - a private card (mood, psychosis, gynecologic) never travels in the alert
+//     as others receive it: alertFor() decides what each viewer gets, and the
+//     alert's own signal says only that the person needs someone.
 //   - Someone who walks into a room where another person's alert is already at
 //     level 3 (most likely to help) is asked too, since they now breathe the
 //     same air, but with a longer countdown (RESCUER_COUNTDOWN_MS) so they are
@@ -32,6 +47,7 @@
 
 import type { RoomAlarm } from './cabin.ts';
 import type { Kind, Person } from './types.ts';
+import type { CardView } from './cards.ts';
 
 export type Level = 1 | 2 | 3;
 
@@ -60,7 +76,7 @@ export interface Alert {
   id: string;
   person: string;
   level: Level;
-  reason: 'room-limit' | 'unusual';
+  reason: 'room-limit' | 'unusual' | 'finding';
   room: string | null;
   signal: string;
   /** What was found, as data for the screen to word. */
@@ -111,7 +127,55 @@ export interface Alert {
   actWithinSeconds?: number | null;
   /** Level 3 only: can Earth's reply be back before the card's time runs out? Null when unknown. */
   earthInTime?: boolean | null;
+  /** Level 3: her urgent card (xABCDE), shown beside `card`. Null below level 3 or when `card` is the urgent card itself. */
+  alsoCard?: string | null;
+  /** Level 2 and 3: the person is not left alone (her rule for "concerning"). A fact for the screens; the hub only tells. */
+  notAlone?: boolean;
+  /** Level 2 and 3: who is told in the Crew Medical Officer's place, or the officer. */
+  medicalTeam?: string[];
+  /**
+   * A private card (engine/medical.ts PRIVATE_CARDS). As the hub keeps the
+   * alert, `card` is null and the card is here; alertFor() gives it back only
+   * to the person, and to the medical team when her rule allows. Absent for
+   * every other alert.
+   */
+  private?: { card: string | null; medicalOfficerSeesCard: boolean } | null;
+  /** A finding only: the question her rule says to ask next, in her words (English). */
+  nextQuestion?: string | null;
+  /**
+   * Added by the hub as each viewer receives the alert (core/server.ts): her
+   * text for `card` and `alsoCard`, in a language it may be shown in, with its
+   * sources and what is unverified. Never kept in the alert itself.
+   */
+  cardViews?: CardView[];
 }
+
+/**
+ * What the medical lead's rules found about one person (engine/medical.ts):
+ * the level is hers. `key` keeps one alert per finding.
+ */
+export interface Finding {
+  key: string;
+  person: string;
+  level: Level;
+  signal: string | null;
+  value: number | null;
+  unit: string | null;
+  limit: number | null;
+  limitSource: string | null;
+  direction: 'high' | 'low' | null;
+  kind: Kind;
+  card: string | null;
+  /** A private finding: card null for one with no card (a crisis), which says only that the person needs someone. */
+  private: { card: string | null; medicalOfficerSeesCard: boolean } | null;
+  nextQuestion: string | null;
+}
+
+/** The signal a private alert carries, and the string key it is worded with: "<name> needs someone with them". */
+export const NEEDS_SOMEONE = 'needs-someone';
+export const NEEDS_SOMEONE_KEY = 'alert.needsSomeone';
+/** Her urgent card, shown at level 3 beside any other. */
+export const URGENT_CARD_ID = 'unknown-urgent';
 
 /**
  * A message to Earth. Listed on its own, so it outlives the alert it was about.
@@ -167,6 +231,8 @@ export interface AlertInputs {
   actWithin?: Record<string, number>;
   /** For a crew level: her steps card for that signal, by id, or null when she has none. */
   cardFor?: (signal: string) => string | null;
+  /** What her rules found now (engine/medical.ts). */
+  findings?: Finding[];
 }
 
 /** The string keys a crew-level alert is worded with ('.above' or '.below'). They say the level was set by the crew. */
@@ -188,8 +254,23 @@ function withEarthCheck(alert: Alert, inputs: AlertInputs): Alert {
 /** The steps card for a broken limit, by signal. Only cards that exist are listed. */
 const CARD_FOR: Record<string, string> = { co2: 'high-co2' };
 
-function medicalOfficers(crew: Person[]): string[] {
-  return crew.filter((p) => p.role === 'role.cmo').map((p) => p.id);
+/**
+ * Who is told at level 2 besides the person. Her rule: the Crew Medical
+ * Officer; if that is the person, the Commander instead. A crew with neither
+ * (or whose only one is the person) tells the rest of the crew by name.
+ */
+export function medicalTeam(crew: Person[], person: string): string[] {
+  const others = crew.filter((p) => p.id !== person);
+  const cmo = others.filter((p) => p.role === 'role.cmo').map((p) => p.id);
+  if (cmo.length) return cmo;
+  const commander = others.filter((p) => p.role === 'role.commander').map((p) => p.id);
+  if (commander.length) return commander;
+  return others.map((p) => p.id);
+}
+
+/** Her urgent card beside a level 3 card: null when the card already is it. */
+function urgentBeside(card: string | null): string | null {
+  return card === URGENT_CARD_ID ? null : URGENT_CARD_ID;
 }
 
 function toLevel(alert: Alert, level: Level, inputs: AlertInputs, rescuer = false): Alert {
@@ -197,7 +278,9 @@ function toLevel(alert: Alert, level: Level, inputs: AlertInputs, rescuer = fals
   const next: Alert = { ...alert, level, levelSince: now };
   if (level === 1) next.toldTo = [alert.person];
   if (level === 2) {
-    next.toldTo = [...new Set([alert.person, ...medicalOfficers(crew)])];
+    next.medicalTeam = medicalTeam(crew, alert.person);
+    next.toldTo = [...new Set([alert.person, ...next.medicalTeam])];
+    next.notAlone = true;
     next.askedAt = now;
     next.answerBy = now + (rescuer ? RESCUER_COUNTDOWN_MS : COUNTDOWN_MS);
     next.askKey = rescuer ? 'alert.enteredOverLimit' : 'alert.areYouOk';
@@ -206,6 +289,9 @@ function toLevel(alert: Alert, level: Level, inputs: AlertInputs, rescuer = fals
     next.toldTo = 'everyone';
     // A crew level has a card only if hers covers the signal; NASA's limit has its own.
     next.card = isCrew(alert) ? inputs.cardFor?.(alert.signal) ?? null : CARD_FOR[alert.signal] ?? null;
+    next.alsoCard = urgentBeside(next.card);
+    next.notAlone = true;
+    next.medicalTeam ??= medicalTeam(crew, alert.person);
     next.earth = { sentAt: now, arrivesAt: now + delayToEarthMs, replyAt: now + 2 * delayToEarthMs };
     next.earthId = `earth|${alert.id}|${now}`;
   }
@@ -307,9 +393,94 @@ export function stepAlerts(before: Alert[], inputs: AlertInputs): { alerts: Aler
     alerts.push(alert);
   }
 
+  // Her rules' findings: one alert each, at the level her limits give now.
+  for (const f of mergePrivate(inputs.findings ?? [])) {
+    // A private finding's id names no card: one per person, whatever raised it.
+    const id = f.private ? `${f.person}|finding|${NEEDS_SOMEONE}` : `${f.person}|finding|${f.key}`;
+    const was = held.get(id);
+    let alert = findingAlert(was ?? null, f, id, inputs);
+    if (!was) {
+      if (!alert.held) events.push({ type: 'raised', alert });
+    } else if (alert.level > was.level) {
+      events.push({ type: 'escalated', alert });
+    } else if (was.held && !alert.held) {
+      events.push({ type: 'raised', alert });
+    }
+    alert = withEarthCheck(alert, inputs);
+    alerts.push(alert);
+  }
+
   const kept = new Set(alerts.map((a) => a.id));
   for (const alert of before) if (!kept.has(alert.id)) events.push({ type: 'resolved', alert });
   return { alerts, events };
+}
+
+/** Private findings, one per person: the highest level, and its card. */
+function mergePrivate(findings: Finding[]): Finding[] {
+  const top = new Map<string, Finding>();
+  const out: Finding[] = [];
+  for (const f of findings) {
+    if (!f.private) { out.push(f); continue; }
+    const held = top.get(f.person);
+    if (!held || f.level > held.level || (f.level === held.level && !held.private?.card && f.private.card)) top.set(f.person, f);
+  }
+  return [...out, ...top.values()];
+}
+
+/** One finding as an alert: fresh, or the one before brought to the finding's level. */
+function findingAlert(was: Alert | null, f: Finding, id: string, inputs: AlertInputs): Alert {
+  const { now, crew, delayToEarthMs } = inputs;
+  const asleep = inputs.asleep.includes(f.person);
+  const priv = f.private ? { card: null, medicalOfficerSeesCard: f.private.medicalOfficerSeesCard } : null;
+  const card = f.private ? null : f.card;
+  const levelChanged = !was || was.level !== f.level;
+  const next: Alert = {
+    id, person: f.person, level: f.level, reason: 'finding', room: null,
+    signal: f.private ? NEEDS_SOMEONE : f.signal ?? '', value: f.private ? null : f.value, unit: f.private ? null : f.unit,
+    limit: f.private ? null : f.limit, limitSource: f.limitSource, direction: f.private ? null : f.direction, kind: f.kind,
+    since: was?.since ?? now, levelSince: levelChanged ? now : was!.levelSince,
+    askedAt: null, answerBy: null, answer: null, askKey: null, held: false, toldTo: [f.person], card,
+    stationWide: false, lowestRoom: null, earth: null, earthId: null, seenBy: was?.seenBy ?? null, seenAt: was?.seenAt ?? null,
+    alsoCard: null, notAlone: false, private: priv, nextQuestion: f.private ? null : f.nextQuestion,
+  };
+  if (f.private) next.textKey = NEEDS_SOMEONE_KEY;
+  // The person's own private card, kept for alertFor; never in the alert others get.
+  if (f.private?.card) privateCards.set(id, f.private.card);
+  else if (f.private) privateCards.delete(id);
+  if (f.level === 1) {
+    next.held = asleep;
+    next.toldTo = asleep ? [] : [f.person];
+  } else {
+    next.medicalTeam = medicalTeam(crew, f.person);
+    next.notAlone = true;
+    next.toldTo = f.level === 2 ? [...new Set([f.person, ...next.medicalTeam])] : 'everyone';
+  }
+  if (f.level === 3) {
+    next.alsoCard = urgentBeside(f.private ? null : f.card);
+    // One message to Earth per level 3, kept while the alert stays at 3.
+    if (was && was.level === 3 && was.earth) Object.assign(next, { earth: was.earth, earthId: was.earthId });
+    else {
+      next.earth = { sentAt: now, arrivesAt: now + delayToEarthMs, replyAt: now + 2 * delayToEarthMs };
+      next.earthId = `earth|${id}|${now}`;
+    }
+  }
+  return next;
+}
+
+/** Private cards by alert id. Module state, read only by alertFor; an id is unique per person and finding. */
+const privateCards = new Map<string, string>();
+
+/**
+ * The alert as one viewer receives it ('common' for a shared screen). A
+ * private card goes to the person, and to the medical team when her rule
+ * allows; to anyone else the alert says only that the person needs someone.
+ */
+export function alertFor(alert: Alert, viewer: string | 'common'): Alert {
+  if (!alert.private) return alert;
+  const card = privateCards.get(alert.id) ?? null;
+  const team = viewer !== 'common' && (alert.medicalTeam ?? []).includes(viewer);
+  if (viewer === alert.person || (team && alert.private.medicalOfficerSeesCard)) return { ...alert, card, private: { ...alert.private, card } };
+  return { ...alert, card: null, private: { card: null, medicalOfficerSeesCard: alert.private.medicalOfficerSeesCard } };
 }
 
 /**
@@ -324,7 +495,7 @@ export function stepEarth(before: EarthMessage[], alerts: Alert[], events: Alert
   const listed = new Set(before.map((m) => m.id));
   for (const e of events) {
     const a = e.alert;
-    if (e.type !== 'escalated' || a.level !== 3 || !a.earth || !a.earthId || listed.has(a.earthId)) continue;
+    if ((e.type !== 'escalated' && !(e.type === 'raised' && a.reason === 'finding')) || a.level !== 3 || !a.earth || !a.earthId || listed.has(a.earthId)) continue;
     listed.add(a.earthId);
     before = [...before, {
       id: a.earthId, kind: 'alert', about: { person: a.person, room: a.room, signal: a.signal, level: a.level, stationWide: a.stationWide },

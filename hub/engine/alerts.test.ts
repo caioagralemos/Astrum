@@ -191,7 +191,8 @@ test('someone who walks into a room with a level 3 for someone else is asked, wi
   assert.equal(helper.level, 2);
   assert.equal(helper.answerBy, 100_000 + RESCUER_COUNTDOWN_MS);
   assert.equal(helper.askKey, 'alert.enteredOverLimit');
-  assert.deepEqual(helper.toldTo, ['okafor']);
+  // Her rule: the medical officer is the person, so the commander is told; this crew has none, so the rest of the crew.
+  assert.deepEqual(helper.toldTo, ['okafor', 'reyes', 'leo']);
   const working = stepAlerts(entered.alerts, at(100_000 + COUNTDOWN_MS * 2, inRoom));
   assert.equal(working.alerts.find((a) => a.person === 'okafor')!.level, 2, 'not a second emergency while they work');
   assert.equal(stepAlerts(working.alerts, at(100_000 + RESCUER_COUNTDOWN_MS, inRoom)).alerts.find((a) => a.person === 'okafor')!.level, 3, 'no answer at all: the usual rule');

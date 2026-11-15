@@ -1,0 +1,23 @@
+{
+  "about": "Levels per situation for cards whose base level is dangerous, from the medical lead's own notes list (engine/medical.ts cardLevel). Her warning, changes-after-check.md, 14 Nov 2026: \"heart-circulation base level is now dangerous, everyone (before: unusual, self). Warning to Caio: the notes list (slightly high blood pressure or a slightly swollen leg = unusual, self) must still decide the real level, otherwise a mild pressure alert would call everyone.\" A row applies only when one of the card's own answer signs names the situation exactly. Her mild situations (slightly high blood pressure, a slightly swollen leg, mild choking cleared by coughing) have no sign the hub can tell apart from the serious ones, so they are not here: those cards keep their own level and the question is in steps-demo/QUESTIONS-FOR-MEDICAL-LEAD.md. Every row awaits her confirmation.",
+  "overrides": [
+    {
+      "card": "heart-circulation",
+      "answer": { "question": "Is one leg or arm swollen, warm and painful?", "answer": "yes" },
+      "with_words": ["swollen leg", "perna inchada"],
+      "level": "concerning",
+      "notify": "medical_officer",
+      "source": "heart-circulation notes: \"an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone)\"; her case-077 expects the same.",
+      "status": "awaiting the medical lead's confirmation"
+    },
+    {
+      "card": "heart-circulation",
+      "answer": { "question": "Is your blood pressure very high with a strong headache?", "answer": "yes" },
+      "with_words": ["high blood pressure", "pressão alta"],
+      "level": "concerning",
+      "notify": "medical_officer",
+      "source": "heart-circulation notes: \"an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone)\".",
+      "status": "awaiting the medical lead's confirmation"
+    }
+  ]
+}
