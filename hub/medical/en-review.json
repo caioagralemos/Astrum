@@ -1,5 +1,5 @@
 {
-  "about": "English checked by an independent review, 14 Nov 2026. Language only: \"checked\" means the English of the title, steps and do-nots says what the medical lead's Portuguese says. It is not a medical check of the steps. The installer applies a card's fixes and sets en_checked only while both hashes still match her card; a card she changes drops back to unchecked. Cards she changed in her second export (14 Nov 2026, evening) were checked again the same way.",
+  "about": "English checked by an independent review, 14 Nov 2026. Language only: \"checked\" means the English of the title, steps and do-nots says what the medical lead's Portuguese says. It is not a medical check of the steps. The installer applies a card's fixes and sets en_checked only while both hashes still match her card; a card she changes drops back to unchecked. Cards she changed in her second export (14 Nov 2026, evening) were checked again the same way. The three base event cards of her events export (15 Nov 2026: dust-storm, ground-tremor, meteoroid-impact) were checked the same way by an independent review on 15 Nov 2026; one English line was corrected (dust-storm steps[3]: her Portuguese names only \"o cartão de pulmão\", so the English no longer adds \"asthma and\").",
   "cards": {
     "high-co2": {
       "checked": true,
@@ -403,6 +403,29 @@
           "en": "Do not ignore passing no urine with swelling or confusion."
         }
       }
+    },
+    "dust-storm": {
+      "checked": true,
+      "pt_sha256": "007d857047e094cd78cda49b58fc9d84f6c651bbb91830350ee7b04af302ade5",
+      "en_sha256": "807ad8bba3de3987d15e6a1eb65b1cf2fb4434cbe0a902a84d9edbd730aa4bee",
+      "fixes": {
+        "steps[3]": {
+          "pt": "Respire com calma. Se tiver tosse ou falta de ar, siga o cartão de pulmão.",
+          "en": "Breathe calmly. If you cough or have trouble breathing, follow the lung card."
+        }
+      }
+    },
+    "ground-tremor": {
+      "checked": true,
+      "pt_sha256": "c12445875c688124b829774e7f6da75f83f7fdcaf9370b74c7f7ccf48fcd16a8",
+      "en_sha256": "f0a59a6140eca3921697be1b64d43169db12d9635d98782c7e9b47dc1426e25b",
+      "fixes": {}
+    },
+    "meteoroid-impact": {
+      "checked": true,
+      "pt_sha256": "0c857c4036252ced6ff754c1a37cc03ee71f36961bc2e28f961e3baaac298c92",
+      "en_sha256": "39e7d03d0d094c3751feeaf64709652ad7d0a4b9a3e3833543c12dfbabbee312",
+      "fixes": {}
     }
   }
 }

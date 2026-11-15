@@ -1,12 +1,12 @@
 # Astrum medical content: export for Caio (14 Nov 2026)
 
-Written by the medical lead (reviewed and approved line by line, in Portuguese) and drafted by the medical lead. English is a translation of what she approved: every item has `en_checked: false`, so **you check the English**.
+Written by the medical lead (reviewed and approved line by line, in Portuguese) and drafted by the medical lead. English is a translation of what she approved: her export marks every card `en_checked: false`; the English of all 42 cards has since been checked against her Portuguese by an independent language review (`en-review.json`, language only, not a medical check), so the installed cards carry `en_checked: true`.
 
 ## Files
 
 | File | What it holds | Count |
 |---|---|---|
-| `cards.json` | Step cards (title, levels, who is alerted, signs, steps, do-nots, sources, what is unverified) | 39, all approved |
+| `cards.json` | Step cards (title, levels, who is alerted, signs, steps, do-nots, sources, what is unverified) | 42, all approved |
 | `cases.json` | Test cases (story, readings, answers, expected result) | 96, all approved |
 | `blood.json` | i-STAT blood values (reference range, flag and urgent cut-offs, plain meaning, flight note, sources) | 7, all approved |
 | `coverage.md` | Each condition of NASA Appendix E table E.2-2 and the card that covers it | 144 of 144 |
@@ -43,6 +43,6 @@ The medical lead approved the Portuguese text (`pt` fields), the levels, and who
 
 ## Counts and sources at a glance
 
-- 39 cards, 96 test cases, 7 blood values.
+- 42 cards, 96 test cases, 7 blood values.
 - Coverage: the 32 conditions NASA marks as the most common, 32 of 32; the whole table, 144 of 144 (counted by hand, not checked by a second person). This measures the NASA list, not the frequency of real events: the table has no frequency numbers.
 - Real data used: Inspiration4 blood reference ranges, Smith 1997 i-STAT in flight (values read from a chart, approximate), the ISS in-flight symptom study (Crucian 2016), NASA Appendix E.

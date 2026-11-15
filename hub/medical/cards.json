@@ -5479,5 +5479,171 @@
         "note": "little urine for many hours, strong side pain going to the groin, blood in the urine, or cough and irritated eyes for more than 1 day after dust = concerning (medical officer, not left alone)"
       }
     ]
+  },
+  {
+    "id": "dust-storm",
+    "title": {
+      "en": "Dust storm",
+      "pt": "Tempestade de poeira"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [],
+      "words": {
+        "en": [],
+        "pt": []
+      }
+    },
+    "steps": [
+      {
+        "en": "Do not rub your eyes.",
+        "pt": "Não esfregue os olhos."
+      },
+      {
+        "en": "Rinse your eyes with saline, slowly, for several minutes.",
+        "pt": "Lave os olhos com soro, devagar, por vários minutos."
+      },
+      {
+        "en": "Take off clothes or suit with dust before going to the common area.",
+        "pt": "Tire a roupa ou o traje com poeira antes de ir para a área comum."
+      },
+      {
+        "en": "Breathe calmly. If you cough or have trouble breathing, follow the lung card.",
+        "pt": "Respire com calma. Se tiver tosse ou falta de ar, siga o cartão de pulmão."
+      },
+      {
+        "en": "If the cough or trouble breathing lasts more than 30 minutes, tell the medical officer.",
+        "pt": "Se a tosse ou a falta de ar continuar depois de 30 minutos, avise o oficial médico."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub your eyes.",
+        "pt": "Não esfregue os olhos."
+      },
+      {
+        "en": "Do not shake out dusty clothes inside the common area.",
+        "pt": "Não sacuda a roupa com poeira dentro da área comum."
+      }
+    ],
+    "sources": [],
+    "unverified": [
+      "All steps written from memory and adjusted by the medical lead; no source for any step.",
+      "Shelter, head count and closing hatches are base operations, not part of this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Base event card, shown when a crew member declares the event for the whole base. No readings or words trigger it. Level dangerous / everyone chosen by the medical lead. Any crew member can end the event (her opinion for Caio)."
+  },
+  {
+    "id": "ground-tremor",
+    "title": {
+      "en": "Ground tremor",
+      "pt": "Tremor de solo"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [],
+      "words": {
+        "en": [],
+        "pt": []
+      }
+    },
+    "steps": [
+      {
+        "en": "Heavy bleeding that does not stop: treat it first, following the cut card.",
+        "pt": "Sangramento forte que não para: trate primeiro, seguindo o cartão de corte."
+      },
+      {
+        "en": "Check the pressure on the screen. If it drops, follow the pressure loss card.",
+        "pt": "Veja a pressão na tela. Se cair, siga o cartão de perda de pressão."
+      },
+      {
+        "en": "Any other injury: follow the cut, fracture or no-response card.",
+        "pt": "Outro ferimento: siga o cartão de corte, fratura ou sem resposta."
+      },
+      {
+        "en": "Anyone who hit their head: watch them for 24 hours.",
+        "pt": "Quem bateu a cabeça: fique de olho nela por 24 horas."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not move someone with strong neck or back pain, unless the place is dangerous.",
+        "pt": "Não mova quem tem dor forte no pescoço ou nas costas, a menos que o lugar seja perigoso."
+      }
+    ],
+    "sources": [],
+    "unverified": [
+      "All steps written from memory and adjusted by the medical lead; no source for any step.",
+      "Shelter, head count and closing hatches are base operations, not part of this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Base event card, shown when a crew member declares the event for the whole base. No readings or words trigger it. Level dangerous / everyone chosen by the medical lead. Any crew member can end the event (her opinion for Caio)."
+  },
+  {
+    "id": "meteoroid-impact",
+    "title": {
+      "en": "Meteoroid impact",
+      "pt": "Impacto de meteoroide"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [],
+      "words": {
+        "en": [],
+        "pt": []
+      }
+    },
+    "steps": [
+      {
+        "en": "Heavy bleeding that does not stop: treat it first, following the cut card.",
+        "pt": "Sangramento forte que não para: trate primeiro, seguindo o cartão de corte."
+      },
+      {
+        "en": "Check the pressure on the screen. If it drops, follow the pressure loss card.",
+        "pt": "Veja a pressão na tela. Se cair, siga o cartão de perda de pressão."
+      },
+      {
+        "en": "Any other injury: follow the cut, fracture or no-response card.",
+        "pt": "Outro ferimento: siga o cartão de corte, fratura ou sem resposta."
+      },
+      {
+        "en": "Short of breath, or sudden ear and chest pain: follow the decompression card.",
+        "pt": "Sem ar, ou ouvido e peito doendo de repente: siga o cartão de descompressão."
+      },
+      {
+        "en": "Anyone who was near the impact: watch them for 24 hours.",
+        "pt": "Quem estava perto do impacto: observe por 24 horas."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not go back to the hit room to get things.",
+        "pt": "Não volte ao ambiente atingido para buscar objetos."
+      },
+      {
+        "en": "Do not close the door with someone inside.",
+        "pt": "Não feche a porta com alguém lá dentro."
+      }
+    ],
+    "sources": [],
+    "unverified": [
+      "All steps written from memory and adjusted by the medical lead; no source for any step.",
+      "Shelter, head count and closing hatches are base operations, not part of this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Base event card, shown when a crew member declares the event for the whole base. No readings or words trigger it. Level dangerous / everyone chosen by the medical lead. Any crew member can end the event (her opinion for Caio)."
   }
 ]

@@ -5,6 +5,8 @@
 // <base-folder> is her last full export (cards.json, blood.json, cases.json, ...).
 // <changes-folder> holds what she changed, whole: cards.changed.json and/or
 // blood.changed.json (and cases.changed.json if she sends one), plus her notes.
+// A new card comes in cards.new.json: each of its entries is added after the
+// base's last card, in her order; an id the base already has refuses the merge.
 // <out-folder> must not exist yet: it is written as a new full export, ready for
 // "npm run medical:install <out-folder>". Neither input folder is touched.
 //
@@ -129,6 +131,44 @@ export function mergeText(file: string, baseText: string, changedText: string): 
   return out;
 }
 
+/** Her partial file of new cards: entries the base does not have yet. */
+export const NEW_CARDS: [string, string] = ['cards.json', 'cards.new.json'];
+
+/** Adds new entries after the base's last one, on the raw text; an id the base has, or one given twice, refuses. */
+export function addText(file: string, baseText: string, newText: string): FileMerge {
+  const out: FileMerge = { file, changed: [], fields: {}, problems: [], text: baseText };
+  let base: unknown[];
+  let added: unknown[];
+  try {
+    base = JSON.parse(baseText);
+    added = JSON.parse(newText);
+  } catch (err) {
+    out.problems.push(`${file}: not valid JSON (${(err as Error).message}).`);
+    return out;
+  }
+  if (!Array.isArray(base) || !Array.isArray(added)) { out.problems.push(`${file}: both files must be lists.`); return out; }
+  const baseSpans = elementSpans(baseText);
+  const newSpans = elementSpans(newText);
+  if (baseSpans.length !== base.length || newSpans.length !== added.length || !baseSpans.length) { out.problems.push(`${file}: could not find each entry in the text.`); return out; }
+  const ids = new Set(base.map(idOf));
+  added.forEach((a, j) => {
+    const id = idOf(a);
+    if (!id) { out.problems.push(`${file}: new entry ${j + 1} has no id.`); return; }
+    if (ids.has(id)) { out.problems.push(`${file}: "${id}" is already in the base (or given twice), and a new card never replaces one.`); return; }
+    ids.add(id);
+    out.changed.push(id);
+    out.fields[id] = ['new'];
+  });
+  if (out.problems.length) return { ...out, changed: [], fields: {} };
+  const end = baseSpans[baseSpans.length - 1][1];
+  const indent = baseText.slice(baseText.lastIndexOf('\n', baseSpans[0][0]) + 1, baseSpans[0][0]);
+  const text = baseText.slice(0, end) + newSpans.map(([s, e]) => `,\n${indent}${newText.slice(s, e)}`).join('') + baseText.slice(end);
+  // Proof: the result is the base followed by her new entries, nothing else.
+  if (JSON.stringify(JSON.parse(text)) !== JSON.stringify([...base, ...added])) { out.problems.push(`${file}: the merged text does not parse to the expected list.`); return out; }
+  out.text = text;
+  return out;
+}
+
 /** Merges the folders. Writes only when nothing is wrong. */
 export function merge(baseDir: string, changesDir: string, outDir: string, write = true): FileMerge[] {
   const reports: FileMerge[] = [];
@@ -140,7 +180,19 @@ export function merge(baseDir: string, changesDir: string, outDir: string, write
     if (!existsSync(basePath)) { reports.push({ file: full, changed: [], fields: {}, problems: [`${full} is missing from ${baseDir}.`], text: '' }); continue; }
     reports.push(mergeText(full, readFileSync(basePath, 'utf8'), readFileSync(changedPath, 'utf8')));
   }
-  if (!reports.length) reports.push({ file: changesDir, changed: [], fields: {}, problems: [`${changesDir} has no ${MERGEABLE.map(([, p]) => p).join(', ')}.`], text: '' });
+  const newPath = join(changesDir, NEW_CARDS[1]);
+  if (existsSync(newPath)) {
+    const [full] = NEW_CARDS;
+    const held = reports.find((r) => r.file === full);
+    const basePath = join(baseDir, full);
+    if (held && held.problems.length === 0) {
+      const a = addText(full, held.text, readFileSync(newPath, 'utf8'));
+      reports[reports.indexOf(held)] = { ...a, changed: [...held.changed, ...a.changed], fields: { ...held.fields, ...a.fields } };
+    }
+    else if (!held && existsSync(basePath)) reports.push(addText(full, readFileSync(basePath, 'utf8'), readFileSync(newPath, 'utf8')));
+    else if (!held) reports.push({ file: full, changed: [], fields: {}, problems: [`${full} is missing from ${baseDir}.`], text: '' });
+  }
+  if (!reports.length) reports.push({ file: changesDir, changed: [], fields: {}, problems: [`${changesDir} has no ${[...MERGEABLE.map(([, p]) => p), NEW_CARDS[1]].join(', ')}.`], text: '' });
   if (!write || reports.some((r) => r.problems.length)) return reports;
   mkdirSync(outDir, { recursive: true });
   for (const name of readdirSync(baseDir)) {
@@ -160,7 +212,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const reports = merge(resolve(base), resolve(changes), resolve(out));
   for (const r of reports) {
-    console.log(`${r.file}: ${r.changed.length} entries replaced.`);
+    console.log(`${r.file}: ${r.changed.length} entries replaced or added.`);
     for (const id of r.changed) console.log(`  ${id}: ${r.fields[id].join(', ') || 'no field differs'}`);
     for (const p of r.problems) console.log(`  PROBLEM: ${p}`);
   }
