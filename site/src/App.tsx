@@ -37,8 +37,8 @@ interface Pillar {
 }
 
 const COPY = {
-  premise: 'It watches each crewmate and the room around them, as one.',
-  lead: 'So when you feel off, it knows where to look.',
+  premise: draft('A health system that reads each crewmate’s body and the room they are in, on one timeline.'),
+  lead: draft('When someone feels unwell, its evidence card says whether the cause points to the room, the person or a sensor.'),
   what: 'Astrum is a health system for crews on long missions. It runs on the station itself, with no help from Earth.',
   count: 'Replays 12,087 real ISS cabin readings from NASA’s OSDR.',
   heroShot: {
@@ -68,7 +68,7 @@ const COPY = {
 
   how: {
     title: 'How it works',
-    body: draft('Reyes has woken with a headache three mornings running. Her quarters stayed under NASA’s CO2 limit, so no alarm fired. The hub lines up her own normal, the rooms she has been in and her crewmates, and its evidence card points to her room. Tonight the air in her quarters stops moving and the CO2 climbs past the limit: she is asked if she is OK, the Crew Medical Officer is told, and when she doesn’t answer, everyone is.'),
+    body: draft('On three mornings in a row Reyes reports a headache. The CO2 in her quarters is below NASA’s limit, so no alarm sounds. The hub lines up her own normal, the rooms she has been in and her crewmates, and its evidence card points to her room. Tonight the air in her quarters stops moving and the CO2 climbs past the limit: she is asked if she is OK, the Crew Medical Officer is told, and when she doesn’t answer, everyone is.'),
   },
 
   pillars: [
@@ -124,7 +124,7 @@ const COPY = {
 
   sources: {
     title: 'The NASA data behind it',
-    body: draft('NASA’s data is what the hub computes with. Each source, what Astrum does with it, and its caveat where there is one.'),
+    body: draft('NASA’s data is what the hub computes with. For each source: what it is, how the hub uses it, and any caveat.'),
     rows: [
       [
         draft('NASA OSDR, Environmental Data Application'),
@@ -217,7 +217,7 @@ const COPY = {
       ['The AI doesn’t write emergency steps.', draft('Steps come only from cards our medical lead has approved, picked by rules, never by the model.')],
       [draft('The AI only answers from NASA’s text and the readings.'), 'If NASA’s pages don’t cover a question, it says it doesn’t know.'],
     ] satisfies [Line, Line][],
-    note: 'Astrum is a hackathon prototype, not a medical device.',
+    note: draft('Built during NASA Space Apps 2026. Astrum is not a medical device.'),
     howTitle: draft('How an answer is built'),
     how: [
       draft('The hub writes the facts: sentences built by code from the readings and the evidence card, each with its label, and NASA’s passage quoted word for word.'),
@@ -369,8 +369,8 @@ export function App() {
       <main id="main">
         <div className="hero wrap" id="top">
           <img className="logo" src="./brand/logo.svg" alt="Astrum" width={505} height={104} />
-          <h1>{COPY.premise}</h1>
-          <p className="lead">{COPY.lead}</p>
+          <h1 {...mark(COPY.premise)}>{text(COPY.premise)}</h1>
+          <p className="lead" {...mark(COPY.lead)}>{text(COPY.lead)}</p>
           <p className="lead">{COPY.what}</p>
           <div className="actions">
             <a className="button" href={DEMO}>Run the demo</a>
@@ -510,7 +510,7 @@ export function App() {
                 </div>
               ))}
             </div>
-            <p className="muted" style={{ marginTop: 24 }}>{safety.note}</p>
+            <p className="muted" style={{ marginTop: 24 }} {...mark(safety.note)}>{text(safety.note)}</p>
 
             <div className="sub">
               <h3 {...mark(safety.howTitle)}>{text(safety.howTitle)}</h3>
