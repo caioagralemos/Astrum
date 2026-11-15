@@ -21,7 +21,7 @@ struct ReadingRow: View {
                 }
             }
             if let bar = RangeBar(reading: reading) {
-                bar
+                bar.animated
             }
             HStack(spacing: 8) {
                 KindBadge(kind: reading.row.kind)
@@ -32,8 +32,14 @@ struct ReadingRow: View {
                 if reading.inAlert && reading.standing.badge == nil {
                     StatusBadge(text: String(localized: "Part of an alert"))
                 }
+                // NASA's figure beside the usual: the bar's tick at 90 is not the only sign of it.
+                if !reading.stale, reading.signal == "exercise_minutes", let minutes = reading.row.value {
+                    Text("\(Int(minutes.rounded())) of NASA's 90 minutes a day")
+                        .font(.caption)
+                        .foregroundStyle(HubStyle.muted)
+                }
                 if reading.stale {
-                    Text("Not current · \(reading.row.date.formatted(date: .omitted, time: .shortened))")
+                    Text("Last reading: \(ChatTimeline.short(reading.row.date))")
                         .font(.caption)
                         .foregroundStyle(HubStyle.muted)
                 }
@@ -52,17 +58,30 @@ struct ReadingRow: View {
         }
     }
 
+    @ViewBuilder
     private var value: some View {
+        if reading.stale {
+            // A gap: never the old number where the current value goes.
+            Text("No current reading")
+                .font(.callout)
+                .foregroundStyle(HubStyle.muted)
+        } else {
+            current
+        }
+    }
+
+    private var current: some View {
         let (number, unit) = Signals.display(reading.row)
         return HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(number)
                 .font(.title3.weight(.light).monospacedDigit())
+                .numericMotion(number)
             if !unit.isEmpty {
                 Text(unit)
                     .font(.footnote)
                     .foregroundStyle(HubStyle.muted)
             }
         }
-        .foregroundStyle(reading.stale ? HubStyle.faint : .white)
+        .foregroundStyle(.white)
     }
 }

@@ -28,6 +28,8 @@ enum BloodScan {
         var y: Double
         var width: Double
         var height: Double
+        /// Vision's next guesses for the same text, best first.
+        var alternatives: [String] = []
 
         var midY: Double { y + height / 2 }
         var maxX: Double { x + width }
@@ -40,6 +42,11 @@ enum BloodScan {
         /// number exactly as read; `unitSeen` the unit as read when it was not
         /// letter for letter the expected one.
         case read(value: Double, text: String, unitSeen: String?)
+        /// A clean number beside its label, but its unit could not be read.
+        /// Only for tests where no other unit the analyser offers could give
+        /// a number that passes the same checks (Analyte.unitInferable): the
+        /// hub's unit is shown for the person to check, not claimed as read.
+        case readWithoutUnit(value: Double, text: String)
         /// The analyser marked the value (`shown`: "***", "<>", "<15", "7.2↑"...).
         case flagged(shown: String)
         /// A number in another unit than the hub's. Never converted.
@@ -63,6 +70,14 @@ enum BloodScan {
         case ambiguous
         /// Astrum has no plausibility limits for the hub's unit for this test.
         case unknownUnit
+        /// Fewer decimals than the analyser always shows: a digit or the point was lost.
+        case missingDigit(shown: String)
+        /// Vision also read the same text as another plausible number.
+        case uncertainDigit(shown: String)
+        /// Looks at the screen read different numbers for it.
+        case disagree
+        /// A number read too few times to be offered.
+        case notSteady(shown: String)
     }
 
     /// Reads each wanted hub entry (`id`, the hub's `unit`) from the lines.
@@ -84,6 +99,12 @@ enum BloodScan {
 
     // MARK: The analyser's words
 
+    /// How the analyser labels each hub entry, for short progress lists.
+    static func shortLabel(_ id: String) -> String {
+        ["sodium": "Na", "potassium": "K", "ionized-calcium": "iCa", "glucose": "Glu", "ph": "pH",
+         "hematocrit": "Hct", "hemoglobin": "Hb"][id] ?? id
+    }
+
     struct Analyte: Sendable {
         let id: String
         /// The label at the start of a line, with the misreads seen in tests ("Gl U", "GIu", "lCa").
@@ -91,6 +112,11 @@ enum BloodScan {
         /// Every unit the analyser can be set to show this test in (i-STAT 1
         /// System Manual, Set Units table). "" is "no unit".
         let units: [String]
+        /// Whether a clean number whose unit was not read can be offered in
+        /// the hub's unit: true only when every other unit the analyser can be
+        /// set to either writes the same number or cannot pass the same range
+        /// and decimals checks.
+        let unitInferable: Bool
         /// Per unit the hub may record it in: the analyser's reportable range
         /// (it cannot show a plain number outside it) and the most decimals
         /// its screens show. Plausibility limits only, not medical ranges.
@@ -100,30 +126,46 @@ enum BloodScan {
     struct Limit: Hashable, Sendable {
         let range: ClosedRange<Double>
         let decimals: Int
-        init(_ range: ClosedRange<Double>, decimals: Int) { self.range = range; self.decimals = decimals }
+        /// The screens always show exactly `decimals` (K "3.0", never "3"):
+        /// fewer means a digit or the point was lost ("4.5" read as "5").
+        let exact: Bool
+        init(_ range: ClosedRange<Double>, decimals: Int, exact: Bool = false) {
+            self.range = range; self.decimals = decimals; self.exact = exact
+        }
     }
 
     /// The hub's seven blood entries (hub/medical/blood.json ids). Ranges:
     /// the reportable ranges in Abbott's i-STAT 1 tables. Decimals: what
-    /// Abbott's example screens show (Na 141, K 4.5, Glu 106, Hct 41,
-    /// pH 7.461, iCa 0.94); hemoglobin's one decimal is not seen on a screen.
+    /// Abbott's example screens show (Na 141, 139, 129; K 4.5, 3.1, 3.0;
+    /// Glu 106, 274, 468; Hct 41, 40; pH 7.461; iCa 0.94 and 1.2), taken as
+    /// exact where every example agrees; hemoglobin's one decimal is not seen
+    /// on a screen.
     static let analytes: [Analyte] = [
-        Analyte(id: "sodium", label: #"Na"#, units: ["mmol/L", "mEq/L"],
-                limits: ["mmol/L": Limit(100...180, decimals: 0)]),
-        Analyte(id: "potassium", label: #"K"#, units: ["mmol/L", "mEq/L"],
-                limits: ["mmol/L": Limit(2.0...9.0, decimals: 1)]),
-        Analyte(id: "ionized-calcium", label: #"[iIl1|]Ca"#, units: ["mmol/L", "mEq/L", "mg/dL"],
+        // mEq/L is the same number as mmol/L for sodium and potassium (one charge).
+        Analyte(id: "sodium", label: #"Na"#, units: ["mmol/L", "mEq/L"], unitInferable: true,
+                limits: ["mmol/L": Limit(100...180, decimals: 0, exact: true)]),
+        Analyte(id: "potassium", label: #"K"#, units: ["mmol/L", "mEq/L"], unitInferable: true,
+                limits: ["mmol/L": Limit(2.0...9.0, decimals: 1, exact: true)]),
+        Analyte(id: "ionized-calcium", label: #"[iIl1|¡(]?Ca"#, units: ["mmol/L", "mEq/L", "mg/dL"],
+                // mEq/L (twice the number) and mg/dL overlap mmol/L's range and decimals.
+                unitInferable: false,
                 limits: ["mmol/L": Limit(0.25...2.50, decimals: 2), "mg/dL": Limit(1.0...10.0, decimals: 1)]),
         Analyte(id: "glucose", label: #"G[lI1|] ?[uU]"#, units: ["mg/dL", "mmol/L", "g/L"],
-                limits: ["mg/dL": Limit(20...700, decimals: 0), "mmol/L": Limit(1.1...38.9, decimals: 1),
+                // mmol/L shows a decimal and g/L two; mg/dL shows none.
+                unitInferable: true,
+                limits: ["mg/dL": Limit(20...700, decimals: 0, exact: true), "mmol/L": Limit(1.1...38.9, decimals: 1),
                          "g/L": Limit(0.20...7.00, decimals: 2)]),
-        Analyte(id: "ph", label: #"[pP][hH]"#, units: [""],
-                limits: ["pH units": Limit(6.50...8.20, decimals: 3)]),
+        Analyte(id: "ph", label: #"[pP][hH]"#, units: [""], unitInferable: false,
+                limits: ["pH units": Limit(6.50...8.20, decimals: 3, exact: true)]),
         // 15 to 75 in the manual; one source in blood.json says 10, the wider is kept.
         Analyte(id: "hematocrit", label: #"H[cC][tT]"#, units: ["%PCV", ""],
-                limits: ["%PCV": Limit(10...75, decimals: 0)]),
+                // The other way is a fraction (0.41), below the range.
+                unitInferable: true,
+                limits: ["%PCV": Limit(10...75, decimals: 0, exact: true)]),
         // Calculated by the analyser as hematocrit x 0.34, so its limits follow the hematocrit's.
         Analyte(id: "hemoglobin", label: #"H[bB]\*?|Hgb"#, units: ["g/dL", "mmol/L", "g/L"],
+                // mmol/L (3.2 to 15.8, one decimal) overlaps g/dL.
+                unitInferable: false,
                 limits: ["g/dL": Limit(3.4...25.5, decimals: 1)]),
     ]
 
@@ -140,6 +182,8 @@ enum BloodScan {
         /// The value's text, or nil when no number was found for the label.
         let value: String?
         let ambiguous: Bool
+        /// The value as Vision's other guesses read it.
+        var otherValues: [String] = []
     }
 
     private static let labelPattern: NSRegularExpression = {
@@ -177,7 +221,7 @@ enum BloodScan {
         var unitWords: [String] = []
         for raw in rest.split(whereSeparator: { $0 == " " || $0 == "\t" }) {
             var word = String(raw)
-            if word.allSatisfy({ ".,:;|_-–'`".contains($0) }) { continue }
+            if word.allSatisfy({ ".,:;|_-–'`".contains($0) }) || word == "*" { continue }
             word = word.trimmingCharacters(in: CharacterSet(charactersIn: ",;:"))
             if looksLikeValue(word) {
                 parts.values.append(word)
@@ -195,9 +239,11 @@ enum BloodScan {
     }
 
     /// A word that is a value or stands where a value would: it starts with a
-    /// digit, or holds one of the analyser's marks. ("mmo1/L" is a unit.)
+    /// digit, or is one of the analyser's marks ("***", "<>", "<15", "7.2↑").
+    /// "mmo1/L" and "*PCV" (a misread "%PCV") are units.
     private static func looksLikeValue(_ word: String) -> Bool {
-        word.first?.isNumber == true || word.contains("*") || word.contains("<") || word.contains(">")
+        word.first?.isNumber == true || word.first == "<" || word.first == ">"
+            || (word.count >= 2 && word.allSatisfy { $0 == "*" })
             || word.contains(where: { arrows.contains($0) })
     }
 
@@ -233,13 +279,15 @@ enum BloodScan {
         for (i, analyte, rest) in labelled where !analyte.isEmpty {
             var p = parts(rest)
             var ambiguous = p.secondLabel || p.values.count > 1
+            var others = lines[i].alternatives.compactMap { label(of: Line(text: $0, x: 0, y: 0, width: 0, height: 0)).flatMap { parts($0.rest).values.first } }
             if p.values.isEmpty, let j = candidate[i] {
                 p.values = [valueOnly(lines[j])!]
                 ambiguous = (claims[j]?.count ?? 0) > 1
+                others = lines[j].alternatives.compactMap { valueOnly(Line(text: $0, x: 0, y: 0, width: 0, height: 0)) }
                 // A unit printed as its own piece between the label and the number.
                 if p.unit.isEmpty { p.unit = unitBetween(lines[i], lines[j], in: lines) }
             }
-            hits.append(Hit(analyte: analyte, unit: p.unit, value: p.values.first, ambiguous: ambiguous))
+            hits.append(Hit(analyte: analyte, unit: p.unit, value: p.values.first, ambiguous: ambiguous, otherValues: others))
         }
         return hits
     }
@@ -296,17 +344,30 @@ enum BloodScan {
         let expected = printedUnit(hubUnit)
         let unitRead = hit.unit.trimmingCharacters(in: CharacterSet(charactersIn: " ,"))
         let unitSeen: String?
+        var unitWasRead = true
         switch unitMatch(unitRead, expected: expected, options: analyte.units) {
         case .exact: unitSeen = nil
         case .close: unitSeen = unitRead
         case .other(let unit): return .otherUnit(shown: shown, unit: unit)
-        case .none: return .unclear(expected.isEmpty ? .unreadable(shown: unitRead + " " + shown) : .noUnit)
+        case .unsure:
+            return .unclear(.noUnit)
+        case .none:
+            if expected.isEmpty { return .unclear(.unreadable(shown: unitRead + " " + shown)) }
+            guard analyte.unitInferable else { return .unclear(.noUnit) }
+            unitSeen = nil
+            unitWasRead = false
         }
 
         guard let value = number(shown) else { return .unclear(.unreadable(shown: shown)) }
         guard limit.range.contains(value) else { return .unclear(.implausible(shown: shown, limits: limit.range)) }
         if decimals(shown) > limit.decimals { return .unclear(.extraDigit(shown: shown)) }
-        return .read(value: value, text: shown.replacingOccurrences(of: ",", with: "."), unitSeen: unitSeen)
+        if limit.exact, decimals(shown) < limit.decimals { return .unclear(.missingDigit(shown: shown)) }
+        // Vision's other guesses for the same text: one that is another clean number means a digit is in doubt.
+        if hit.otherValues.contains(where: { other in number(other).map { $0 != value && limit.range.contains($0) } ?? false }) {
+            return .unclear(.uncertainDigit(shown: shown))
+        }
+        let clean = shown.replacingOccurrences(of: ",", with: ".")
+        return unitWasRead ? .read(value: value, text: clean, unitSeen: unitSeen) : .readWithoutUnit(value: value, text: clean)
     }
 
     private static func flagged(_ shown: String) -> Bool {
@@ -330,7 +391,8 @@ enum BloodScan {
         hubUnit == "pH units" ? "" : hubUnit
     }
 
-    private enum UnitMatch { case exact, close, other(String), none }
+    /// `none`: nothing like any unit was read; `unsure`: something close to another unit was.
+    private enum UnitMatch { case exact, close, other(String), unsure, none }
 
     /// Compares the unit as read with the expected one. Read characters OCR
     /// confuses (1, I, | for l; 0 for o) are folded first. One wrong or missing
@@ -346,6 +408,7 @@ enum BloodScan {
         if !e.isEmpty, distance(r, e) == 1, others.allSatisfy({ distance(r, fold($0)) > 1 }) { return .close }
         if let other = others.first(where: { distance(r, fold($0)) == 1 }),
            distance(r, e) > 1, others.filter({ distance(r, fold($0)) <= 1 }).count == 1 { return .other(other) }
+        if others.contains(where: { distance(r, fold($0)) <= 1 }) { return .unsure }
         return .none
     }
 
@@ -356,7 +419,7 @@ enum BloodScan {
             case "1", "i", "|": out.append("l")
             case "0": out.append("o")
             case "µ": out.append("u")
-            case "x" where out.isEmpty: out.append("%")  // "%PCV" read as "XPCV"
+            case "x" where out.isEmpty, "*" where out.isEmpty: out.append("%")  // "%PCV" read as "XPCV" or "*PCV"
             default: out.append(c)
             }
         }

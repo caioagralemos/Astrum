@@ -1,7 +1,8 @@
 // Me, the home tab: the owner's body. The figure on top (tap a region to
-// filter), the regions again as a plain list, one line that sums up today,
-// then every reading with its label and where it sits against their usual.
-// Tapping a reading opens its detail.
+// filter; a region with a warning or a reading outside the usual is marked),
+// the regions again as a plain list, then for the chosen region (or all):
+// its warnings, one line that sums it up, its widgets, and every reading with
+// its label and where it sits against their usual. Tapping a reading opens its detail.
 
 import SwiftUI
 
@@ -10,7 +11,12 @@ struct MeView: View {
     @State private var region: BodyRegion?
     @State private var showingSettings = false
     @State private var blood: BloodReply?
+    @State private var cards: [CardView] = []
+    /// The card a card's match opened (its id).
+    @State private var openCard: CardID?
     @State private var router = ReadingRouter()
+    @Namespace private var zoom
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -32,10 +38,23 @@ struct MeView: View {
                 }
             }
             .navigationDestination(for: String.self) { signal in
-                ReadingDetailView(signal: signal)
+                // Opened from a widget card: it zooms out of the card. From a row: a plain push.
+                ZoomDestination(zooms: router.zoomSource == signal, sourceID: signal, namespace: zoom) {
+                    // A blood result lives in the blood results, not among the body's readings.
+                    if signal.hasPrefix("blood.") {
+                        BloodResultDetailView(signal: signal, reply: blood)
+                    } else {
+                        ReadingDetailView(signal: signal)
+                    }
+                }
             }
             .environment(router)
+            .environment(\.zoomNamespace, zoom)
+            .onChange(of: router.path) { old, new in
+                if new.count < old.count { router.zoomSource = nil }
+            }
             .sheet(isPresented: $showingSettings) { SettingsView() }
+            .sheet(item: $openCard) { MatchedCardSheet(cardID: $0.id, cards: cards) }
             .task(id: "\(model.person)|\(model.isConnected)") { await keepFresh() }
         }
     }
@@ -43,16 +62,17 @@ struct MeView: View {
     private func content(readings: [Reading]) -> some View {
         let marked = Readings.markedRegions(readings, alerts: model.visibleAlerts, person: model.person)
         let shown = region.map { r in readings.filter { $0.region == r } } ?? readings
-        let widgets = MeWidgets.items(readings: readings, world: model.world, person: model.person)
+        let widgets = MeWidgets.items(readings: readings, world: model.world, person: model.person, region: region)
         return List {
+            // Nothing above the body: warnings sit under the region buttons, for the chosen region.
             Section {
-                ConnectionBanner()
-                MeAlertBanners()
                 AvatarView(marked: marked, selected: $region) { status(of: $0, in: readings) }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                RegionPicker(selected: $region, marked: marked)
-                TodayLine(readings: readings)
+                RegionPicker(selected: $region, marked: marked) { status(of: $0, in: readings) }
+                ConnectionBanner()
+                MeAlertBanners(region: region, cards: cards) { openCard = CardID(id: $0) }
+                TodayLine(readings: readings, region: region, blood: blood)
             }
             .listRowSeparator(.hidden)
 
@@ -82,6 +102,12 @@ struct MeView: View {
                 ProjectionHeader(region?.icon ?? .vibration, region?.title ?? String(localized: "All readings"))
             }
         }
+        // The region's warnings, widgets and readings change as rows inserted and removed, keyed on
+        // the region alone (never on the 10-second refresh); so do banners arriving or leaving.
+        .animation(Motion.reduced(Motion.content, reduceMotion), value: region)
+        .animation(Motion.reduced(Motion.content, reduceMotion), value: MeAlertBanners.alerts(in: region, model: model, cards: cards).map(\.id))
+        .animation(Motion.reduced(Motion.content, reduceMotion), value: model.isConnected)
+        .sensoryFeedback(.selection, trigger: region)
     }
 
     private var emptyText: String {
@@ -89,7 +115,18 @@ struct MeView: View {
         return model.world.hasData ? String(localized: "The hub has no readings for you yet.") : String(localized: "No data from the hub yet.")
     }
 
+    /// What a region holds now, for VoiceOver: its warnings first, then its readings.
     private func status(of region: BodyRegion, in readings: [Reading]) -> String {
+        let sentences = MeAlertBanners.alerts(in: region, model: model, cards: cards)
+            .filter { Readings.region(of: $0, person: model.person) == region }
+            .compactMap { MeAlertBanners.text(for: $0, model: model, cards: cards) }
+        let warnings = sentences.isEmpty ? nil
+            : sentences.count == 1 ? String(localized: "1 warning: \(sentences[0])")
+            : String(localized: "\(sentences.count) warnings: \(sentences.joined(separator: ", "))")
+        return [warnings, readingStatus(of: region, in: readings)].compactMap { $0 }.joined(separator: ". ")
+    }
+
+    private func readingStatus(of region: BodyRegion, in readings: [Reading]) -> String {
         if region == .blood {
             let count = blood?.latest[model.person]?.count ?? 0
             return count == 0 ? String(localized: "No blood test yet") : String(localized: "\(count) results")
@@ -104,7 +141,10 @@ struct MeView: View {
     private func keepFresh() async {
         while !Task.isCancelled {
             await model.refreshHistory()
-            if let api = model.api { blood = (try? await api.blood()) ?? blood }
+            if let api = model.api {
+                blood = (try? await api.blood()) ?? blood
+                cards = (try? await api.cards(lang: model.lang))?.cards ?? cards
+            }
             try? await Task.sleep(for: .seconds(300))
         }
     }
@@ -127,6 +167,10 @@ private extension BodyRegion {
 private struct RegionPicker: View {
     @Binding var selected: BodyRegion?
     let marked: Set<BodyRegion>
+    /// What each region holds now, for VoiceOver: "1 warning: sleep last night above your usual".
+    let status: (BodyRegion) -> String
+    @Namespace private var chips
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -136,6 +180,8 @@ private struct RegionPicker: View {
                     chip(region, title: region.title)
                 }
             }
+            // The white fill slides to the chosen chip (from a chip or the figure); under Reduce Motion it moves at once.
+            .animation(Motion.movement(Motion.select, reduceMotion), value: selected)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Regions"))
@@ -143,7 +189,7 @@ private struct RegionPicker: View {
 
     private func chip(_ region: BodyRegion?, title: String) -> some View {
         let isSelected = selected == region
-        let isMarked = region.map(marked.contains) ?? false
+        let isMarked = region.map(marked.contains) ?? !marked.isEmpty
         return Button {
             selected = region
         } label: {
@@ -164,6 +210,7 @@ private struct RegionPicker: View {
                 let shape = RoundedRectangle(cornerRadius: HubStyle.controlRadius, style: .circular)
                 if isSelected {
                     shape.fill(.white)
+                        .matchedGeometryEffect(id: "selection", in: chips)
                 } else {
                     shape.fill(HubStyle.fill)
                         .overlay(shape.strokeBorder(.white.opacity(0.5), lineWidth: 1))
@@ -173,43 +220,98 @@ private struct RegionPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))
-        .accessibilityValue(isMarked ? Text("Something outside your usual") : Text(verbatim: ""))
+        .accessibilityValue(value(of: region, isMarked: isMarked))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// A marked region says what it holds; "All" names the marked regions.
+    private func value(of region: BodyRegion?, isMarked: Bool) -> Text {
+        guard isMarked else { return Text(verbatim: "") }
+        guard let region else { return Text(BodyRegion.markedList(marked)) }
+        return Text(status(region))
     }
 }
 
-/// The one line that sums up today: an alert first, then the readings.
+extension BodyRegion {
+    /// "Marked: Head, Blood", in the regions' order, for VoiceOver.
+    static func markedList(_ marked: Set<BodyRegion>) -> String {
+        let names = allCases.filter(marked.contains).map(\.title).formatted(.list(type: .and))
+        return String(localized: "Marked: \(names)")
+    }
+}
+
+/// The line that sums up the chosen region (or all), by rule (RegionSummary): what is outside a
+/// range or the usual, what misses NASA's figures, what is within, what has no current reading.
+/// Alerts are never the summary: they have their own rows above it.
 private struct TodayLine: View {
     @Environment(AppModel.self) private var model
+    /// Every reading of the owner; the line picks the region's.
     let readings: [Reading]
+    let region: BodyRegion?
+    let blood: BloodReply?
 
     var body: some View {
-        let (text, tone) = summary
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if tone != .quiet {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(tone.color)
+        let line = region.map { RegionSummary.line(facts(in: $0)) } ?? RegionSummary.all(BodyRegion.allCases.map(facts))
+        if !line.sentences.isEmpty {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: line.warns ? "exclamationmark.triangle.fill" : "circle.fill")
+                    .imageScale(line.warns ? .medium : .small)
+                    .foregroundStyle(line.warns ? HubStyle.watch : HubStyle.muted)
                     .accessibilityHidden(true)
+                Text(line.text)
+                    .font(.headline)
             }
-            Text(text)
-                .font(.headline)
+            .padding(.vertical, 4)
+            .accessibilityElement(children: .combine)
         }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
     }
 
-    private var summary: (String, StatusTone) {
-        let world = model.world
-        if let alert = model.visibleAlerts.filter({ $0.person == model.person && $0.level >= 2 }).max(by: { $0.level < $1.level }) {
-            let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) } ?? ""
-            let signal = Signals.name(alert.signal)
-            return (String(localized: "In \(room), where \(signal) is over NASA's limit"), alert.level >= 3 ? .danger : .watch)
+    private func facts(in region: BodyRegion) -> [RegionSummary.Fact] {
+        let person = model.person
+        if region == .blood, let reply = blood, let results = reply.latest[person], !results.isEmpty {
+            return results.compactMap { result in
+                let entry = reply.entries.first { $0.id == result.id }
+                return RegionSummary.fact(result, entry: entry, name: BloodResultRow.name(of: result, entry: entry))
+            }
         }
-        if readings.isEmpty { return (String(localized: "No readings from the hub yet"), .quiet) }
-        let outside = readings.filter(\.isMarked).count
-        if outside > 0 { return (String(localized: "\(outside) readings outside your usual"), .watch) }
-        if !readings.contains(where: { $0.baseline?.judged != nil }) { return (String(localized: "Not enough history to compare yet"), .quiet) }
-        return (String(localized: "Everything within your usual"), .quiet)
+        let limits = model.visibleAlerts.filter { $0.person == person && $0.limit != nil && $0.reason != "room-limit" }
+        return readings.filter { $0.region == region }.map { reading in
+            RegionSummary.fact(reading, alert: limits.first { $0.signal == reading.signal })
+        }
+    }
+}
+
+/// A card's id, to open its sheet.
+private struct CardID: Identifiable {
+    let id: String
+}
+
+/// The card a card's match names, word for word, or that the phone does not have it.
+private struct MatchedCardSheet: View {
+    let cardID: String
+    let cards: [CardView]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let card = cards.first(where: { $0.id == cardID }) {
+                    ScrollView {
+                        StepsCardView(card: card)
+                            .projectionCard()
+                            .padding(24)
+                    }
+                } else {
+                    ContentUnavailableView("This card needs the hub", systemImage: "rectangle.on.rectangle.slash")
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 
@@ -227,6 +329,6 @@ struct SettingsButton: View {
 
 #Preview {
     MeView()
-        .environment(SampleData.model())
+        .environment(SampleData.model(alerts: SampleData.meWarnings))
         .preferredColorScheme(.dark)
 }

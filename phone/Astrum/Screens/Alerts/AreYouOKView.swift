@@ -44,8 +44,10 @@ struct AreYouOKView: View {
                     Label(sent == "ok" ? String(localized: "Answer sent: I am OK.") : String(localized: "Answer sent: I need help."), systemImage: "checkmark.circle")
                         .font(.title2)
                 } else {
-                    Text(left > 0 ? String(localized: "\(Countdown.text(ms: left)) to answer") : String(localized: "Time is up. The crew is being told."))
+                    let words = left > 0 ? String(localized: "\(Countdown.text(ms: left)) to answer") : String(localized: "Time is up. The crew is being told.")
+                    Text(words)
                         .font(.title2.monospacedDigit())
+                        .numericMotion(words, countsDown: true)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
 

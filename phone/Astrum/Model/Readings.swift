@@ -18,6 +18,8 @@ enum Standing: Hashable, Sendable {
     case airWatch
     /// CO2 over NASA's 3 mmHg limit.
     case airOver
+    /// No current reading (Freshness.swift): a gap, never compared with the usual or NASA's levels.
+    case notCurrent
 
     var isOutside: Bool { self == .above || self == .below || self == .airWatch || self == .airOver }
 
@@ -31,6 +33,7 @@ enum Standing: Hashable, Sendable {
         case .airOK: String(localized: "below NASA's 2.8 mmHg level")
         case .airWatch: String(localized: "between NASA's 2.8 and 3 mmHg levels")
         case .airOver: String(localized: "over NASA's 3 mmHg limit")
+        case .notCurrent: String(localized: "no current reading")
         }
     }
 
@@ -60,10 +63,14 @@ struct Reading: Identifiable, Hashable, Sendable {
     var name: String { Signals.name(row.signal) }
     var isMarked: Bool { standing.isOutside || inAlert }
 
-    /// "Heart rate, 63 bpm, Measured, within your usual."
+    /// "Heart rate, 63 bpm, Measured, within your usual." Not current: "Heart rate, no current reading, last at 14:05."
     var spoken: String {
-        var parts = [name, Signals.text(row), Signals.kindName(row.kind), standing.words]
-        if stale { parts.append(String(localized: "not current, last at \(row.date.formatted(date: .omitted, time: .shortened))")) }
+        var parts = stale ? [name, standing.words] : [name, Signals.text(row), Signals.kindName(row.kind), standing.words]
+        if stale { parts.append(String(localized: "last reading: \(ChatTimeline.short(row.date))")) }
+        // NASA's figure is said beside the usual, never left out for it.
+        if !stale, signal == "exercise_minutes", let minutes = row.value {
+            parts.append(String(localized: "\(Int(minutes.rounded())) of NASA's 90 minutes a day"))
+        }
         if inAlert { parts.append(String(localized: "part of an alert")) }
         return parts.joined(separator: ", ")
     }
@@ -85,11 +92,12 @@ enum Readings {
         let alerts = world.visibleAlerts(to: person).filter { $0.person == person }
         var readings = rows.map { row -> Reading in
             let baseline = baselines[row.signal]
+            let stale = Signals.isStale(row, now: now)
             return Reading(
                 row: row, region: Signals.region(of: row.signal), baseline: baseline,
-                standing: standing(of: row.signal, evidence: evidence, baseline: baseline),
+                standing: stale ? .notCurrent : standing(of: row.signal, evidence: evidence, baseline: baseline),
                 inAlert: alerts.contains { $0.signal == row.signal },
-                stale: Signals.isStale(row, now: now)
+                stale: stale
             )
         }
         if let air = roomAir(world: world, person: person, now: now, alerts: alerts) { readings.append(air) }
@@ -101,11 +109,12 @@ enum Readings {
         guard let room = world.room(of: person),
               let co2 = world.currentRows(inRoom: room, now: now).first(where: { $0.signal == "co2" }),
               let value = co2.value else { return nil }
-        let standing: Standing = value > Signals.co2Limit ? .airOver : value >= Signals.co2HeadacheLevel ? .airWatch : .airOK
+        let stale = Signals.isStale(co2, now: now)
+        let standing: Standing = stale ? .notCurrent : value > Signals.co2Limit ? .airOver : value >= Signals.co2HeadacheLevel ? .airWatch : .airOK
         return Reading(
             row: co2, region: .lungs, baseline: nil, standing: standing,
             inAlert: alerts.contains { $0.reason == "room-limit" && $0.room == room },
-            stale: Signals.isStale(co2, now: now)
+            stale: stale
         )
     }
 
@@ -125,8 +134,17 @@ enum Readings {
         var marked = Set(readings.filter(\.isMarked).compactMap(\.region))
         for alert in alerts where alert.person == person {
             if alert.reason == "room-limit" { marked.insert(.lungs) }
-            if let region = Signals.region(of: alert.signal) { marked.insert(region) }
+            if let region = region(of: alert, person: person) { marked.insert(region) }
         }
         return marked
+    }
+
+    /// The region of the owner's body an alert belongs to: the air of a room is Lungs and air,
+    /// a reading its own region, a card's match the region its card is about. None for someone
+    /// else's alert or one with no reading or card behind it.
+    static func region(of alert: HubAlert, person: String) -> BodyRegion? {
+        guard alert.person == person else { return nil }
+        if let card = AlertText.findingCard(alert) { return AlertText.region(ofCard: card) }
+        return alert.reason == "room-limit" ? .lungs : Signals.region(of: alert.signal)
     }
 }

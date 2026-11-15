@@ -66,15 +66,21 @@ struct ReadingDetailView: View {
     private func value(_ reading: Reading) -> some View {
         let (number, unit) = Signals.display(reading.row)
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(number)
-                    .font(.largeTitle.weight(.light).monospacedDigit())
-                if !unit.isEmpty {
-                    Text(unit).foregroundStyle(.secondary)
+            // Not current: a gap, never the old number in the current value's place.
+            if reading.stale {
+                Text("No current reading")
+                    .font(.title2.weight(.light))
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(number)
+                        .font(.largeTitle.weight(.light).monospacedDigit())
+                    if !unit.isEmpty {
+                        Text(unit).foregroundStyle(.secondary)
+                    }
                 }
             }
             if reading.stale {
-                Text("Not current. Last reading at \(reading.row.date.formatted(date: .abbreviated, time: .shortened)).")
+                Text("Not current. Last reading: \(Signals.text(reading.row)) at \(reading.row.date.formatted(date: .abbreviated, time: .shortened)).")
                     .foregroundStyle(.secondary)
             } else {
                 Text("At \(reading.row.date.formatted(date: .omitted, time: .shortened))")
@@ -100,6 +106,7 @@ struct ReadingDetailView: View {
         case .below: return String(localized: "\(name) is below your usual")
         case .within: return String(localized: "\(name) is within your usual")
         case .unknown: return String(localized: "\(name): not enough history to compare yet")
+        case .notCurrent: return String(localized: "\(name): no current reading")
         case .airOK, .airWatch, .airOver:
             let room = reading.row.room.map { Signals.roomName($0, rooms: model.world.profile?.rooms ?? []) } ?? ""
             return String(localized: "Air in \(room): \(reading.standing.words)")

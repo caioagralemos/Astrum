@@ -120,15 +120,16 @@ struct HubAPI: Sendable {
     // MARK: Asking
 
     /// POST /api/ask: newline-delimited JSON, status lines then one result.
-    func ask(person: String, question: String, lang: String) -> AsyncThrowingStream<AskEvent, Error> {
+    /// `history` is this crewmate's last exchanges, oldest first (AskThread.history): the hub
+    /// reads only their topic, and only when it has lost its own thread.
+    func ask(person: String, question: String, lang: String, history: [AskHistoryItem] = []) -> AsyncThrowingStream<AskEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    struct Body: Encodable { let person: String; let question: String; let lang: String }
                     var request = URLRequest(url: url("/api/ask"), timeoutInterval: 180)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    request.httpBody = try JSONEncoder().encode(Body(person: person, question: question, lang: lang))
+                    request.httpBody = try Self.askBody(person: person, question: question, lang: lang, history: history)
                     let (bytes, response) = try await Self.session.bytes(for: request)
                     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                     for try await line in bytes.lines where !line.isEmpty {
@@ -149,6 +150,18 @@ struct HubAPI: Sendable {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// The hub reads at most 10,000 bytes of a body: the oldest history goes first until it fits.
+    private static func askBody(person: String, question: String, lang: String, history: [AskHistoryItem]) throws -> Data {
+        struct Body: Encodable { let person: String; let question: String; let lang: String; let history: [AskHistoryItem] }
+        var history = Array(history.suffix(AskHistoryItem.maxItems))
+        var data = try JSONEncoder().encode(Body(person: person, question: question, lang: lang, history: history))
+        while data.count > 9_000 && !history.isEmpty {
+            history.removeFirst()
+            data = try JSONEncoder().encode(Body(person: person, question: question, lang: lang, history: history))
+        }
+        return data
     }
 
     private static func askEvent(_ data: Data) throws -> AskEvent {
@@ -293,6 +306,28 @@ struct AskResult: Codable, Sendable, Hashable {
     let ms: Double
     var followUp: FollowUp? = nil
     var askFirst: AskFirst? = nil
+    /// The complete question the hub made of a message that leaned on the one before ("and yesterday?").
+    var understoodAs: String? = nil
+    /// A question Astra asks back and waits on; the next message is read against it first.
+    var pendingQuestion: PendingQuestion? = nil
+    /// Set when the message was small talk, answered by the hub's own sentence.
+    var smallTalk: String? = nil
+    /// Set when the message was a remark or reaction ("I thought so"), answered by the hub's own sentence.
+    var remark: String? = nil
+    /// Why this reply reads as it does ("model", "setAside", "hub", "smallTalk", "remark", …).
+    var reason: String? = nil
+
+    /// A question Astra asked back (PendingQuestion in core/ai.ts), in the asker's language.
+    struct PendingQuestion: Codable, Sendable, Hashable {
+        struct Option: Codable, Sendable, Hashable { let value: String; let label: String }
+        /// "askFirst", "card", "better" or "clarify".
+        let purpose: String
+        /// "yes_no", "value" or "choice".
+        let kind: String
+        let text: String
+        let options: [Option]
+        var unit: String? = nil
+    }
 }
 
 /// NASA's words, quoted unchanged with their source.
@@ -351,7 +386,10 @@ struct CardView: Codable, Sendable, Hashable, Identifiable {
     let messageHouston: Bool
     let steps: [String]
     let doNot: [String]
+    /// Her own list of the parts not checked against a source. It does not mean the card is unapproved.
     let unverified: [String]
+    /// Who approved it: always "medical_lead", since only approved cards are sent. Nil from an older hub.
+    var approvedBy: String? = nil
 }
 
 struct CardsReply: Decodable, Sendable, Hashable {

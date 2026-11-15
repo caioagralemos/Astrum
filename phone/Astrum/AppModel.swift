@@ -75,6 +75,8 @@ final class AppModel {
     var onboarded: Bool
     /// Check-ins answered offline, waiting for the hub.
     var pendingCheckins = 0
+    /// Today's check-in is showing (CheckInView); opened with `startTodaysCheckIn()`.
+    var checkInOpen = false
     /// Level 3 alerts (by key) the owner has closed after they were seen; shown as a banner instead.
     var closedAlerts: Set<String> = []
     /// Answers sent to "Are you OK?" (alert id to "ok" or "help"), shown at once until the hub's state confirms them.
@@ -314,7 +316,7 @@ final class AppModel {
             if let data = try? JSONEncoder().encode(crew) { UserDefaults.standard.set(data, forKey: Key.crew) }
         }
         // Room alarms sound the room's buzzer. Phones announce alerts, which carry who is told.
-        if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew) }
+        if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew, rooms: message.profile?.rooms ?? world.profile?.rooms ?? []) }
         apply(message)
         // The hub's view of where everyone is just arrived: send waiting room changes, then check it against ours.
         if message.type == "state", message.scenario == nil { flushStays() }

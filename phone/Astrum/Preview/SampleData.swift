@@ -130,6 +130,20 @@ enum SampleData {
         resolvedAt: nil
     )
 
+    /// Two quiet warnings on Me: sleep (Head) and a blood result past the medical lead's limit (Blood).
+    static let meWarnings = [
+        HubAlert(
+            id: "reyes|unusual|sleep_duration", person: me, level: 1, reason: "unusual", room: nil,
+            signal: "sleep_duration", value: 540, unit: "min", limit: nil, held: false, stationWide: false,
+            toldTo: .people([me]), direction: "high", kind: .simulated, since: now - hour
+        ),
+        HubAlert(
+            id: "reyes|medical-lead|blood.glucose", person: me, level: 1, reason: "medical-lead", room: nil,
+            signal: "blood.glucose", value: 106, unit: "mg/dL", limit: 105, held: false, stationWide: false,
+            toldTo: .people([me]), kind: .measured, since: now - hour
+        ),
+    ]
+
     static let askAlert = HubAlert(
         id: "reyes|room-limit|greenhouse|co2", person: me, level: 2, reason: "room-limit", room: "greenhouse",
         signal: "co2", value: 3.2, unit: "mmHg", limit: 3, held: false, stationWide: false, toldTo: .people([me, "okafor"]),
@@ -155,14 +169,67 @@ enum SampleData {
         return try! JSONDecoder().decode(AskResult.self, from: Data(json.utf8))
     }
 
-    /// Ask Astra's thread: one answered yesterday (a fact and a NASA quote), one that failed, one on its way.
+    private static func askResult(_ json: String) -> AskResult {
+        try! JSONDecoder().decode(AskResult.self, from: Data(json.utf8))
+    }
+
+    /// Small talk: the hub's own sentence, no attachments.
+    static var smallTalkAnswer: AskResult {
+        askResult("""
+        {"type":"result","route":"fixed","by":"fixed","key":"ai.greeting","smallTalk":"greeting","source":null,"passages":[],"readings":[],"card":null,"urgent":false,"check":null,"facts":null,"ms":3,
+         "text":"Hi, I'm Astra. I answer from your readings and NASA's text. Ask me about a reading, your sleep, the air in a room, or a NASA limit. If someone is hurt or unwell, say what is happening."}
+        """)
+    }
+
+    /// "Is that bad?" with nothing to lean on: Astra asks which one.
+    static var clarifyAnswer: AskResult {
+        askResult("""
+        {"type":"result","route":"fixed","by":"fixed","key":"ai.conversation","text":"Do you mean your sleep or your heart rate?","source":null,"passages":[],"readings":[],"card":null,"urgent":false,"check":null,"facts":null,"ms":2,
+         "pendingQuestion":{"purpose":"clarify","kind":"choice","text":"Do you mean your sleep or your heart rate?","options":[{"value":"sleep","label":"Sleep"},{"value":"heart_rate","label":"Heart rate"}]}}
+        """)
+    }
+
+    /// The reply "Sleep", made into a complete question by the hub.
+    static var understoodAnswer: AskResult {
+        askResult("""
+        {"type":"result","route":"answer","by":"model","key":null,"source":null,"passages":[],"readings":[],"card":null,"urgent":false,"check":{"discarded":false},"facts":null,"ms":3100,
+         "text":"You slept 6 h 10 min last night, inside your usual range. That is not a problem by itself.","understoodAs":"Is my sleep a problem?"}
+        """)
+    }
+
+    /// A complaint with no card: the answer, then "Did it get better?" with Yes / No.
+    static var pendingAnswer: AskResult {
+        askResult("""
+        {"type":"result","route":"answer","by":"model","key":null,"source":null,"passages":[],"readings":[],"card":null,"urgent":false,"check":{"discarded":false},"facts":null,"ms":2800,
+         "text":"Your CO2 exposure was above NASA's 2.8 mmHg level for 3 hours yesterday, which NASA links with headaches. I can't diagnose; your Crew Medical Officer can.",
+         "followUp":{"question":"Did it get better?","signal":"checkin.got_better"},
+         "pendingQuestion":{"purpose":"better","kind":"yes_no","text":"Did it get better?","options":[{"value":"yes","label":"Yes"},{"value":"no","label":"No"}]}}
+        """)
+    }
+
+    /// Ask Astra's thread: one answered yesterday (a fact and a NASA quote), one that failed, small talk,
+    /// a "which one?" answered with a quick reply, and the newest question back with live chips.
     static var askThread: AskThread {
+        let yesterday = Date().addingTimeInterval(-26 * 3_600)
+        func ago(_ minutes: Double) -> Date { Date().addingTimeInterval(-minutes * 60) }
+        return AskThread(person: me, exchanges: [
+            AskExchange(question: "Is the CO2 in my room dangerous?", askedAt: yesterday,
+                        state: .answered(answer, at: yesterday.addingTimeInterval(3))),
+            AskExchange(question: "How much should I exercise?", askedAt: ago(20),
+                        state: .failed("The hub is out of reach.", reached: false)),
+            AskExchange(question: "Hi Astra", askedAt: ago(10), state: .answered(smallTalkAnswer, at: ago(10))),
+            AskExchange(question: "Is that bad?", askedAt: ago(8), state: .answered(clarifyAnswer, at: ago(8))),
+            AskExchange(question: "Sleep", askedAt: ago(7), state: .answered(understoodAnswer, at: ago(7))),
+            AskExchange(question: "Why do I keep waking up with a headache?", askedAt: ago(1), state: .answered(pendingAnswer, at: ago(1))),
+        ])
+    }
+
+    /// The same start with a question on its way: the typing dots.
+    static var askThreadWaiting: AskThread {
         let yesterday = Date().addingTimeInterval(-26 * 3_600)
         return AskThread(person: me, exchanges: [
             AskExchange(question: "Is the CO2 in my room dangerous?", askedAt: yesterday,
                         state: .answered(answer, at: yesterday.addingTimeInterval(3))),
-            AskExchange(question: "How much should I exercise?", askedAt: Date().addingTimeInterval(-20 * 60),
-                        state: .failed("The hub is out of reach.", reached: false)),
             AskExchange(question: "Why do I keep waking up with a headache?", askedAt: Date(),
                         state: .pending("Astra is working: 4 s")),
         ])

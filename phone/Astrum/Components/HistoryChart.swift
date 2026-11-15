@@ -11,6 +11,9 @@ struct HistoryChart: View {
     var band: ClosedRange<Double>? = nil
     var levels: [Double] = []
     let unit: String
+    /// False until the chart first appears; it then draws in from the left (fades in under Reduce Motion), once.
+    @State private var revealed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Chart {
@@ -46,5 +49,15 @@ struct HistoryChart: View {
         }
         .chartYScale(domain: .automatic(includesZero: false))
         .frame(minHeight: 180)
+        .mask(alignment: .leading) {
+            GeometryReader { proxy in
+                Rectangle().frame(width: revealed || reduceMotion ? proxy.size.width : 0)
+            }
+        }
+        .opacity(revealed || !reduceMotion ? 1 : 0)
+        .onAppear {
+            guard !revealed else { return }
+            withAnimation(Motion.reduced(Motion.reveal, reduceMotion)) { revealed = true }
+        }
     }
 }

@@ -2,48 +2,96 @@
 // a level 2 already answered, someone else's level 2 when this phone's owner
 // is the Crew Medical Officer, and a level 3 closed after it was seen (tap to
 // open it again). A drill's and a recorded story's banners say so first.
+// They sit under the region buttons: all of them, or the chosen region's
+// (someone else's, and one with no region, show under every region; a card's
+// match shows under All and the region its card is about, if any).
 
 import SwiftUI
 
 struct MeAlertBanners: View {
     @Environment(AppModel.self) private var model
+    /// The chosen region; nil shows every banner.
+    var region: BodyRegion?
+    /// The medical lead's cards, to name the one a finding matched.
+    var cards: [CardView] = []
+    /// Opens a matched card's steps (its id).
+    var openCard: (String) -> Void = { _ in }
 
     var body: some View {
         // Each banner is a framed card of its own; an alert with no banner here takes no row.
-        ForEach(model.visibleAlerts.filter(hasBanner)) { alert in
+        ForEach(Self.alerts(in: region, model: model, cards: cards)) { alert in
             banner(for: alert)
                 .projectionRow()
         }
     }
 
-    private func hasBanner(_ alert: HubAlert) -> Bool {
+    /// The alerts with a banner, in the region (nil: all). An alert about no region of the owner's body shows in every region.
+    static func alerts(in region: BodyRegion?, model: AppModel, cards: [CardView] = []) -> [HubAlert] {
+        model.visibleAlerts.filter { alert in
+            guard text(for: alert, model: model, cards: cards) != nil else { return false }
+            guard let region else { return true }
+            guard let own = Readings.region(of: alert, person: model.person) else { return AlertText.findingCard(alert) == nil }
+            return own == region
+        }
+    }
+
+    /// The banner's sentence, or nil when the alert has no banner here (the takeover screens show it instead).
+    static func text(for alert: HubAlert, model: AppModel, cards: [CardView] = []) -> String? {
         let mine = alert.person == model.person
-        return (alert.level == 1 && mine) || (alert.level == 2 && mine && alert.answer == "ok")
-            || (alert.level == 2 && !mine) || (alert.level == 3 && model.closedAlerts.contains(alert.key))
+        let world = model.world
+        let signal = Signals.name(alert.signal)
+        let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) } ?? ""
+        let headline = AlertText.headline(alert, viewer: model.person, name: world.name(of: alert.person), room: room)
+        let text: String
+        if let card = AlertText.findingCard(alert), alert.level < 3 || model.closedAlerts.contains(alert.key) {
+            let match = AlertText.cardMatch(alert, viewer: model.person, name: world.name(of: alert.person),
+                                            cardTitle: cards.first { $0.id == card }?.title)
+            text = alert.level == 3 ? String(localized: "Dangerous: \(match) Open") : match
+        } else if alert.level == 1 && mine {
+            text = headline
+        } else if alert.level == 2 && mine && alert.answer == "ok" {
+            text = String(localized: "Answered: OK. \(signal) is still over NASA's limit in \(room).")
+        } else if alert.level == 2 && !mine {
+            text = headline
+        } else if alert.level == 3 && model.closedAlerts.contains(alert.key) {
+            text = alert.reason == "room-limit" ? String(localized: "Dangerous: \(world.name(of: alert.person)) in \(room). Open")
+                                                : String(localized: "Dangerous: \(headline) Open")
+        } else {
+            return nil
+        }
+        // A drill's banner starts "Drill:", a recorded story's "Simulated scenario:".
+        if alert.isRecorded { return String(localized: "Simulated scenario: \(text)") }
+        if alert.isDrill { return String(localized: "Drill: \(text)") }
+        return text
     }
 
     @ViewBuilder
     private func banner(for alert: HubAlert) -> some View {
         let mine = alert.person == model.person
-        let world = model.world
-        let signal = Signals.name(alert.signal)
-        let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) } ?? ""
+        let text = Self.text(for: alert, model: model, cards: cards) ?? ""
 
-        if alert.level == 1 && mine {
-            NavigationLink(value: alert.signal) {
-                row(alert.direction == "low" ? String(localized: "\(signal) is below your usual") : String(localized: "\(signal) is above your usual"),
-                    mark: .trend(alert.direction == "low" ? .down : .up), tone: .quiet, kind: alert.kind, alert: alert)
+        if let card = AlertText.findingCard(alert), alert.level < 3 {
+            // A card's match has no reading behind it: it opens the card it names.
+            Button { openCard(card) } label: {
+                row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
             }
-        } else if alert.level == 2 && mine && alert.answer == "ok" {
-            row(String(localized: "Answered: OK. \(signal) is still over NASA's limit in \(room)."), mark: .symbol("checkmark.circle"), tone: .watch, kind: alert.kind, alert: alert)
-        } else if alert.level == 2 && !mine {
-            row(String(localized: "\(world.name(of: alert.person)) is in \(room), where \(signal) is over NASA's limit"),
-                mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind, alert: alert)
-        } else if alert.level == 3 && model.closedAlerts.contains(alert.key) {
+            .buttonStyle(.plain)
+        } else if alert.level == 1 && mine && Signals.region(of: alert.signal) != nil {
+            NavigationLink(value: alert.signal) {
+                row(text, mark: .trend(alert.direction == "low" ? .down : .up), tone: .quiet, kind: alert.kind)
+            }
+        } else if alert.level == 1 && mine {
+            // Nothing behind it to open ("needs someone"): a plain row.
+            row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
+        } else if alert.level == 2 && mine {
+            row(text, mark: .symbol("checkmark.circle"), tone: .watch, kind: alert.kind)
+        } else if alert.level == 2 {
+            row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
+        } else {
             Button {
                 model.closedAlerts.remove(alert.key)
             } label: {
-                row(String(localized: "Dangerous: \(world.name(of: alert.person)) in \(room). Open"), mark: .symbol("exclamationmark.octagon.fill"), tone: .danger, kind: alert.kind, alert: alert)
+                row(text, mark: .symbol("exclamationmark.octagon.fill"), tone: .danger, kind: alert.kind)
             }
             .buttonStyle(.plain)
         }
@@ -55,14 +103,7 @@ struct MeAlertBanners: View {
         case trend(HubIconName)
     }
 
-    /// A drill's banner starts "Drill:", a recorded story's "Simulated scenario:".
-    private func labelled(_ text: String, _ alert: HubAlert) -> String {
-        if alert.isRecorded { return String(localized: "Simulated scenario: \(text)") }
-        if alert.isDrill { return String(localized: "Drill: \(text)") }
-        return text
-    }
-
-    private func row(_ text: String, mark: Mark, tone: StatusTone, kind: Kind?, alert: HubAlert) -> some View {
+    private func row(_ text: String, mark: Mark, tone: StatusTone, kind: Kind?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Group {
                 switch mark {
@@ -74,7 +115,7 @@ struct MeAlertBanners: View {
             }
             .foregroundStyle(tone.color)
             .accessibilityHidden(true)
-            Text(labelled(text, alert))
+            Text(text)
                 .font(.subheadline)
             Spacer(minLength: 0)
             if let kind { KindBadge(kind: kind) }

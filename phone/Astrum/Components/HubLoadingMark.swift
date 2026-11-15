@@ -75,40 +75,66 @@ struct HubLoadingMark: View {
         mark.translateBy(x: (size.width - box.width * scale) / 2, y: (size.height - box.height * scale) / 2)
         mark.scaleBy(x: scale, y: scale)
 
-        var frame = mark
-        frame.translateBy(x: ringCentre.x, y: ringCentre.y)
-        frame.rotate(by: ringTilt)
-        frame.fill(ring, with: .color(.white.opacity(0.6)), style: FillStyle(eoFill: true))
-
-        // The glow is clipped to the band first, then blurred, so it spills just past it.
-        frame.drawLayer { glowLayer in
-            glowLayer.addFilter(.blur(radius: glowBlur))
-            drawLight(glowLayer, spans: glow, lap: lap)
-        }
-        drawLight(frame, spans: light, lap: lap)
+        drawOrbit(mark, lap: lap)
 
         for path in cross {
             mark.fill(path, with: .color(.white))
         }
     }
 
-    private static func drawLight(_ context: GraphicsContext, spans: [(from: Double, to: Double, opacity: Double)], lap: Double) {
-        context.drawLayer { band in
-            band.clip(to: ring, style: FillStyle(eoFill: true))
+    /// The orbit light alone, in a context already set to the mark's 88 × 68 box: the ring, the light's
+    /// blurred glow, then the light, `lap` (0 to 1) of the way round. `grow` widens the band on each
+    /// edge so it still reads small (0 is the logo's exact ring); `rest` keeps only the light's core.
+    static func drawOrbit(_ mark: GraphicsContext, lap: Double, grow: CGFloat = 0, rest: Bool = false, ink: GraphicsContext.Shading = .color(.white)) {
+        let band = ring(grow: grow)
+        // Wide enough to fill the grown band where the orbit is squashed; the band clips the rest.
+        let width = lightWidth + 2 * grow / flatten
+        var frame = mark
+        frame.translateBy(x: ringCentre.x, y: ringCentre.y)
+        frame.rotate(by: ringTilt)
+        var ringLayer = frame
+        ringLayer.opacity = 0.6
+        ringLayer.fill(band, with: ink, style: FillStyle(eoFill: true))
+
+        // The glow is clipped to the band first, then blurred, so it spills just past it.
+        frame.drawLayer { glowLayer in
+            glowLayer.addFilter(.blur(radius: glowBlur))
+            drawLight(glowLayer, band: band, width: width, spans: glow, lap: lap, ink: ink)
+        }
+        drawLight(frame, band: band, width: width, spans: rest ? Array(light.suffix(4)) : light, lap: lap, ink: ink)
+    }
+
+    /// The ring's band, grown by `grow` on each edge; at 0, the logo's exact path.
+    private static func ring(grow: CGFloat) -> Path {
+        guard grow > 0 else { return ring }
+        let outer = CGSize(width: 53.56 + grow, height: 10.01 + grow)
+        let inner = CGSize(width: 36.44 - grow, height: 6.76 - grow)
+        var path = Path()
+        for r in [outer, inner] {
+            path.addEllipse(in: CGRect(x: -r.width, y: -r.height, width: 2 * r.width, height: 2 * r.height))
+        }
+        return path
+    }
+
+    private static func drawLight(_ context: GraphicsContext, band: Path, width: CGFloat, spans: [(from: Double, to: Double, opacity: Double)], lap: Double, ink: GraphicsContext.Shading) {
+        context.drawLayer { layer in
+            layer.clip(to: band, style: FillStyle(eoFill: true))
             for span in spans {
                 let start = (head + span.from) / 100 + lap
-                band.fill(stretch(from: start, length: (span.to - span.from) / 100), with: .color(.white.opacity(span.opacity)))
+                var piece = layer
+                piece.opacity = span.opacity
+                piece.fill(stretch(from: start, length: (span.to - span.from) / 100, width: width), with: ink)
             }
         }
     }
 
-    /// A stretch of the orbit as the web strokes it: 18 wide with flat ends,
+    /// A stretch of the orbit as the web strokes it: `width` wide (18 at the logo's ring) with flat ends,
     /// round the circle from (45, 0) with increasing angle, then flattened.
     /// Built as an outline, since a stroke in a flattened context keeps its
     /// width the same all round where the web's flattens with the circle.
-    private static func stretch(from start: Double, length: Double) -> Path {
+    private static func stretch(from start: Double, length: Double, width: CGFloat) -> Path {
         let steps = max(2, Int((length * 360).rounded(.up)))
-        let radii = [orbit + lightWidth / 2, orbit - lightWidth / 2]
+        let radii = [orbit + width / 2, orbit - width / 2]
         var path = Path()
         for (side, radius) in radii.enumerated() {
             for step in 0...steps {

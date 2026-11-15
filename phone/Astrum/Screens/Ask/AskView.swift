@@ -1,10 +1,12 @@
 // Ask Astra: a Messages-style thread of questions about yourself to the
 // hub's model (POST /api/ask). Your questions on the right in blue, Astra's
 // answers on the left as the hub sent them (AskAnswerView), the composer
-// pinned at the bottom. Each question is answered on its own: the hub is
-// never sent the earlier ones. The model runs on the hub, never on the
-// phone: out of reach, asking is off and says why, and the saved thread
-// stays readable.
+// pinned at the bottom. The hub holds the conversation for 30 minutes
+// (follow-ups like "and yesterday?", replies to the questions Astra asks
+// back); every answer is still checked on its own. A quick reply is sent as
+// the next message, through the same call. The model runs on the hub, never
+// on the phone: out of reach, asking is off and says why, and the saved
+// thread stays readable.
 
 import SwiftUI
 
@@ -18,7 +20,6 @@ struct AskView: View {
     @State private var confirmingClear = false
     /// Questions sent while this screen was open: only they arrive with motion.
     @State private var sent: Set<UUID> = []
-    @State private var replyProblems: [UUID: String] = [:]
     @FocusState private var typing: Bool
 
     private static let bottom = "bottom"
@@ -53,7 +54,6 @@ struct AskView: View {
                 .confirmationDialog("Clear the thread?", isPresented: $confirmingClear, titleVisibility: .visible) {
                     Button("Clear the thread", role: .destructive) {
                         thread.clear()
-                        replyProblems = [:]
                     }
                 } message: {
                     Text("This deletes the questions and answers saved on this phone.")
@@ -66,14 +66,13 @@ struct AskView: View {
 
     // MARK: Header
 
-    /// The conversation's name and the model's state. The glyph is the one
-    /// slot kept for Astra's mark, once it is chosen; no face, no avatar.
+    /// As Messages heads a thread: Astra's mark (the orbit light, no face),
+    /// her name, and her state. The light runs while she is working.
     private var header: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 4) {
-                HubIcon(.ask, size: 14, weight: 1.6, relativeTo: .headline)
-                Text("Astra").font(.headline)
-            }
+            AstraMark(width: 28, working: isWorking)
+                .padding(.bottom, 1)
+            Text("Astra").font(.caption.bold())
             Text(statusText)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -95,8 +94,8 @@ struct AskView: View {
                     if thread.exchanges.isEmpty {
                         emptyState
                     } else {
-                        // Said once a conversation exists, where a chat would suggest she remembers it.
-                        Text("Each question is answered on its own. Astra does not remember earlier messages.")
+                        // Said once a conversation exists: how much she remembers, and that each answer is still checked.
+                        Text("Astra remembers what this conversation is about for 30 minutes, so you can ask follow-ups like 'and yesterday?'. Each answer is still checked on its own.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -170,8 +169,7 @@ struct AskView: View {
                 case .answered(let result, let at):
                     AskAnswerView(
                         result: result, answeredAt: at, lang: model.lang,
-                        reply: exchange.followUpReply, replyProblem: replyProblems[exchange.id],
-                        onReply: model.person.isEmpty ? nil : { yes in reply(to: exchange.id, result: result, yes: yes) }
+                        replies: replies(at: index), onReply: { label in send(label) }
                     )
                     .padding(.top, 12)
                 case .failed(let reason, let reached):
@@ -179,6 +177,7 @@ struct AskView: View {
                 }
             }
             .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.8), value: exchange.isPending)
+            // A quick reply from the first chat pass, kept in older saved threads.
             if let yes = exchange.followUpReply {
                 ChatRow(isMine: true) {
                     ChatTextBubble(text: yes ? String(localized: "Yes") : String(localized: "No"), isMine: true, hasTail: true)
@@ -268,8 +267,10 @@ struct AskView: View {
                 suggestions
             }
             HStack(alignment: .bottom, spacing: 4) {
-                TextField("Ask Astra…", text: $draft, axis: .vertical)
+                TextField(composerPrompt, text: $draft, axis: .vertical)
                     .lineLimit(1...6)
+                    // A value Astra asked for: numbers first, letters one key away, so free text still works.
+                    .keyboardType(thread.waitingQuestion?.kind == "value" ? .numbersAndPunctuation : .default)
                     .focused($typing)
                     .padding(.leading, 14)
                     .padding(.vertical, 10)
@@ -282,6 +283,7 @@ struct AskView: View {
                         .frame(minWidth: 44, minHeight: 44)
                 }
                 .disabled(!canSend)
+                .keepsKeyboard()
                 .accessibilityLabel(Text("Send"))
             }
             .padding(.trailing, 2)
@@ -333,6 +335,21 @@ struct AskView: View {
 
     private var canAsk: Bool { model.isConnected && !model.person.isEmpty }
 
+    /// The field's placeholder, with the unit when Astra asked for a value.
+    private var composerPrompt: String {
+        if let waiting = thread.waitingQuestion, waiting.kind == "value", let unit = waiting.unit, !unit.isEmpty {
+            return String(localized: "Reply in \(unit), or ask Astra…")
+        }
+        return String(localized: "Ask Astra…")
+    }
+
+    /// The newest question Astra asked back has live chips; older ones show what was sent after them.
+    private func replies(at index: Int) -> AskAnswerView.Replies {
+        let exchanges = thread.exchanges
+        if index == exchanges.count - 1 { return .live(enabled: canAsk && !thread.isAsking) }
+        return .past(next: exchanges[index + 1].question)
+    }
+
     private var canSend: Bool {
         canAsk && !thread.isAsking && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -343,14 +360,23 @@ struct AskView: View {
         return nil
     }
 
+    /// A question of yours on its way, or her model still starting.
+    private var isWorking: Bool {
+        thread.isAsking || (model.isConnected && status?.state == "loading")
+    }
+
     private var statusText: String {
-        guard let status, model.isConnected else { return String(localized: "Astra: out of reach") }
-        let state = switch status.state {
-        case "ready": String(localized: "ready")
-        case "loading": String(localized: "loading")
-        default: String(localized: "unavailable")
+        guard let status, model.isConnected else { return String(localized: "Out of reach") }
+        let state = if thread.isAsking {
+            String(localized: "Working…")
+        } else {
+            switch status.state {
+            case "ready": String(localized: "Ready")
+            case "loading": String(localized: "Starting")
+            default: String(localized: "Not available")
+            }
         }
-        return status.waiting > 0 ? String(localized: "Astra: \(state) · \(status.waiting) in line") : String(localized: "Astra: \(state)")
+        return status.waiting > 0 ? String(localized: "\(state) · \(status.waiting) in line") : state
     }
 
     // MARK: Actions
@@ -358,7 +384,7 @@ struct AskView: View {
     private func send(_ text: String) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canAsk, !thread.isAsking, !text.isEmpty, let api = model.api else { return }
-        typing = false
+        // The keyboard stays up, as in Messages.
         draft = ""
         let id = thread.ask(text, api: api, lang: model.lang, finished: announce)
         sent.insert(id)
@@ -369,25 +395,12 @@ struct AskView: View {
         thread.retry(id, api: api, lang: model.lang, finished: announce)
     }
 
-    /// The quick reply goes to the hub as a check-in answer (1 yes, 0 no);
-    /// offline it waits on the phone with the other check-ins.
-    private func reply(to id: UUID, result: AskResult, yes: Bool) {
-        guard let signal = result.followUp?.signal else { return }
-        replyProblems[id] = nil
-        Task {
-            switch await model.submitCheckin([CheckinAnswer(signal: signal, value: yes ? 1 : 0, unit: "yes/no")]) {
-            case .sent, .queued: thread.setFollowUpReply(id, yes: yes)
-            case .refused(let words): replyProblems[id] = String(localized: "Not Delivered: \(words)")
-            }
-        }
-    }
-
     /// Tells VoiceOver an answer came, politely: after what it is saying.
     private func announce(_ state: AskExchange.State) {
         let words: String
         switch state {
         case .pending: return
-        case .answered(let result, _): words = String(localized: "Astra answered. \(AskAnswerView.byText(result.by))")
+        case .answered(let result, _): words = AskAnswerView.arrivalText(result)
         case .failed(let reason, let reached):
             words = "\(reached ? String(localized: "Not Answered") : String(localized: "Not Delivered")). \(reason)"
         }
@@ -419,6 +432,12 @@ private struct ComposerBackdrop: ViewModifier {
 
 #Preview {
     AskView(thread: SampleData.askThread)
+        .environment(SampleData.model())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Waiting for an answer") {
+    AskView(thread: SampleData.askThreadWaiting)
         .environment(SampleData.model())
         .preferredColorScheme(.dark)
 }

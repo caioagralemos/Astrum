@@ -29,7 +29,7 @@ extension AppModel {
     var takeover: AlertPresentation? {
         let alerts = visibleAlerts
         // An answer just sent keeps the question on screen, countdown stopped, until the hub confirms it.
-        if let ask = alerts.first(where: { $0.person == person && $0.level == 2 && ($0.answer == nil || pendingAnswers[$0.id] != nil) && $0.answerBy != nil }) {
+        if let ask = alerts.first(where: { !$0.isNotice && $0.person == person && $0.level == 2 && ($0.answer == nil || pendingAnswers[$0.id] != nil) && $0.answerBy != nil }) {
             return AlertPresentation(alertID: ask.id, style: .ask)
         }
         let open = alerts.filter { $0.level == 3 && !closedAlerts.contains($0.key) }
@@ -43,16 +43,40 @@ extension AppModel {
 
 struct AlertTakeover: ViewModifier {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// One cover for every alert screen: when "Are you OK?" becomes dangerous, or one
+    /// alert gives way to another, the screens cross-fade inside it instead of the cover
+    /// sliding away and back.
+    private struct Slot: Identifiable {
+        let presentation: AlertPresentation
+        var id: String { "takeover" }
+    }
 
     func body(content: Content) -> some View {
         // Read here, so the cover follows the alerts as they change.
         let presented = model.takeover
         content
-            .fullScreenCover(item: .constant(presented)) { presentation in
-                switch presentation.style {
-                case .ask: AreYouOKView(alertID: presentation.alertID)
-                case .danger: DangerView(alertID: presentation.alertID)
+            .fullScreenCover(item: .constant(presented.map(Slot.init))) { slot in
+                let presentation = slot.presentation
+                ZStack {
+                    switch presentation.style {
+                    case .ask: AreYouOKView(alertID: presentation.alertID)
+                    case .danger: DangerView(alertID: presentation.alertID)
+                    }
                 }
+                .id(presentation.id)
+                .transition(.opacity)
+                .background(Color.black)
+                .animation(Motion.reduced(Motion.urgent, reduceMotion), value: presentation.id)
+            }
+            // The hub confirming "I am OK" is a success. The question and danger get no haptic of their
+            // own: their notification is presented with sound even with the app open (AstrumApp), so it
+            // already buzzes as the screen appears.
+            .sensoryFeedback(trigger: presented) { old, new in
+                guard new == nil, let old, old.style == .ask,
+                      model.visibleAlerts.first(where: { $0.id == old.alertID })?.answer == "ok" else { return nil }
+                return .success
             }
             .onChange(of: model.openedAlertID) { _, id in
                 // A tapped notification opens a closed level 3 again.

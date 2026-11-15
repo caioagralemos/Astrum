@@ -377,6 +377,7 @@ struct ProjectionButtonStyle: ButtonStyle {
         let configuration: Configuration
         let prominent: Bool
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             configuration.label
@@ -387,6 +388,9 @@ struct ProjectionButtonStyle: ButtonStyle {
                     .fill(prominent ? Color.white : Color.white.opacity(HubStyle.controlFill)))
                 .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
                 .contentShape(RoundedRectangle(cornerRadius: HubStyle.controlRadius, style: .circular))
+                // Pressed: a slight give, then it settles back (only the dim under Reduce Motion).
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+                .animation(Motion.press, value: configuration.isPressed)
         }
     }
 }

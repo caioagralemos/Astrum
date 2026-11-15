@@ -7,8 +7,16 @@ import SwiftUI
 
 @MainActor
 enum MeWidgets {
-    /// The widgets the owner has data for, in order; empty when there are none.
-    static func items(readings: [Reading], world: HubWorld, person: String) -> [WidgetGrid.Item] {
+    /// The widgets the owner has data for, in order, in the region (nil: all); empty when there are none.
+    static func items(readings: [Reading], world: HubWorld, person: String, region: BodyRegion?) -> [WidgetGrid.Item] {
+        let all = allItems(readings: readings, world: world, person: person)
+        guard let region else { return all }
+        // Sleep is the head's, exercise the body's, CO2 exposure the air's.
+        let regions: [String: BodyRegion] = ["sleep": .head, "exercise": .body, "exposure": .lungs]
+        return all.filter { regions[$0.id] == region }
+    }
+
+    private static func allItems(readings: [Reading], world: HubWorld, person: String) -> [WidgetGrid.Item] {
         func current(_ signal: String) -> Reading? {
             readings.first { $0.signal == signal && !$0.stale && $0.row.value != nil }
         }
@@ -31,6 +39,37 @@ enum MeWidgets {
 @MainActor @Observable
 final class ReadingRouter {
     var path: [String] = []
+    /// The widget a detail was opened from, so that detail zooms out of its card; nil from a row.
+    var zoomSource: String?
+}
+
+extension EnvironmentValues {
+    /// Me's namespace for the zoom from a widget card into its detail.
+    @Entry var zoomNamespace: Namespace.ID?
+}
+
+/// A detail that zooms out of the widget it was opened from, or pushes plainly.
+struct ZoomDestination<Content: View>: View {
+    /// Fixed when the detail first opens, so its way back matches its way in.
+    @State private var zooms: Bool
+    let sourceID: String
+    let namespace: Namespace.ID
+    @ViewBuilder let content: Content
+
+    init(zooms: Bool, sourceID: String, namespace: Namespace.ID, @ViewBuilder content: () -> Content) {
+        _zooms = State(initialValue: zooms)
+        self.sourceID = sourceID
+        self.namespace = namespace
+        self.content = content()
+    }
+
+    var body: some View {
+        if zooms {
+            content.navigationTransition(.zoom(sourceID: sourceID, in: namespace))
+        } else {
+            content
+        }
+    }
 }
 
 /// A widget that opens a reading's detail, as its row in the list does.
@@ -39,14 +78,35 @@ private struct DetailLink<Content: View>: View {
     let spoken: String
     @ViewBuilder let content: Content
     @Environment(ReadingRouter.self) private var router
+    @Environment(\.zoomNamespace) private var zoom
 
     var body: some View {
         // A button, not a NavigationLink: inside a List a link draws a disclosure arrow beside the card.
-        Button { router.path.append(signal) } label: { content }
-            .buttonStyle(.plain)
+        Button {
+            router.zoomSource = signal
+            router.path.append(signal)
+        } label: {
+            content
+        }
+            .buttonStyle(.pressable)
+            .modifier(ZoomSource(id: signal, namespace: zoom))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(spoken))
             .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// Marks a card as where its detail zooms out from, when Me provides the namespace.
+private struct ZoomSource: ViewModifier {
+    let id: String
+    let namespace: Namespace.ID?
+
+    func body(content: Content) -> some View {
+        if let namespace {
+            content.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            content
+        }
     }
 }
 

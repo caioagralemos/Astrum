@@ -194,8 +194,26 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
     /// Set on this phone when the alert came inside a recorded story (the message carried `scenario`).
     /// It exists only in the recording, so it cannot be answered or acknowledged.
     var recorded: Bool? = nil
+    /// A base-wide event a person declared (reason "declared", signal "event.<kind>"; hub/core/events.ts).
+    var declared: Declared? = nil
+    /// Information to acknowledge ("I've seen it"), never a question: the warning stage of a declared event.
+    var notice: Bool? = nil
+
+    struct Declared: Codable, Sendable, Hashable {
+        let kind: String
+        let by: String
+        let at: Double
+        var note: String? = nil
+        var shelter: String? = nil
+        /// "crew" or "earth".
+        let source: String
+        var expectedAt: Double? = nil
+        /// "warning" or "event".
+        let stage: String
+    }
 
     var isDrill: Bool { drill == true }
+    var isNotice: Bool { notice == true }
     var isRecorded: Bool { recorded == true }
 
     enum Audience: Codable, Sendable, Hashable {
@@ -227,8 +245,12 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
         }
     }
 
-    /// Identifies one alert at one level, so an escalation is announced again.
+    /// Identifies one alert at one level, so an escalation is announced again. Also its notification's identifier.
     var key: String { "\(id)|\(level)" }
+
+    /// One occurrence of it: the hub reuses an alert's id, so the same alert happening again later
+    /// (another night, another drill) must be announced again. `since` is when this one began.
+    var occurrenceKey: String { "\(key)|\(Int64(since ?? 0))" }
 }
 
 struct HubHello: Encodable {

@@ -68,9 +68,7 @@ struct DangerView: View {
                     Text("No room is under the limit.")
                 }
             } else {
-                Text(alert.person == model.person
-                     ? String(localized: "You are in \(room), where \(signal) is over NASA's limit.")
-                     : String(localized: "\(name) is in \(room), where \(signal) is over NASA's limit."))
+                Text(AlertText.headline(alert, viewer: model.person, name: name, room: room))
                     .font(.title2.weight(.bold))
             }
             if alert.answer == "help" {

@@ -29,7 +29,9 @@ enum AnswerStrings {
         while let open = rest.firstIndex(of: "{"), let close = rest[open...].firstIndex(of: "}") {
             out += rest[..<open]
             let name = String(rest[rest.index(after: open)..<close])
-            out += item.vars[name]?.text ?? you[name] ?? ""
+            // A signal goes through the one naming rule: never a key, and in this language when the app knows it.
+            let value = item.vars[name]?.text
+            out += (name == "signal" ? value.map(Signals.inSentence) : value) ?? you[name] ?? ""
             rest = rest[rest.index(after: close)...]
         }
         return out + rest

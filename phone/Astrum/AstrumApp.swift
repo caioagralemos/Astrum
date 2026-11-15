@@ -44,7 +44,10 @@ struct AstrumApp: App {
 
 /// Shows alerts even while Astrum is the app on screen, opens the alert a tapped notification is
 /// about, and hands a notification's action button to the model.
-final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, Sendable {
+// On the main actor: iOS calls an `async` delegate method off the main thread and then finishes the
+// notification response there, which UIKit refuses ("call must be made on main thread").
+@MainActor
+final class NotificationPresenter: NSObject, @preconcurrency UNUserNotificationCenterDelegate, Sendable {
     private let open: @MainActor @Sendable (String) -> Void
     private let act: @MainActor @Sendable (AlarmNotifier.Action, String, Int) async -> Void
 
@@ -63,7 +66,7 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, S
             // iOS keeps the app running until this returns.
             await act(action, alertID, info["level"] as? Int ?? 0)
         } else {
-            await open(request.identifier)
+            open(request.identifier)
         }
     }
 

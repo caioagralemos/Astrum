@@ -1,23 +1,32 @@
 // One answer from Ask Astra, as the hub sent it, as an incoming run of
-// Messages bubbles: Astra's or the hub's words, then the attachments (the
-// hub's facts each with its label, the steps card, NASA's words quoted
-// unchanged with a link to the source), then any question the hub asks back
-// with Yes / No when it takes one. Under the run, where Messages says
-// "Delivered": who wrote it, the route when it is not a plain answer, and
-// when it was answered, so an old answer is never taken for a current one.
+// Messages bubbles: Astra's or the hub's words, then the hub's facts in one
+// quiet bubble (each line ending in its kind mark), the steps card, then the
+// question Astra asks back, if any, with its answers as quick-reply chips
+// (only the newest question's are live; a tap sends the label as the next
+// message). Under the run: NASA's passages as numbered source circles (a tap
+// opens the passage), then one caption line where Messages says "Delivered":
+// the time, the kinds in this answer as mark and word, and an info button
+// holding who wrote it, how the hub understood a follow-up, the route and the
+// checks. The hub's own conversation sentences (small talk, "which one?",
+// "Thank you, noted.") and fixed texts have only their time under them.
 
 import SwiftUI
 
 struct AskAnswerView: View {
+    /// The quick replies to the question Astra asked back, if she asked one.
+    enum Replies: Equatable {
+        /// The newest question: buttons, enabled while asking is possible.
+        case live(enabled: Bool)
+        /// An older one: its options as plain text, with what was sent after it.
+        case past(next: String?)
+    }
+
     let result: AskResult
     let answeredAt: Date
     let lang: String
-    /// The owner's quick reply to the follow-up, once sent.
-    var reply: Bool?
-    /// Why the quick reply could not be sent, if it could not.
-    var replyProblem: String?
-    /// Sends a quick reply; nil when replying is off (hub out of reach, previews).
-    var onReply: ((Bool) -> Void)?
+    var replies: Replies = .past(next: nil)
+    /// Sends a quick reply's label as the next message.
+    var onReply: (String) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -27,12 +36,12 @@ struct AskAnswerView: View {
                     view(for: piece, hasTail: index == pieces.count - 1)
                 }
             }
+            if let pending = result.pendingQuestion, !pending.options.isEmpty {
+                quickReplies(pending)
+            }
             caption
                 .padding(.leading, 12)
-                .padding(.top, 2)
-            if let signal = yesNoSignal, reply == nil {
-                quickReplies(signal)
-            }
+                .padding(.top, 3)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(summary))
@@ -42,10 +51,13 @@ struct AskAnswerView: View {
 
     private enum Piece {
         case text(String)
-        case fact(Fact)
+        case facts([Fact])
         case card(CardView)
-        case passage(Passage)
     }
+
+    /// The hub's own conversation sentences: small talk and the turns around her questions.
+    /// A turn of talk (small talk, a remark, the conversation's own questions): a plain bubble, nothing attached.
+    private var isConversation: Bool { result.smallTalk != nil || result.remark != nil || result.key == "ai.conversation" }
 
     private var pieces: [Piece] {
         var out: [Piece] = []
@@ -55,17 +67,23 @@ struct AskAnswerView: View {
                 .filter { !$0.isEmpty }
             out += paragraphs.map(Piece.text)
         }
-        if showsFacts {
-            out += facts.map(Piece.fact)
+        if showsFacts && !facts.isEmpty {
+            out.append(.facts(facts))
         }
         if let card = result.card { out.append(.card(card)) }
-        if showsFacts {
-            out += passages.map(Piece.passage)
+        if let pending = result.pendingQuestion {
+            // Her ask-first intro before her first question; the question itself unless the words already hold it.
+            if pending.purpose == "askFirst", let intro = result.askFirst?.intro, !isConversation {
+                out.append(.text(lang == "pt" ? intro.pt : intro.en))
+            }
+            if !result.text.contains(pending.text) { out.append(.text(pending.text)) }
+        } else {
+            // A thread saved before the hub kept conversations: the question back as it came, without buttons.
+            if let intro = result.askFirst?.intro { out.append(.text(lang == "pt" ? intro.pt : intro.en)) }
+            if let question = followUpQuestion { out.append(.text(question)) }
         }
-        if let intro = result.askFirst?.intro { out.append(.text(lang == "pt" ? intro.pt : intro.en)) }
-        if let question = followUpQuestion { out.append(.text(question)) }
         // Never an empty run: say plainly that nothing came.
-        if out.isEmpty { out.append(.text(String(localized: "The hub has no facts for this question."))) }
+        if out.isEmpty && !isConversation { out.append(.text(String(localized: "The hub has no facts for this question."))) }
         return out
     }
 
@@ -75,72 +93,185 @@ struct AskAnswerView: View {
         case .text(let text):
             ChatTextBubble(text: text, isMine: false, hasTail: hasTail)
                 .accessibilityLabel(Text("Astra: \(text)"))
-        case .fact(let fact):
-            FactAttachment(fact: fact, hasTail: hasTail)
+        case .facts(let facts):
+            FactsBubble(facts: facts, hasTail: hasTail)
         case .card(let card):
             StepsCardView(card: card, otherLanguage: card.lang != lang)
                 .padding(12)
                 .background(ChatBubbleShape(isMine: false, hasTail: hasTail).fill(ChatBubbleShape.incomingFill))
                 .accessibilityElement(children: .contain)
-        case .passage(let passage):
-            PassageAttachment(passage: passage, hasTail: hasTail)
+        }
+    }
+
+    // MARK: Quick replies
+
+    /// Messages' suggestion chips under the question: live on the newest one, plain text on older ones.
+    @ViewBuilder
+    private func quickReplies(_ pending: AskResult.PendingQuestion) -> some View {
+        switch replies {
+        case .live(let enabled):
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { chips(pending, enabled: enabled) }
+                VStack(alignment: .leading, spacing: 4) { chips(pending, enabled: enabled) }
+            }
+            .padding(.leading, 4)
+            .padding(.top, 2)
+        case .past(let next):
+            let labels = pending.options.map(\.label)
+            Group {
+                if let next, let chosen = labels.first(where: { $0.caseInsensitiveCompare(next.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame }) {
+                    Text("Replied: \(chosen)")
+                } else {
+                    Text("Replies offered: \(labels.formatted(.list(type: .or)))")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.leading, 12)
+        }
+    }
+
+    private func chips(_ pending: AskResult.PendingQuestion, enabled: Bool) -> some View {
+        ForEach(pending.options, id: \.value) { option in
+            Button { onReply(option.label) } label: {
+                Text(option.label)
+                    .font(.callout)
+                    .foregroundStyle(enabled ? AnyShapeStyle(ChatBubbleShape.outgoingFill) : AnyShapeStyle(.secondary))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .modifier(ComposerPill(cornerRadius: 16))
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .disabled(!enabled)
+            .keepsKeyboard()
+            .accessibilityLabel(Text("Reply: \(option.label)"))
+            .accessibilityHint(Text("Sends this as your answer"))
         }
     }
 
     // MARK: Under the run
 
+    @State private var showingAbout = false
+
+    /// One quiet line under the run, in the register of Messages' "Delivered": the time, the kinds in
+    /// this answer, then the sources and the rest one tap away. Two lines only when one cannot hold it.
     private var caption: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             if result.urgent {
                 StatusBadge(text: String(localized: "Marked urgent"), tone: .danger)
             }
-            if let route = routeText { Text(route) }
-            Text(Self.byText(result.by))
-            if result.by == "model" && lang == "pt" {
-                Text("Astra writes in English.")
-            }
-            if result.check?.discarded == true {
-                Text("The hub set Astra's answer aside: it did not pass the checks.")
-            }
-            if result.card == nil && (result.route == "card" || result.urgent) {
-                Text("No steps card has been written for this yet.")
-            }
-            if !passages.isEmpty && showsFacts {
-                Text("NASA's words are quoted in English, unchanged.")
-            }
-            Text("Answered at \(ChatTimeline.short(answeredAt)) in \(seconds) s, from the readings then")
-            if let replyProblem {
-                Text(replyProblem).foregroundStyle(.red)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    timeAndKinds
+                    sourcesPill
+                    aboutButton
+                }
+                .lineLimit(1)
+                VStack(alignment: .leading, spacing: 6) {
+                    timeAndKinds
+                    HStack(spacing: 8) {
+                        sourcesPill
+                        aboutButton
+                    }
+                }
             }
         }
-        .font(.caption)
+        .font(.caption2)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func quickReplies(_ signal: String) -> some View {
-        HStack(spacing: 8) {
-            ForEach([true, false], id: \.self) { yes in
-                Button {
-                    onReply?(yes)
-                } label: {
-                    Text(yes ? String(localized: "Yes") : String(localized: "No"))
-                        .font(.callout)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .modifier(ComposerPill(cornerRadius: 16))
-                        .frame(minWidth: 44, minHeight: 44)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .disabled(onReply == nil)
-                .accessibilityHint(Text("Answers the hub's question"))
+    private var timeAndKinds: some View {
+        HStack(spacing: 5) {
+            Text(ChatTimeline.short(answeredAt))
+                .monospacedDigit()
+            if !kinds.isEmpty {
+                Text(verbatim: "·").accessibilityHidden(true)
+                legend
             }
         }
-        .padding(.leading, 4)
     }
 
-    private var seconds: String { (result.ms / 1000).formatted(.number.precision(.fractionLength(1))) }
+    @ViewBuilder
+    private var sourcesPill: some View {
+        if showsFacts && !passages.isEmpty {
+            SourcesPill(passages: passages)
+        }
+    }
+
+    /// The kinds that appear in this answer, each its mark and its word; one element for VoiceOver.
+    private var legend: some View {
+        LabelsLayout {
+            ForEach(kinds, id: \.self) { kind in
+                HStack(spacing: 4) {
+                    KindMark(kind: kind)
+                    Text(Signals.kindName(kind))
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(kinds.map { Signals.kindName($0).lowercased() }.formatted(.list(type: .and)).capitalizedFirst) values"))
+    }
+
+    private var kinds: [Kind] {
+        guard showsFacts else { return [] }
+        return Set(facts.flatMap { $0.labels.compactMap(\.kind) }).sorted()
+    }
+
+    /// Who wrote it and how it was checked, kept one tap away. Not for conversation turns or fixed texts.
+    @ViewBuilder
+    private var aboutButton: some View {
+        if !isConversation && (result.by == "model" || result.by == "hub") {
+            Button { showingAbout = true } label: {
+                Image(systemName: "info.circle")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .padding(.vertical, -14)
+            .padding(.horizontal, -12)
+            .accessibilityLabel(Text("About this answer"))
+            .popover(isPresented: $showingAbout) {
+                aboutText
+                    .presentationCompactAdaptation(.popover)
+            }
+        }
+    }
+
+    private var aboutText: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("About this answer").font(.subheadline.weight(.semibold))
+            Group {
+                Text(Self.byText(result.by))
+                if let understood = result.understoodAs {
+                    Text("Understood as: \(understood)")
+                }
+                if let route = routeText { Text(route) }
+                if result.by == "model" && lang == "pt" {
+                    Text("Astra writes in English.")
+                }
+                if result.check?.discarded == true, result.reason == nil || result.reason == "setAside" {
+                    Text("The hub set Astra's answer aside: it did not pass the checks.")
+                }
+                if result.card == nil && (result.route == "card" || result.urgent) {
+                    Text("No steps card has been written for this yet.")
+                }
+                if !passages.isEmpty && showsFacts {
+                    Text("NASA's words are quoted in English, unchanged.")
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(idealWidth: 280, alignment: .leading)
+        .padding(16)
+        .accessibilityElement(children: .combine)
+    }
 
     // MARK: Words
 
@@ -152,9 +283,17 @@ struct AskAnswerView: View {
         }
     }
 
+    /// What VoiceOver hears when an answer arrives.
+    static func arrivalText(_ result: AskResult) -> String {
+        if result.smallTalk != nil || result.remark != nil || result.key == "ai.conversation" { return String(localized: "Astra answered.") }
+        return String(localized: "Astra answered. \(byText(result.by))")
+    }
+
     /// For VoiceOver on entering the run: when, who wrote it, the labels in words.
     private var summary: String {
-        var parts = [String(localized: "Astra's answer, \(ChatTimeline.short(answeredAt))"), Self.byText(result.by)]
+        var parts = [String(localized: "Astra's answer, \(ChatTimeline.short(answeredAt))")]
+        if !isConversation { parts.append(Self.byText(result.by)) }
+        if let understood = result.understoodAs { parts.append(String(localized: "Understood as: \(understood)")) }
         if result.urgent { parts.append(String(localized: "Marked urgent")) }
         var seen = Set<String>()
         let labels = (showsFacts ? facts.flatMap { $0.labels.map(\.text) } : []).filter { seen.insert($0).inserted }
@@ -204,84 +343,104 @@ struct AskAnswerView: View {
     }
 
     /// A fixed text in this language; the hub's sentences are already the facts; Astra's words as written.
+    /// Small talk and the conversation's turns come in the asker's language already, varied: as sent.
     private var answerText: String? {
-        if let key = result.key { return Self.fixedText(key) ?? result.text }
+        if let key = result.key, result.smallTalk == nil, result.remark == nil { return Self.fixedText(key) ?? (result.text.isEmpty ? nil : result.text) }
         if result.by == "hub" && !facts.isEmpty { return nil }
         return result.text.isEmpty ? nil : result.text
     }
 
-    /// The hub's question back, as it sent it ("Did it get better?" in this language).
+    /// The hub's question back in a thread saved before conversations ("Did it get better?" in this language).
     private var followUpQuestion: String? {
         guard let question = result.followUp?.question else { return nil }
         return question == "Did it get better?" ? String(localized: "Did it get better?") : question
     }
 
-    /// The follow-up's signal when it takes a yes or a no.
-    private var yesNoSignal: String? {
-        guard let signal = result.followUp?.signal else { return nil }
-        if signal == "checkin.got_better" { return signal }
-        return result.askFirst?.questions.first(where: { $0.signal == signal })?.kind == "yes_no" ? signal : nil
-    }
-
     private static func fixedText(_ key: String) -> String? {
         switch key {
-        case "ai.refusal": String(localized: "I don't know. My NASA sources don't cover this, and I won't guess. Tap Ask Houston to send it to your flight surgeon. The answer takes about 40 minutes.")
-        case "ai.unavailable": String(localized: "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.")
-        case "ai.slow": String(localized: "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.")
-        case "ai.busy": String(localized: "Too many questions are waiting. Ask again in a moment, or tap Ask Houston.")
+        case "ai.refusal": String(localized: "I don't have that in NASA's text or in your readings, so I won't guess. Tap Contact Earth and the question goes to your flight surgeon.")
+        case "ai.unavailable": String(localized: "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
+        case "ai.slow": String(localized: "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
+        case "ai.busy": String(localized: "Too many questions are waiting. Ask again in a moment, or tap Contact Earth.")
         case "ai.card": String(localized: "This needs the steps card, not an answer from me. The card is on screen.")
         case "ai.crisis": String(localized: "This needs a person, not me. Please go to a crewmate or your Crew Medical Officer now.")
         case "ai.crisisTold": String(localized: "This needs a person, not me. I've asked a crewmate to come and be with you.")
-        case "ai.urgentNoCard": String(localized: "My NASA sources don't cover this, so I won't guess a treatment. Follow your onboard emergency checklist, get your Crew Medical Officer now, and message Houston.")
+        case "ai.urgentNoCard": String(localized: "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Earth.")
         default: nil
         }
     }
 }
 
-// MARK: Attachments
+// MARK: Facts and sources
 
-/// The top of an attachment: the bubble's grey with only its top corners
-/// rounded, over the footer band that fills the rest of the outline.
-private let attachmentTop = UnevenRoundedRectangle(topLeadingRadius: 17, topTrailingRadius: 17, style: .continuous)
-
-/// One of the hub's facts, as Messages shows a rich link: the sentence, then
-/// its label(s) in the band under it. Every number keeps its label.
-private struct FactAttachment: View {
-    let fact: AskAnswerView.Fact
+/// The hub's facts in one bubble, a short line each, every line ending in
+/// its kind mark(s); the words for the marks are in the caption. More than
+/// four: the first three and "N more", which opens in place.
+private struct FactsBubble: View {
+    let facts: [AskAnswerView.Fact]
     let hasTail: Bool
+    @State private var expanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// From a line's baseline up to its mark's centre, so the mark sits on the first line's x-height.
+    @ScaledMetric(relativeTo: .subheadline) private var markRise: CGFloat = 4.5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(fact.text)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(attachmentTop.fill(ChatBubbleShape.incomingFill))
-            if !fact.labels.isEmpty {
-                LabelsLayout {
-                    ForEach(Array(fact.labels.enumerated()), id: \.offset) { _, label in
-                        HStack(spacing: 4) {
-                            if let kind = label.kind { KindMark(kind: kind) }
-                            Text(label.text)
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+        let shown = expanded || facts.count <= 4 ? facts : Array(facts.prefix(3))
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(shown.enumerated()), id: \.offset) { _, fact in
+                line(fact)
+            }
+            if shown.count < facts.count {
+                let hidden = facts.count - shown.count
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { expanded = true }
+                } label: {
+                    Text("\(hidden) more")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(ChatBubbleShape.outgoingFill)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(.rect)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(.plain)
+                .padding(.vertical, -10)
+                .accessibilityLabel(Text("Show \(hidden) more facts"))
             }
         }
-        .background(ChatBubbleShape(isMine: false, hasTail: hasTail)
-            .fill(fact.labels.isEmpty ? ChatBubbleShape.incomingFill : ChatBubbleShape.bandFill))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(ChatBubbleShape(isMine: false, hasTail: hasTail).fill(ChatBubbleShape.incomingFill))
         .contextMenu {
-            Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = fact.text }
+            Button("Copy", systemImage: "doc.on.doc") {
+                UIPasteboard.general.string = facts.map(\.text).joined(separator: "\n")
+            }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(fact.labels.isEmpty ? fact.text
-            : String(localized: "\(fact.text) Label: \(fact.labels.map(\.text).formatted(.list(type: .and)))")))
+        .accessibilityElement(children: .contain)
+    }
+
+    private func line(_ fact: AskAnswerView.Fact) -> some View {
+        let marks = fact.labels.compactMap(\.kind)
+        // The marks follow the last word, so the eye reads sentence then label; never a column at the edge.
+        let tail = marks.reduce(Text(verbatim: marks.isEmpty ? "" : "\u{00A0}")) { text, kind in
+            text + Text(verbatim: "\u{00A0}") + Text(Image(systemName: Self.symbol(kind))).font(.system(size: 8, weight: .semibold)).foregroundStyle(.secondary).baselineOffset(2)
+        }
+        return (Text(fact.text) + tail)
+            .font(.subheadline)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: fact.labels.isEmpty ? fact.text
+                : "\(fact.text.hasSuffix(".") ? String(fact.text.dropLast()) : fact.text), \(fact.labels.map(\.text).formatted(.list(type: .and)))"))
+    }
+
+    /// The kind marks as glyphs that can sit inside a line of text; the same shapes as KindMark.
+    private static func symbol(_ kind: Kind) -> String {
+        switch kind {
+        case .measured: "circle.fill"
+        case .replayed: "circle.lefthalf.filled"
+        case .estimated: "circle.dotted"
+        case .reported: "square.fill"
+        case .simulated: "circle"
+        }
     }
 }
 
@@ -293,67 +452,122 @@ private struct LabelsLayout<Content: View>: View {
     var body: some View {
         let layout = typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout(spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 8))
         layout { content }
     }
 }
 
-/// NASA's words as Messages shows a link: the quote, then the source's name
-/// and site in the band; a tap opens the source.
-private struct PassageAttachment: View {
-    let passage: Passage
-    let hasTail: Bool
+/// NASA's passages behind one small pill in the caption line: overlapped numbered dots and the count.
+/// A tap opens the passages in a sheet, one page each.
+private struct SourcesPill: View {
+    let passages: [Passage]
+    @State private var open = false
+    @State private var page = 0
+    @ScaledMetric(relativeTo: .caption2) private var dot: CGFloat = 15
 
     var body: some View {
-        if let url = URL(string: passage.url), !passage.url.isEmpty {
-            Link(destination: url) { preview(host: url.host()) }
-                .buttonStyle(.plain)
-                .accessibilityHint(Text("Opens the source"))
-        } else {
-            preview(host: nil)
+        Button { page = 0; open = true } label: {
+            HStack(spacing: 5) {
+                HStack(spacing: -dot * 0.3) {
+                    ForEach(0..<min(passages.count, 3), id: \.self) { index in
+                        Text(verbatim: "\(index + 1)")
+                            .font(.system(size: dot * 0.6, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(.black)
+                            .frame(width: dot, height: dot)
+                            .background(Circle().fill(.white.opacity(0.85)))
+                            .overlay(Circle().strokeBorder(.black, lineWidth: 1))
+                            .zIndex(Double(3 - index))
+                    }
+                }
+                Text(passages.count == 1 ? String(localized: "1 source") : String(localized: "\(passages.count) sources"))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.primary.opacity(0.85))
+            }
+            .padding(.leading, 4)
+            .padding(.trailing, 8)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(.white.opacity(0.1)))
+            .frame(minHeight: 44)
+            .contentShape(.rect)
         }
-    }
-
-    private func preview(host: String?) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(verbatim: "“\(passage.text)”")
-                .italic()
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(attachmentTop.fill(ChatBubbleShape.incomingFill))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(passage.name)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.primary)
-                if let host {
-                    Text(verbatim: host)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
+        .padding(.vertical, -14)
+        .accessibilityLabel(Text(passages.count == 1 ? String(localized: "1 source: \(passages[0].name)") : String(localized: "\(passages.count) sources: \(passages[0].name)")))
+        .accessibilityHint(Text("Opens NASA's passages."))
+        .sheet(isPresented: $open) {
+            TabView(selection: $page) {
+                ForEach(Array(passages.enumerated()), id: \.offset) { index, passage in
+                    PassageSheet(passage: passage, number: index + 1, count: passages.count)
+                        .tag(index)
                 }
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .tabViewStyle(.page(indexDisplayMode: passages.count > 1 ? .always : .never))
+            .presentationDetents([.medium, .large])
+            // The sheet inherits the caption line's one-line limit and small grey type: give it its own.
+            .lineLimit(nil)
+            .font(.body)
+            .foregroundStyle(.primary)
         }
-        .background(ChatBubbleShape(isMine: false, hasTail: hasTail).fill(ChatBubbleShape.bandFill))
-        .contentShape(.rect)
-        .contextMenu {
-            Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = passage.text }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("NASA's words, quoted unchanged: \(passage.text). Source: \(passage.name)"))
-        .accessibilityAddTraits(host == nil ? [] : .isLink)
     }
+}
+
+/// One passage of NASA's text, in full, unchanged, with the link to its source.
+private struct PassageSheet: View {
+    let passage: Passage
+    let number: Int
+    let count: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(passage.name)
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(verbatim: "“\(passage.text)”")
+                        .italic()
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    Text("NASA's words are quoted in English, unchanged.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if let url = URL(string: passage.url), !passage.url.isEmpty {
+                        Link(destination: url) {
+                            Label("Open the source", systemImage: "arrow.up.right.square")
+                                .frame(minHeight: 44)
+                        }
+                        .accessibilityHint(Text(verbatim: url.host() ?? passage.url))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+            }
+            .navigationTitle(Text("Source \(number) of \(count)"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private extension String {
+    /// "measured, replayed and simulated" → "Measured, replayed and simulated".
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }
 
 #Preview {
     ScrollView {
-        AskAnswerView(result: SampleData.answer, answeredAt: .now, lang: "en", onReply: { _ in })
-            .padding(16)
+        VStack(spacing: 16) {
+            AskAnswerView(result: SampleData.answer, answeredAt: .now, lang: "en")
+            AskAnswerView(result: SampleData.pendingAnswer, answeredAt: .now, lang: "en", replies: .live(enabled: true))
+            AskAnswerView(result: SampleData.smallTalkAnswer, answeredAt: .now, lang: "en")
+        }
+        .padding(16)
     }
     .preferredColorScheme(.dark)
 }

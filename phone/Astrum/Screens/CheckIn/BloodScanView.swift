@@ -1,6 +1,7 @@
-// The blood analyser's screen, read from a photo: take one (or choose one),
-// the phone reads the numbers on the phone (Model/BloodScanReader.swift,
-// Model/BloodScan.swift), then every value waits for the crewmate. A value
+// The blood analyser's screen, read by the camera (many frames, live:
+// BloodScanLiveView) or from a chosen photo (read three ways), on the phone
+// (Model/BloodScanReader.swift, Model/BloodScan.swift, Model/BloodScanTally.swift),
+// then every value waits for the crewmate. A value
 // read from the photo is sent only once it is confirmed or typed over; the
 // rest are left empty to type by hand. Saved through POST /api/blood like
 // typed results, with the confirmed ones marked as read from a photo. The
@@ -53,11 +54,12 @@ struct BloodScanView: View {
                 }
             }
             .fullScreenCover(isPresented: $showingCamera) {
-                CameraPicker { image in
+                BloodScanLiveView(entries: entries, lang: model.lang) { readings, image in
                     showingCamera = false
-                    if let image { read(image) }
+                    show(readings, image)
+                } cancel: {
+                    showingCamera = false
                 }
-                .ignoresSafeArea()
             }
             .sheet(isPresented: $choosing) {
                 PhotoLibraryPicker { data in
@@ -72,7 +74,7 @@ struct BloodScanView: View {
 
     private var capture: some View {
         ProjectionSection {
-            Text("Photograph the analyser's results screen: hold the phone square to it, fill the frame with the screen and avoid reflections.")
+            Text("Point the camera at the analyser's results screen: hold the phone square to it, fill the frame with the screen and avoid reflections. The values are read over a few seconds.")
             if reading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -83,11 +85,11 @@ struct BloodScanView: View {
                 Button {
                     showingCamera = true
                 } label: {
-                    Label("Take a photo", systemImage: "camera")
+                    Label("Scan with the camera", systemImage: "camera.viewfinder")
                 }
                 .buttonStyle(.projectionProminent)
-                .disabled(!CameraPicker.isAvailable)
-                if !CameraPicker.isAvailable {
+                .disabled(!BloodScanLiveView.isAvailable)
+                if !BloodScanLiveView.isAvailable {
                     Text("This device has no camera: choose a photo instead.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -109,22 +111,31 @@ struct BloodScanView: View {
         }
     }
 
-    /// Reads the photo on the phone and fills one row per hub entry.
+    /// Reads a chosen photo on the phone three ways; a value is offered only
+    /// when two of them read the same number and none reads another.
     private func read(_ image: UIImage) {
         guard let cgImage = image.cgImage else {
             said = String(localized: "That photo could not be opened.")
             return
         }
         let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let wanted = entries.map { ($0.id, $0.unit) }
         reading = true
         said = nil
         Task {
-            let lines = (try? await BloodScanReader.lines(in: cgImage, orientation: orientation)) ?? []
-            let found = BloodScan.read(lines, wanted: entries.map { ($0.id, $0.unit) })
-            rows = entries.map { BloodScanRow(entry: $0, lang: model.lang, reading: found[$0.id] ?? .notFound) }
-            photo = image
+            let looks = await BloodScanReader.lines(in: cgImage, orientation: orientation, passes: BloodScanReader.Options.stillPasses)
+            var tally = BloodScan.Tally(needed: 2)
+            for lines in looks { tally.add(BloodScan.read(lines, wanted: wanted)) }
             reading = false
+            show(tally.result(entries.map(\.id)), image)
         }
+    }
+
+    /// The review, from what was read.
+    private func show(_ readings: [String: BloodScan.Reading], _ image: UIImage?) {
+        guard let image else { return }
+        rows = entries.map { BloodScanRow(entry: $0, lang: model.lang, reading: readings[$0.id] ?? .notFound) }
+        photo = image
     }
 
     private func retake() {
@@ -181,11 +192,12 @@ struct BloodScanRow: Identifiable, Hashable {
         name = lang == "pt" ? entry.name.pt : entry.name.en
         unit = entry.unit
         self.reading = reading
-        if case .read(let value, let shown, _) = reading {
+        switch reading {
+        case .read(let value, let shown, _), .readWithoutUnit(let value, let shown):
             // In this phone's way of writing numbers, with the decimals the analyser showed.
             text = value.formatted(.number.precision(.fractionLength(BloodScan.decimals(shown))).grouping(.never))
             state = .unchecked
-        } else {
+        default:
             text = ""
             state = .empty
         }
@@ -363,6 +375,8 @@ private struct BloodScanRowView: View {
             return String(localized: "The unit on the photo was read as “\(unitSeen)”.")
         case .read:
             return nil
+        case .readWithoutUnit:
+            return String(localized: "Unit not read: check the unit on the screen. Filled in \(row.unit), the unit Astrum records.")
         case .notFound:
             return String(localized: "Not found on the photo.")
         case .flagged(let shown):
@@ -383,6 +397,14 @@ private struct BloodScanRowView: View {
                 return String(localized: "It is not clear which number belongs to it: enter it by hand.")
             case .unknownUnit:
                 return String(localized: "Astrum cannot check a reading in \(row.unit): enter it by hand.")
+            case .missingDigit(let shown):
+                return String(localized: "Read as \(shown), fewer digits than the analyser shows (a digit or the point may have been missed): enter it by hand.")
+            case .uncertainDigit(let shown):
+                return String(localized: "Read as \(shown), but a digit could also be read another way: enter it by hand.")
+            case .disagree:
+                return String(localized: "Different numbers were read for it: enter it by hand.")
+            case .notSteady(let shown):
+                return String(localized: "Read as \(shown) too few times to be sure: enter it by hand.")
             }
         }
     }
@@ -430,38 +452,7 @@ private struct ZoomablePhoto: View {
     }
 }
 
-// MARK: The camera
-
-/// The system camera, for one still photo. Nothing is saved to the photo library.
-private struct CameraPicker: UIViewControllerRepresentable {
-    let done: (UIImage?) -> Void
-
-    static var isAvailable: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(done: done) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let done: (UIImage?) -> Void
-        init(done: @escaping (UIImage?) -> Void) { self.done = done }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            done(info[.originalImage] as? UIImage)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            done(nil)
-        }
-    }
-}
+// MARK: The photo library
 
 /// The photo library, for one image, read into memory. The picker runs outside
 /// the app, so no photo library permission is asked for.

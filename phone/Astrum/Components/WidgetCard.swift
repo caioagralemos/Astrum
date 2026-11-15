@@ -139,6 +139,7 @@ struct BigNumber: View {
                 .font(.system(size: size, weight: .light).monospacedDigit())
                 .tracking(-0.02 * size)
                 .foregroundStyle(color)
+                .numericMotion(text)
             if let unit, !unit.isEmpty {
                 Text(unit)
                     .font(.system(size: unitSize))
@@ -154,6 +155,7 @@ struct BigNumber: View {
 struct WidgetTrack: View {
     let fraction: Double
     var midMark = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { proxy in
@@ -161,6 +163,7 @@ struct WidgetTrack: View {
                 Capsule().fill(.white.opacity(0.08))
                 Capsule().fill(.white.opacity(0.75))
                     .frame(width: proxy.size.width * min(1, max(0, fraction)))
+                    .animation(Motion.movement(Motion.content, reduceMotion), value: fraction)
                 if midMark {
                     Rectangle().fill(HubStyle.faint)
                         .frame(width: 1, height: 8)

@@ -17,7 +17,8 @@ struct AvatarView: View {
             .frame(height: 440)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Body"))
-            .accessibilityValue(selected.map { Text($0.title) + Text(verbatim: ", ") + Text(status($0)) } ?? Text(verbatim: ""))
+            .accessibilityValue(selected.map { Text($0.title) + Text(verbatim: ", ") + Text(status($0)) }
+                ?? Text(marked.isEmpty ? "" : BodyRegion.markedList(marked)))
             .accessibilityHint(Text("Choose a region with the buttons below"))
     }
 }

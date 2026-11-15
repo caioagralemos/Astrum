@@ -1,6 +1,7 @@
 // A steps card exactly as the medical lead wrote it: the steps word for
-// word, what not to do, and whether it is still unverified. The app adds no
-// advice of its own.
+// word, what not to do, that she approved it, and her own list of the parts
+// not checked against a source (it does not mean the card is unapproved).
+// The app adds no advice of its own. Used in Ask Astra and the alert screens.
 
 import SwiftUI
 
@@ -34,15 +35,44 @@ struct StepsCardView: View {
                 }
             }
             if card.messageHouston {
-                Text("This card says to message Houston.")
+                Text("This card says to message Earth.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if card.approvedBy == "medical_lead" {
+                Text("Approved by the medical lead.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             if !card.unverified.isEmpty {
-                Text("Not yet verified by the medical lead")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                unchecked
             }
+        }
+    }
+
+    /// Her list of the parts not checked against a source; a long one folds away.
+    @ViewBuilder
+    private var unchecked: some View {
+        let list = card.unverified.formatted(.list(type: .and))
+        if card.unverified.count > 2 {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(card.unverified, id: \.self) { part in
+                        Text(verbatim: "• \(part)")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
+            } label: {
+                Text("Parts not checked against a source: \(card.unverified.count)")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityHint(Text(list))
+        } else {
+            Text("Parts not checked against a source: \(list)")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 }

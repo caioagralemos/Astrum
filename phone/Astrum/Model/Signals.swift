@@ -4,6 +4,9 @@
 // Rooms, places and roles are named here too, from the hub's string keys.
 
 import Foundation
+#if DEBUG
+import os
+#endif
 
 /// The regions of the body figure on Me, each tied to the readings that belong to it.
 enum BodyRegion: String, CaseIterable, Identifiable, Sendable {
@@ -43,9 +46,9 @@ enum Signals {
         case .heart:
             ["heart_rate", "resting_heart_rate", "hrv", "blood_pressure_systolic", "blood_pressure_diastolic"]
         case .lungs:
-            ["breathing_rate", "blood_oxygen", "co2"]
+            ["breathing_rate", "respiratory_rate", "blood_oxygen", "co2"]
         case .body:
-            ["exercise_minutes", "steps", "active_energy", "sound_level"]
+            ["exercise_minutes", "steps", "active_energy", "body_temperature", "sound_level"]
         case .blood:
             []
         }
@@ -64,16 +67,12 @@ enum Signals {
         return 10_000
     }
 
-    /// The day's totals, nightly values and answers: current for a day and a half
-    /// (the baseline's dailyFreshMs). Everything else: for an hour (its recent window).
-    static func isDaily(_ signal: String) -> Bool {
-        signal.hasPrefix("sleep_") || signal.hasPrefix("checkin.") || signal.hasPrefix("mood.") || signal.hasPrefix("blood_pressure")
-            || ["steps", "exercise_minutes", "active_energy"].contains(signal)
-    }
+    /// The day's totals, nightly values and answers (Freshness.swift: vital signs never are).
+    static func isDaily(_ signal: String) -> Bool { Freshness.isDaily(signal) }
 
+    /// Not the current value any more: the one rule in Freshness.swift.
     static func isStale(_ row: Row, now: Double) -> Bool {
-        let limit = isDaily(row.signal) ? Baseline.dailyFreshMs : Baseline.recentMs
-        return now - row.t > limit
+        !Freshness.isCurrent(signal: row.signal, t: row.t, now: now)
     }
 
     /// NASA's daily exercise on the ISS, 1.5 hours (hub/engine/crew.ts), in minutes.
@@ -85,42 +84,114 @@ enum Signals {
 
     // MARK: Names
 
+    /// The only way a signal key becomes words, on every screen, notification,
+    /// widget, chat bubble and VoiceOver label: the hub's own name for it
+    /// (strings.ts `signal.*`, her blood file, her follow-up questions), or,
+    /// for a key nobody has named yet, plain words, never the key itself.
     static func name(_ signal: String) -> String {
+        if let named = knownName(signal) { return named }
+        #if DEBUG
+        namesLog.debug("No name for the signal key \(signal, privacy: .public): add one to Signals.knownName")
+        #endif
+        return fallbackName(signal)
+    }
+
+    #if DEBUG
+    private static let namesLog = Logger(subsystem: "Astrum", category: "names")
+    #endif
+
+    /// The name written for `signal`, or nil when it has none yet.
+    static func knownName(_ signal: String) -> String? {
         switch signal {
+        // Body (strings.ts signal.*).
         case "heart_rate": String(localized: "Heart rate")
         case "resting_heart_rate": String(localized: "Resting heart rate")
         case "hrv": String(localized: "Heart rate variability")
         case "blood_pressure_systolic": String(localized: "Blood pressure, upper")
         case "blood_pressure_diastolic": String(localized: "Blood pressure, lower")
-        case "breathing_rate": String(localized: "Breathing rate")
+        case "breathing_rate", "respiratory_rate": String(localized: "Breathing rate")
         case "blood_oxygen": String(localized: "Blood oxygen")
+        case "body_temperature": String(localized: "Body temperature")
         case "sleep_duration": String(localized: "Sleep last night")
         case "sleep_efficiency": String(localized: "Time in bed asleep")
         case "sleep_awakenings": String(localized: "Times awake in the night")
-        case "mood.stress": String(localized: "Stress")
+        case "mood.stress", "stress": String(localized: "Stress")
         case "mood.fatigue": String(localized: "Tiredness")
         case "mood.sleepy": String(localized: "Sleepiness")
         case "exercise_minutes": String(localized: "Exercise today")
         case "steps": String(localized: "Steps today")
         case "active_energy": String(localized: "Active energy today")
         case "sound_level": String(localized: "Sound around you")
+        // Check-ins: the daily questions, then her follow-up, fasting and symptom questions.
         case "checkin.headache": String(localized: "Headache")
-        case "checkin.mood": String(localized: "Mood")
+        case "checkin.mood", "mood": String(localized: "Mood")
         case "checkin.stress": String(localized: "Stress (check-in)")
         case "checkin.fatigue": String(localized: "Tiredness (check-in)")
         case "checkin.note": String(localized: "Note")
-        case "co2": String(localized: "CO2")
-        case "temperature": String(localized: "Temperature")
-        case "humidity": String(localized: "Humidity")
-        case "pressure": String(localized: "Cabin pressure")
-        case "oxygen": String(localized: "Oxygen")
+        case "checkin.got_better": String(localized: "Got better (check-in)")
+        case "checkin.fasting": String(localized: "Fasting (check-in)")
+        case "checkin.bp_slept_well": String(localized: "Slept well (check-in)")
+        case "checkin.bp_heavy_head": String(localized: "Heavy head and unwell (check-in)")
+        case "checkin.bp_diagnosed": String(localized: "High blood pressure diagnosed (check-in)")
+        case "checkin.bp_took_medicine": String(localized: "Took the medicine (check-in)")
+        case "checkin.bp_measured": String(localized: "Blood pressure entered (check-in)")
+        case "checkin.leg_colour_changed": String(localized: "Leg or arm colour changed (check-in)")
+        case "checkin.leg_pain": String(localized: "Pain (check-in)")
+        case "checkin.leg_inflammation": String(localized: "Signs of inflammation (check-in)")
+        case "checkin.glucose_high_signs": String(localized: "Signs of high glucose (check-in)")
+        case "checkin.sodium_group1": String(localized: "Confusion, headache or nausea (check-in)")
+        case "checkin.sodium_group2": String(localized: "Very sleepy or a seizure (check-in)")
+        case "checkin.calcium_symptoms": String(localized: "Tingling, cramps or weakness (check-in)")
+        case let key where key.hasPrefix("checkin.q_"): String(localized: "Answer to a steps card question")
+        // Blood (hub/medical/blood.json, stored as blood.<id> with _ for -).
+        case "blood.glucose": String(localized: "Glucose")
+        case "blood.sodium": String(localized: "Sodium")
+        case "blood.potassium": String(localized: "Potassium")
+        case "blood.ionized_calcium": String(localized: "Ionized calcium")
+        case "blood.ph": String(localized: "Blood pH")
+        case "blood.hematocrit": String(localized: "Hematocrit")
+        case "blood.hemoglobin": String(localized: "Hemoglobin")
+        // Cabin (and the card signs' cabin_ forms).
+        case "co2", "cabin_co2": String(localized: "CO2")
+        case "temperature", "cabin_temperature": String(localized: "Temperature")
+        case "humidity", "cabin_humidity": String(localized: "Humidity")
+        case "pressure", "cabin_pressure": String(localized: "Cabin pressure")
+        case "oxygen", "cabin_oxygen": String(localized: "Oxygen")
         case "noise": String(localized: "Noise")
         case "light": String(localized: "Light")
         case "vibration": String(localized: "Vibration")
         case "radiation": String(localized: "Radiation")
+        case "dose": String(localized: "Radiation dose")
         case "air_quality": String(localized: "Air quality")
-        default: plain(signal)
+        // The rest the hub can send in an alert or a message.
+        case "earth.message": String(localized: "Message to Earth")
+        case "needs-someone": String(localized: "Needs someone with them")
+        case "time_alone": String(localized: "Time alone")
+        case "conflict": String(localized: "Conflict with a crewmate")
+        default: nil
         }
+    }
+
+    /// A key nobody has named yet, as plain words: "blood.salt" becomes "Salt",
+    /// "sleep_deep_minutes" "Sleep deep minutes". Never the key itself.
+    static func fallbackName(_ signal: String) -> String {
+        var key = Substring(signal)
+        if let dot = key.lastIndex(of: "."), key.index(after: dot) < key.endIndex { key = key[key.index(after: dot)...] }
+        let words = key.split(whereSeparator: { $0 == "_" || $0 == "-" || $0 == "." || $0 == " " }).joined(separator: " ")
+        guard let first = words.first else { return String(localized: "A reading") }
+        return first.uppercased() + words.dropFirst().lowercased()
+    }
+
+    /// A signal named inside a sentence: the hub's English words or a key with
+    /// its underscores turned to spaces ("blood.glucose", "heart rate") become
+    /// this language's name, lower case unless it is an acronym ("CO2").
+    /// Words that are not a signal stay as the hub sent them.
+    static func inSentence(_ hubWords: String) -> String {
+        let key = hubWords.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: " ", with: "_")
+        let name: String
+        if let known = knownName(key) { name = known } else if key.contains(".") { name = fallbackName(key) } else { return hubWords }
+        guard let first = name.first, name.prefix(2) != name.prefix(2).uppercased() || name.count == 1 else { return name }
+        return first.lowercased() + name.dropFirst()
     }
 
     static func kindName(_ kind: Kind) -> String {

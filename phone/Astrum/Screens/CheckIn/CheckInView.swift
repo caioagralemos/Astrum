@@ -1,7 +1,8 @@
-// Check-in, where the owner enters things: the daily check-in (headache,
-// mood, stress and tiredness, an optional note) posted to /api/checkin and
-// shown back as Reported, past check-ins, and the blood test section.
-// Offline, a check-in is kept on the phone and sent when the hub is back.
+// Check-in, where the owner enters things. Today's check-in first: Start
+// opens the questions one at a time (CheckInFlow), or, once done today by the
+// hub's clock, when and what was answered. Then the blood test, which is not
+// daily, and earlier check-ins by day. Offline, a check-in is kept on the
+// phone and sent when the hub is back.
 
 import SwiftUI
 
@@ -11,22 +12,39 @@ enum CheckInField: Hashable {
     case blood(String)
 }
 
+extension AppModel {
+    /// Opens today's check-in on the Check-in tab, where it was left if it was started.
+    /// The one way in, for a reminder to open later.
+    func startTodaysCheckIn() {
+        selectedTab = .checkIn
+        checkInOpen = true
+    }
+}
+
 struct CheckInView: View {
     @Environment(AppModel.self) private var model
     @State private var showingSettings = false
     @FocusState private var focus: CheckInField?
     @State private var bloodIDs: [String] = []
+    /// The answers being given; kept for the session until they are sent.
+    @State private var draft = CheckInDraft()
+    /// What was saved in this session, shown until the hub's history has it (always, when kept offline).
+    @State private var savedHere: [Row] = []
 
     var body: some View {
+        @Bindable var model = model
         NavigationStack {
             ScrollViewReader { proxy in
                 Form {
                     ConnectionBanner()
-                    CheckInForm(focus: $focus)
-                    PastCheckIns()
+                    TodayCheckIn(today: todaysAnswers, start: model.startTodaysCheckIn) {
+                        draft = CheckInDraft(rows: todaysAnswers)
+                        model.startTodaysCheckIn()
+                    }
                     BloodSection(focus: $focus, ids: $bloodIDs)
+                    PastCheckIns()
                 }
-                .keyboardFields($focus, order: [.note] + bloodIDs.map(CheckInField.blood))
+                .keyboardFields($focus, order: bloodIDs.map(CheckInField.blood))
                 .scrollsToFocus(focus, with: proxy)
             }
             .tint(.white)
@@ -37,50 +55,58 @@ struct CheckInView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) { SettingsView() }
+            .sheet(isPresented: $model.checkInOpen) {
+                CheckInFlow(draft: $draft) { _ in
+                    savedHere = draft.rows(at: model.hubNow())
+                    draft = CheckInDraft()
+                    Task { await model.refreshHistory() }
+                }
+            }
             .task(id: model.person) { await model.refreshHistory() }
         }
     }
+
+    /// The newest check-in answered today, by the hub's clock; empty when there is none yet.
+    private var todaysAnswers: [Row] {
+        let today = Date(timeIntervalSince1970: model.hubNow() / 1000)
+        let rows = (model.history.rows + savedHere).filter {
+            CheckInSummary.questions.contains($0.signal) && Calendar.current.isDate($0.date, inSameDayAs: today)
+        }
+        guard let newest = rows.map(\.t).max() else { return [] }
+        return rows.filter { $0.t == newest }
+    }
 }
 
-/// Today's questions. Only what the hub accepts: yes/no, 0 to 100, a text.
-private struct CheckInForm: View {
-    var focus: FocusState<CheckInField?>.Binding
-    @Environment(AppModel.self) private var model
-    @State private var headache: Bool?
-    @State private var mood = 50.0
-    @State private var stress = 50.0
-    @State private var tiredness = 50.0
-    @State private var note = ""
-    @State private var sending = false
-    @State private var outcome: CheckinOutcome?
+/// Today's card: Start, or done at a time with the answers in a line or two.
+private struct TodayCheckIn: View {
+    let today: [Row]
+    let start: () -> Void
+    let change: () -> Void
 
     var body: some View {
         ProjectionSection {
-            Picker("Headache", selection: $headache) {
-                Text("Not answered").tag(Bool?.none)
-                Text("Yes").tag(Bool?.some(true))
-                Text("No").tag(Bool?.some(false))
-            }
-            slider("Mood", value: $mood)
-            slider("Stress", value: $stress)
-            slider("Tiredness", value: $tiredness)
-            TextField("Note (optional)", text: $note, axis: .vertical)
-                .lineLimit(1...5)
-                .projectionField()
-                .focused(focus, equals: .note)
-                .id(CheckInField.note)
-            Button(action: send) {
-                if sending {
-                    ProgressView()
-                } else {
-                    Text("Send check-in")
+            if let first = today.first {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Done today at \(first.date.formatted(date: .omitted, time: .shortened))")
+                        .font(.title3)
+                    Text(verbatim: CheckInSummary.line(today))
+                        .foregroundStyle(HubStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-            .buttonStyle(.projectionProminent)
-            .disabled(sending || model.person.isEmpty)
-            if let outcome {
-                Text(words(for: outcome))
-                    .foregroundStyle(.secondary)
+                .accessibilityElement(children: .combine)
+                Button("Change my answers", action: change)
+                    .buttonStyle(.projection)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Today's check-in")
+                        .font(.title3)
+                    Text("About a minute. Five questions.")
+                        .foregroundStyle(HubStyle.muted)
+                }
+                .accessibilityElement(children: .combine)
+                Button("Start", action: start)
+                    .buttonStyle(.projectionProminent)
+                    .accessibilityLabel(Text("Start today's check-in"))
             }
         } header: {
             ProjectionHeader(.mood, "Today")
@@ -88,86 +114,66 @@ private struct CheckInForm: View {
             Text("Your answers are stored as Reported: said by you, not measured.")
         }
     }
+}
 
-    private func slider(_ title: LocalizedStringKey, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text("\(Int(value.wrappedValue)) of 100")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 0...100, step: 1) {
-                Text(title)
-            } minimumValueLabel: {
-                Text(verbatim: "0").font(.caption)
-            } maximumValueLabel: {
-                Text(verbatim: "100").font(.caption)
-            }
-            .accessibilityValue(Text("\(Int(value.wrappedValue)) of 100"))
-        }
+/// A check-in's answers in one line, with the questions' own names.
+enum CheckInSummary {
+    static let questions: Set<String> = ["checkin.headache", "checkin.mood", "checkin.stress", "checkin.fatigue", "checkin.note"]
+
+    static func line(_ rows: [Row]) -> String {
+        rows.filter { $0.signal != "checkin.note" }
+            .sorted { Signals.order(of: $0.signal) < Signals.order(of: $1.signal) }
+            .map { "\(name($0.signal)): \(Signals.text($0))" }
+            .joined(separator: " · ")
     }
 
-    private func send() {
-        var answers: [CheckinAnswer] = []
-        if let headache { answers.append(CheckinAnswer(signal: "headache", value: headache ? 1 : 0, unit: "yes/no")) }
-        answers.append(CheckinAnswer(signal: "mood", value: mood, unit: "0-100"))
-        answers.append(CheckinAnswer(signal: "stress", value: stress, unit: "0-100"))
-        answers.append(CheckinAnswer(signal: "fatigue", value: tiredness, unit: "0-100"))
-        let text = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !text.isEmpty { answers.append(CheckinAnswer(signal: "note", value: nil, text: text, unit: "")) }
-
-        sending = true
-        focus.wrappedValue = nil
-        Task {
-            outcome = await model.submitCheckin(answers)
-            sending = false
-            if outcome == .sent {
-                note = ""
-                headache = nil
-                await model.refreshHistory()
-            }
-        }
-    }
-
-    private func words(for outcome: CheckinOutcome) -> String {
-        switch outcome {
-        case .sent: String(localized: "Sent. The hub stored it as Reported.")
-        case .queued: String(localized: "The hub is out of reach. Kept on this phone; it is sent when the hub is back.")
-        case .refused(let words): String(localized: "The hub refused it: \(words)")
+    private static func name(_ signal: String) -> String {
+        switch signal {
+        case "checkin.headache": String(localized: "Headache")
+        case "checkin.mood": String(localized: "Mood")
+        case "checkin.stress": String(localized: "Stress")
+        case "checkin.fatigue": String(localized: "Tiredness")
+        default: Signals.name(signal)
         }
     }
 }
 
-/// Earlier check-ins from the history, newest first, grouped by when they were answered.
+/// Earlier check-ins from the history, newest first, by day.
 private struct PastCheckIns: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let groups = Dictionary(grouping: model.history.rows.filter { $0.signal.hasPrefix("checkin.") }, by: \.t)
+        let answered = Dictionary(grouping: model.history.rows.filter { $0.signal.hasPrefix("checkin.") }, by: \.t)
             .sorted { $0.key > $1.key }
             .prefix(10)
+        let days = Dictionary(grouping: answered) { Calendar.current.startOfDay(for: Date(timeIntervalSince1970: $0.key / 1000)) }
+            .sorted { $0.key > $1.key }
         ProjectionSection {
             if model.pendingCheckins > 0 {
                 Label("\(model.pendingCheckins) waiting to send", systemImage: "clock")
             }
-            if groups.isEmpty {
+            if days.isEmpty {
                 Text(model.history.state == .failed ? String(localized: "History needs the hub") : String(localized: "No check-ins yet."))
                     .foregroundStyle(.secondary)
             }
-            ForEach(Array(groups), id: \.key) { t, rows in
+            ForEach(days, id: \.key) { day, checkins in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(Date(timeIntervalSince1970: t / 1000).formatted(date: .abbreviated, time: .shortened))
+                        Text(day.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
                             .font(.subheadline.weight(.semibold))
                         Spacer()
-                        if let kind = rows.first?.kind { KindBadge(kind: kind) }
+                        if let kind = checkins.first?.value.first?.kind { KindBadge(kind: kind) }
                     }
-                    ForEach(rows.sorted { Signals.order(of: $0.signal) < Signals.order(of: $1.signal) }, id: \.self) { row in
-                        Text(verbatim: "\(Signals.name(row.signal)): \(Signals.text(row))")
+                    ForEach(checkins, id: \.key) { t, rows in
+                        let time = Date(timeIntervalSince1970: t / 1000).formatted(date: .omitted, time: .shortened)
+                        Text(verbatim: "\(time) · \(CheckInSummary.line(rows))")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        if let note = rows.first(where: { $0.signal == "checkin.note" })?.text {
+                            Text(verbatim: "\(Signals.name("checkin.note")): \(note)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .accessibilityElement(children: .combine)
@@ -178,8 +184,23 @@ private struct PastCheckIns: View {
     }
 }
 
-#Preview {
+#Preview("Check-in") {
     CheckInView()
         .environment(SampleData.model())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Today: not done") {
+    Form { TodayCheckIn(today: [], start: {}, change: {}) }
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Today: done") {
+    var draft = CheckInDraft()
+    draft.headache = false
+    draft.mood = 70
+    draft.stress = 35
+    draft.tiredness = 40
+    return Form { TodayCheckIn(today: draft.rows(at: Date.now.timeIntervalSince1970 * 1000), start: {}, change: {}) }
         .preferredColorScheme(.dark)
 }

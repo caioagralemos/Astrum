@@ -70,40 +70,29 @@ final class AlarmNotifier {
     }
 
     /// Announces every alarm in the list that nobody has silenced and that has not been announced yet.
-    func handle(_ alarms: [HubAlarm]) {
+    func handle(_ alarms: [HubAlarm], rooms: [HubRoom] = []) {
         for alarm in alarms where !alarm.acknowledged && !notified.contains(alarm.key) {
             remember(alarm.key)
+            let signal = Signals.name(alarm.signal)
+            let room = Signals.roomName(alarm.room, rooms: rooms)
             post(
                 id: alarm.key,
-                title: "\(Self.signalName(alarm.signal)) over the limit in \(Self.roomName(alarm.room))",
-                body: "Now \(Self.number(alarm.value)) \(alarm.unit). NASA's limit is \(Self.number(alarm.limit)) \(alarm.unit).",
+                title: String(localized: "\(signal) over NASA's limit in \(room)"),
+                body: String(localized: "Now \(Self.number(alarm.value)) \(alarm.unit). NASA's limit is \(Self.number(alarm.limit)) \(alarm.unit)."),
                 delay: nil
             )
         }
     }
 
     /// Announces every alert this phone's owner is told about and has not heard at this level.
-    func handle(_ alerts: [HubAlert], owner: String, crew: [CrewMember]) {
+    func handle(_ alerts: [HubAlert], owner: String, crew: [CrewMember], rooms: [HubRoom] = []) {
         guard !owner.isEmpty else { return }
-        for alert in alerts where !alert.held && alert.toldTo.includes(owner) && !notified.contains(alert.key) {
-            remember(alert.key)
-            let who = alert.person == owner ? "You" : (crew.first(where: { $0.id == alert.person })?.name ?? alert.person)
-            let signal = Self.signalName(alert.signal)
-            var title: String
-            var body: String
-            if alert.reason == "room-limit", let room = alert.room {
-                let verb = alert.person == owner ? "are" : "is"
-                title = alert.level == 3 ? "Dangerous: \(who) \(verb) in \(Self.roomName(room))" : "\(who) \(verb) in \(Self.roomName(room)): \(signal) over the limit"
-                body = "\(signal) is over NASA's limit there."
-                if let value = alert.value, let limit = alert.limit, let unit = alert.unit {
-                    body = "\(signal) has averaged \(Self.number(value)) \(unit). NASA's limit is \(Self.number(limit)) \(unit)."
-                }
-                if alert.level == 2 && alert.person == owner { body += " Are you OK? Open Astrum to answer." }
-                if alert.stationWide == true { title = "Dangerous: \(signal) over the limit in several rooms" }
-            } else {
-                title = alert.person == owner ? "\(signal) is unusual for you" : "\(signal) is unusual for \(who)"
-                body = "Open Astrum to see what changed."
-            }
+        for alert in alerts where !alert.held && alert.toldTo.includes(owner) && !notified.contains(alert.occurrenceKey) {
+            remember(alert.occurrenceKey)
+            // Every name through Signals.name and Signals.roomName, every sentence through AlertText.
+            let who = crew.first(where: { $0.id == alert.person })?.name ?? alert.person
+            let room = alert.room.map { Signals.roomName($0, rooms: rooms) } ?? ""
+            var (title, body) = AlertText.notification(alert, viewer: owner, name: who, room: room)
             if alert.isRecorded { title = String(localized: "Simulated: \(title)") } else if alert.isDrill { title = String(localized: "Drill: \(title)") }
             post(id: alert.key, title: title, body: body, delay: nil, category: Self.category(of: alert, owner: owner), info: ["alertID": alert.id, "level": alert.level])
         }
@@ -113,6 +102,7 @@ final class AlarmNotifier {
     /// The action buttons an alert's notification gets, or none (a recorded story's never does).
     private static func category(of alert: HubAlert, owner: String) -> String? {
         guard !alert.isRecorded, !alert.held else { return nil }
+        if alert.isNotice { return alert.seenAt == nil ? dangerCategory : nil }
         if alert.level == 2, alert.person == owner, alert.answer == nil, alert.answerBy != nil { return askCategory }
         if alert.level == 3, alert.seenAt == nil { return dangerCategory }
         return nil
@@ -152,8 +142,8 @@ final class AlarmNotifier {
     func sendTest() {
         post(
             id: "test-\(Date().timeIntervalSince1970)",
-            title: "Test: CO2 over the limit in Quarters 2",
-            body: "This is a test alert from Astrum. Nothing is wrong.",
+            title: String(localized: "Test: CO2 over NASA's limit in Quarters 2"),
+            body: String(localized: "This is a test alert from Astrum. Nothing is wrong."),
             delay: 5
         )
     }
@@ -179,27 +169,6 @@ final class AlarmNotifier {
     }
 
     // MARK: Words
-
-    /// "quarters-2" becomes "Quarters 2". The hub's proper room names live in its
-    /// string table, which is not sent over the socket.
-    static func roomName(_ id: String) -> String {
-        capitalized(id.replacingOccurrences(of: "-", with: " "))
-    }
-
-    static func signalName(_ signal: String) -> String {
-        switch signal {
-        case "co2": return "CO2"
-        case "pressure": return "Cabin pressure"
-        case "air_quality": return "Air quality"
-        default: return capitalized(signal.replacingOccurrences(of: "_", with: " "))
-        }
-    }
-
-    /// Capitalises the first letter only: "quarters 2" becomes "Quarters 2".
-    private static func capitalized(_ text: String) -> String {
-        guard let first = text.first else { return text }
-        return String(first).uppercased() + String(text.dropFirst())
-    }
 
     private static func number(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(0...2)))

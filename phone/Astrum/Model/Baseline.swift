@@ -49,7 +49,7 @@ enum Baseline {
     static let denseMin = 2
     static let minDense = 30
     static let minDaily = 3
-    static let dailyFreshMs: Double = 36 * 3_600_000
+    static let dailyFreshMs: Double = Freshness.dailyMs
     static let threshold = 3.0
 
     /// The hub's default state: the gym is exercise, the rest is rest.
@@ -94,7 +94,8 @@ enum Baseline {
             let older = all.filter { $0.t <= recentStart }
             let windows = older.first.map { max(1, (recentStart - $0.t) / recentMs) } ?? 1
             let usuallyDense = Double(older.count) / windows >= Double(denseMin)
-            guard let latest = all.last, !usuallyDense, now - latest.t <= dailyFreshMs else { return .noRecent }
+            // A vital sign older than its hour is a gap, however sparse (the hub's liveFreshMs); a daily value keeps 36 hours.
+            guard let latest = all.last, !usuallyDense, now - latest.t <= Freshness.judgeableMs(latest.signal) else { return .noRecent }
             daily = true
             recentRows = [latest]
             before = Array(all.dropLast())

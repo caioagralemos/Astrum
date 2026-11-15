@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-struct RangeBar: View {
+struct RangeBar: View, Animatable {
     enum Scale: Hashable {
         /// The usual band within the bar's extent.
         case usual(band: ClosedRange<Double>)
@@ -15,9 +15,15 @@ struct RangeBar: View {
         case target(Double)
     }
 
-    let value: Double
+    var value: Double
     let scale: Scale
     var marked = false
+
+    /// The dot (or the filled length) glides to a new value.
+    nonisolated var animatableData: Double {
+        get { value }
+        set { value = newValue }
+    }
 
     var body: some View {
         Canvas { context, size in
@@ -53,6 +59,11 @@ struct RangeBar: View {
         .accessibilityHidden(true)
     }
 
+    /// The bar with its value change animated (none under Reduce Motion), scoped to the value.
+    var animated: some View {
+        RangeBarMotion(bar: self)
+    }
+
     private var extent: ClosedRange<Double> {
         switch scale {
         case .usual(let band):
@@ -68,10 +79,20 @@ struct RangeBar: View {
     }
 }
 
+private struct RangeBarMotion: View {
+    let bar: RangeBar
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        bar.animation(Motion.movement(Motion.content, reduceMotion), value: bar.value)
+    }
+}
+
 extension RangeBar {
     /// The bar a reading gets, or nil when there is nothing to place it against.
     init?(reading: Reading) {
-        guard let value = reading.row.value else { return nil }
+        // Not current: nothing to place against the usual or NASA's levels.
+        guard !reading.stale, let value = reading.row.value else { return nil }
         if reading.signal == "co2" {
             self.init(value: value, scale: .marks([Signals.co2HeadacheLevel, Signals.co2Limit], extent: 1.5...4.5), marked: reading.isMarked)
         } else if reading.signal == "exercise_minutes" {

@@ -24,8 +24,10 @@ struct ContentView: View {
                     Tab("Check-in", systemImage: "square.and.pencil", value: AppTab.checkIn) {
                         CheckInView()
                     }
-                    Tab("Ask Astra", systemImage: "text.bubble", value: AppTab.ask) {
+                    Tab(value: AppTab.ask) {
                         AskView()
+                    } label: {
+                        Label { Text("Ask Astra") } icon: { Image(uiImage: AstraMark.tabImage) }
                     }
                     Tab("Station", systemImage: "circle.hexagongrid", value: AppTab.station) {
                         StationView()
@@ -37,6 +39,8 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        // No scroll bars over the dark screens, on any tab.
+        .scrollIndicators(.hidden)
         .dismissesKeyboardOnTapOutside()
     }
 }
