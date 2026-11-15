@@ -14,7 +14,7 @@ enum StepLoops {
     static let table: [String: [Int: String]] = [
         "high-co2": [0: "V05-leave-the-room", 1: "V04-sealed-mask", 2: "V04-sealed-mask"],
         "unknown-urgent": [0: "V01-call-everyone", 1: "V08-press-with-a-cloth", 3: "V27-watch-the-chest", 6: "V28-cover-the-person"],
-        "cardiac-arrest": [0: "V01-call-everyone", 1: "V12-chest-compressions-no-gravity", 2: "V13-medical-restraint"],
+        "cardiac-arrest": [0: "V01-call-everyone", 2: "V13-medical-restraint"],
         "cardiac-arrest-gravity": [0: "V01-call-everyone", 1: "V10-lie-on-back-on-floor", 2: "V09-chest-compressions-with-gravity",
                                    3: "V07-bag-valve-mask", 4: "V11-defibrillator-pads"],
         "low-oxygen": [0: "V02-sit-and-stay-still", 1: "V05-leave-the-room", 2: "V04-sealed-mask", 3: "V18-look-at-the-watch"],
@@ -31,6 +31,9 @@ enum StepLoops {
         "skin-infection": [0: "V15-clean-with-gauze", 1: "V16-bandage", 2: "V29-mark-the-redness"],
         "ear-nose-throat": [0: "V31-yawn", 2: "V23-pinch-the-nose"],
         "neuro": [0: "V02-sit-and-stay-still", 2: "V24-stroke-test"],
+        "dust-storm": [2: "V32-take-off-dusty-suit"],
+        "ground-tremor": [0: "V08-press-with-a-cloth", 1: "V33-look-at-the-pressure", 3: "V34-watch-over-someone"],
+        "meteoroid-impact": [0: "V08-press-with-a-cloth", 1: "V33-look-at-the-pressure", 4: "V34-watch-over-someone"],
     ]
 
     struct Loop: Hashable, Sendable {

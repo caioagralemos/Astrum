@@ -2,8 +2,8 @@
 // owner is told about are ever considered:
 //   level 2, mine, not answered yet  -> "Are you OK?" (AreYouOKView)
 //   level 3, anyone                   -> who, where, the steps (DangerView)
-// A level 3 can be closed once someone has seen it; it stays on Me as a
-// banner until it ends. Level 1 is never full screen.
+// Every alert screen takes over once per occurrence and can be put away with
+// Close; a level 3 stays on Me as a banner until it ends (tap to reopen it). Level 1 is never full screen.
 //
 // A drill's alerts are real and fully answerable; they say "Drill" at the top.
 // A recorded story's alerts are the exception: they look exactly like the real
@@ -29,10 +29,10 @@ extension AppModel {
     var takeover: AlertPresentation? {
         let alerts = visibleAlerts
         // An answer just sent keeps the question on screen, countdown stopped, until the hub confirms it.
-        if let ask = alerts.first(where: { !$0.isNotice && $0.person == person && $0.level == 2 && ($0.answer == nil || pendingAnswers[$0.id] != nil) && $0.answerBy != nil }) {
+        if let ask = alerts.first(where: { !$0.isNotice && $0.person == person && $0.level == 2 && ($0.answer == nil || pendingAnswers[$0.id] != nil) && $0.answerBy != nil && !closedAlerts.contains($0.closeKey) }) {
             return AlertPresentation(alertID: ask.id, style: .ask)
         }
-        let open = alerts.filter { $0.level == 3 && !$0.isSettled && !closedAlerts.contains($0.key) }
+        let open = alerts.filter { $0.level == 3 && !$0.isSettled && !closedAlerts.contains($0.closeKey) }
         // The owner's own first, then the rest in a stable order.
         if let danger = open.first(where: { $0.person == person }) ?? open.min(by: { $0.id < $1.id }) {
             return AlertPresentation(alertID: danger.id, style: .danger)
@@ -81,7 +81,7 @@ struct AlertTakeover: ViewModifier {
             .onChange(of: model.openedAlertID) { _, id in
                 // A tapped notification opens a closed level 3 again.
                 guard let id, let alert = model.visibleAlerts.first(where: { $0.id == id }) else { return }
-                model.closedAlerts.remove(alert.key)
+                model.closedAlerts.remove(alert.closeKey)
                 model.openedAlertID = nil
             }
     }

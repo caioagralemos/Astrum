@@ -77,8 +77,14 @@ final class AppModel {
     var pendingCheckins = 0
     /// Today's check-in is showing (CheckInView); opened with `startTodaysCheckIn()`.
     var checkInOpen = false
-    /// Level 3 alerts (by key) the owner has closed after they were seen; shown as a banner instead.
-    var closedAlerts: Set<String> = []
+    /// Alert screens (by `closeKey`) the owner has put away; the alert shows as a banner on Me instead.
+    /// Remembered across launches, like AlarmNotifier's notified keys.
+    var closedAlerts: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "closedAlertScreens") ?? []) {
+        didSet {
+            if closedAlerts.count > 200 { closedAlerts = Set(closedAlerts.sorted().suffix(200)) }
+            UserDefaults.standard.set(Array(closedAlerts), forKey: "closedAlertScreens")
+        }
+    }
     /// Answers sent to "Are you OK?" (alert id to "ok" or "help"), shown at once until the hub's state confirms them.
     var pendingAnswers: [String: String] = [:]
     /// When the socket last connected; nil while it is not connected.
@@ -180,7 +186,7 @@ final class AppModel {
         Task { await loadSaved() }
         Task {
             waitingCount = await queue.count
-            await notifier.requestPermission()
+            // Notifications are asked on the first run's alerts step only, never at launch.
             await refreshPermissions()
             rescheduleCheckInReminder()
             if healthState == .asked { await health.start(person: person) }
@@ -226,20 +232,39 @@ final class AppModel {
     }
 
     func requestHealthAccess() {
-        Task {
-            do {
-                try await health.requestAccess()
-            } catch {
-                log.error("Health permission failed: \(error.localizedDescription, privacy: .public)")
-            }
-            await refreshPermissions()
-            if healthState == .asked { await health.start(person: person) }
+        Task { await askForHealth() }
+    }
+
+    /// Asks for Health access and returns when iOS has answered.
+    func askForHealth() async {
+        do {
+            try await health.requestAccess()
+        } catch {
+            log.error("Health permission failed: \(error.localizedDescription, privacy: .public)")
         }
+        await refreshPermissions()
+        if healthState == .asked { await health.start(person: person) }
+    }
+
+    /// Asks for notifications (the first run's alerts step) and returns what iOS now allows.
+    /// The daily check-in reminder is scheduled from here on, only once they are allowed.
+    func askForNotifications() async -> NotificationAccess {
+        await notifier.requestPermission()
+        await refreshPermissions()
+        rescheduleCheckInReminder()
+        return await Self.notificationAccess()
     }
 
     func finishOnboarding() {
         onboarded = true
         UserDefaults.standard.set(true, forKey: Key.onboarded)
+        startRoomLocation()
+    }
+
+    /// Settings' "Run setup again": the first run shows again over the stored hub and crewmate.
+    func runSetupAgain() {
+        onboarded = false
+        UserDefaults.standard.set(false, forKey: Key.onboarded)
     }
 
     func sendTestAlert() {
@@ -321,6 +346,10 @@ final class AppModel {
         if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew, rooms: message.profile?.rooms ?? world.profile?.rooms ?? [], now: hubNow()) }
         if message.scenario == nil, message.type == "state" || message.type == "followUp" {
             notifier.handle(followUp: message.followUp, owner: person, lang: lang)
+        }
+        // Earth's replies: never while a recorded story plays.
+        if message.scenario == nil, let earth = message.earthMessages {
+            notifier.handle(earth: earth, alerts: message.alerts ?? world.alerts, owner: person)
         }
         apply(message)
         // The hub's view of where everyone is just arrived: send waiting room changes, then check it against ours.

@@ -98,12 +98,9 @@ private struct TodayCheckIn: View {
                     .buttonStyle(.projection)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Today's check-in")
-                        .font(.title3)
                     Text("Not done yet today")
-                        .font(.footnote)
-                        .foregroundStyle(HubStyle.muted)
-                    Text("About a minute. Five questions.")
+                        .font(.title3)
+                    Text("Five questions, about a minute.")
                         .foregroundStyle(HubStyle.muted)
                 }
                 .accessibilityElement(children: .combine)
@@ -124,10 +121,13 @@ enum CheckInSummary {
     static let questions: Set<String> = ["checkin.headache", "checkin.mood", "checkin.stress", "checkin.fatigue", "checkin.note"]
 
     static func line(_ rows: [Row]) -> String {
-        rows.filter { $0.signal != "checkin.note" }
-            .sorted { Signals.order(of: $0.signal) < Signals.order(of: $1.signal) }
+        lines(rows.filter { $0.signal != "checkin.note" }).joined(separator: " · ")
+    }
+
+    /// One "Name: answer" per answer, in the questions' order (the note too, when given).
+    static func lines(_ rows: [Row]) -> [String] {
+        rows.sorted { Signals.order(of: $0.signal) < Signals.order(of: $1.signal) }
             .map { "\(name($0.signal)): \(Signals.text($0))" }
-            .joined(separator: " · ")
     }
 
     private static func name(_ signal: String) -> String {

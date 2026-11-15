@@ -41,10 +41,14 @@ struct AreYouOKView: View {
         let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) }
         let sent = alert.answer
         let card = alert.card.flatMap { id in cards?.cards.first { $0.id == id } }
-        return EmergencyFrame {
-            AlertOriginNotice(alert: alert)
+        let first = card?.steps.first
+        // An answer waiting for the hub, or a countdown that ran out: never a screen with no way out.
+        let closable = sent != nil || seconds == 0
+        return EmergencyFrame(centered: first == nil) {
+            // A drill says so in the top line, as the emergency screen does; only a recorded story keeps its notice.
+            if alert.isRecorded { AlertOriginNotice(alert: alert).padding(.bottom, 12) }
             VStack(alignment: .leading, spacing: 10) {
-                EmergencyKicker(text: String(localized: "Astrum is checking on you"), symbol: "exclamationmark.circle")
+                EmergencyKicker(text: (alert.isDrill ? String(localized: "Drill") + " · " : "") + String(localized: "Astrum is checking on you"), symbol: "exclamationmark.circle")
                 Text("Are you OK?")
                     .font(.largeTitle.weight(.bold))
             }
@@ -61,7 +65,7 @@ struct AreYouOKView: View {
             countdown(alert, sent: sent, left: left, seconds: seconds)
                 .padding(.top, 14)
 
-            if let card, let first = card.steps.first {
+            if let first {
                 EmergencyRule()
                 EmergencyFirstStep(label: "Meanwhile", step: first, full: false)
             }
@@ -70,13 +74,19 @@ struct AreYouOKView: View {
             }
         } buttons: {
             EmergencyButtons {
+                if closable {
+                    EmergencyButton("Close", filled: false, natural: true) { model.closedAlerts.insert(alert.closeKey) }
+                        .accessibilityHint(Text("Puts this screen away. The emergency stays open."))
+                }
                 EmergencyButton("I'm OK", filled: false) { answer(alert, ok: true) }
                     .accessibilityHint(hint(alert))
+                    .disabled(sending || sent != nil || alert.isRecorded)
                 EmergencyButton("I need help", filled: true) { answer(alert, ok: false) }
                     .accessibilityHint(hint(alert))
+                    .disabled(sending || sent != nil || alert.isRecorded)
             }
-            .disabled(sending || sent != nil || alert.isRecorded)
         }
+        .accessibilityAction(.escape) { if closable { model.closedAlerts.insert(alert.closeKey) } }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { headingFocused = true }
             if sent == nil, seconds > 0 { announce(seconds) }

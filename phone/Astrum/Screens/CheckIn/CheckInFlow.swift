@@ -1,6 +1,7 @@
 // The daily check-in as steps: one question per screen (headache, mood,
-// stress, tiredness, an optional note), the same questions, scales and
-// values the form had. Nothing is sent until Done; then the answers go to
+// stress, tiredness, an optional note), each a SetupPage like the first run's
+// screens, with the same scales and values the form had. Nothing is sent
+// until Done; then the answers go to
 // /api/checkin through AppModel.submitCheckin, kept on the phone when the hub
 // is out of reach. Closing midway keeps the answers for the session.
 
@@ -10,13 +11,14 @@ import SwiftUI
 enum CheckInStep: Int, CaseIterable {
     case headache, mood, stress, tiredness, note
 
-    var title: LocalizedStringKey {
+    /// The question, as the page's headline.
+    var question: String {
         switch self {
-        case .headache: "Headache"
-        case .mood: "Mood"
-        case .stress: "Stress"
-        case .tiredness: "Tiredness"
-        case .note: "Note (optional)"
+        case .headache: String(localized: "Do you have a headache?")
+        case .mood: String(localized: "How is your mood?")
+        case .stress: String(localized: "How stressed do you feel?")
+        case .tiredness: String(localized: "How tired do you feel?")
+        case .note: String(localized: "Anything else to add?")
         }
     }
 
@@ -78,7 +80,7 @@ struct CheckInDraft: Equatable {
     }
 }
 
-/// The sheet that asks the questions one at a time.
+/// The sheet that asks the questions one at a time, each on a page like the first run's.
 struct CheckInFlow: View {
     @Binding var draft: CheckInDraft
     /// Runs once the answers are sent or kept on the phone, before the sheet closes.
@@ -87,46 +89,35 @@ struct CheckInFlow: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
-    @State private var forward = true
     @State private var sending = false
     @State private var outcome: CheckinOutcome?
+    /// The answers just sent, for the end page (the draft is cleared once saved).
+    @State private var given: [Row] = []
     @FocusState private var focus: CheckInField?
-    @AccessibilityFocusState private var questionFocused: Bool
 
     private var step: CheckInStep { draft.step }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                Group {
-                    if let outcome, isFinished {
-                        confirmation(outcome)
-                            .transition(.astrumRise(reduceMotion: reduceMotion))
-                    } else {
-                        question
-                            .id(step)
-                            .transition(slide)
-                    }
+            Group {
+                if let outcome, isFinished {
+                    finish(outcome)
+                } else {
+                    question
+                        .disabled(sending)
                 }
-                .padding(16)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .safeAreaInset(edge: .top, spacing: 0) { if !isFinished { progress } }
-            .safeAreaInset(edge: .bottom, spacing: 0) { if !isFinished { controls } }
-            .keyboardFields($focus, order: [.note])
+            .id(isFinished ? CheckInStep.total : step.rawValue)
+            .transition(.astrumRise(reduceMotion: reduceMotion))
+            .environment(\.setupNav, nav)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.ignoresSafeArea())
+            .foregroundStyle(.white)
             .tint(.white)
-            .navigationTitle("Today's check-in")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .accessibilityHint(Text("Your answers are kept until you send them"))
-                }
-            }
+            .keyboardFields($focus, order: [.note])
+            .toolbar(.hidden, for: .navigationBar)
         }
         .sensoryFeedback(.success, trigger: outcome) { _, new in new == .sent }
-        .onAppear(perform: focusQuestion)
-        .onChange(of: step) { focusQuestion() }
         .interactiveDismissDisabled(sending)
     }
 
@@ -135,30 +126,35 @@ struct CheckInFlow: View {
         return outcome != nil
     }
 
+    /// The page's progress, Back (after the first question) and Close.
+    private var nav: SetupNav {
+        var nav = SetupNav(step: isFinished ? CheckInStep.total - 1 : step.rawValue, total: CheckInStep.total)
+        if !isFinished && step != .headache { nav.back = { move(by: -1) } }
+        nav.close = { dismiss() }
+        nav.closeHint = isFinished ? nil : String(localized: "Your answers are kept until you send them")
+        return nav
+    }
+
     // MARK: The step
 
     private var question: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(spacing: 12) {
-                HubIcon(step.icon, size: 30, weight: 1.75, relativeTo: .title)
-                Text(step.title)
-                    .font(.title.weight(.light))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Question \(step.number) of \(CheckInStep.total): \(Text(step.title))"))
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityFocused($questionFocused)
-
+        SetupPage(
+            icon: step.icon,
+            title: step.question,
+            titleLabel: Text("Question \(step.number) of \(CheckInStep.total): \(step.question)"),
+            centered: true
+        ) {
             answer
-
+                .padding(.top, 28)
             if let outcome, case .refused(let words) = outcome {
                 Text("The hub refused it: \(words)")
+                    .font(.callout)
                     .foregroundStyle(HubStyle.muted)
+                    .padding(.top, 12)
             }
+        } buttons: {
+            SetupButton(sending ? Text("Sending…") : Text(nextTitle), .filled, action: next)
         }
-        .padding(.vertical, 8)
-        .projectionCard()
     }
 
     @ViewBuilder private var answer: some View {
@@ -169,12 +165,13 @@ struct CheckInFlow: View {
                 choice("No", value: false)
             }
             .sensoryFeedback(.selection, trigger: draft.headache)
-        case .mood: scale("Mood", value: $draft.mood)
-        case .stress: scale("Stress", value: $draft.stress)
-        case .tiredness: scale("Tiredness", value: $draft.tiredness)
+        case .mood: scale("Mood", low: "Low", high: "Good", value: $draft.mood)
+        case .stress: scale("Stress", low: "Not at all", high: "Very", value: $draft.stress)
+        case .tiredness: scale("Tiredness", low: "Not at all", high: "Very", value: $draft.tiredness)
         case .note:
             TextField("Note (optional)", text: $draft.note, axis: .vertical)
                 .lineLimit(3...8)
+                .multilineTextAlignment(.leading)
                 .projectionField()
                 .focused($focus, equals: .note)
         }
@@ -199,69 +196,36 @@ struct CheckInFlow: View {
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
-    /// 0 to 100, as the form had it: the number large, both ends labelled.
-    private func scale(_ title: LocalizedStringKey, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+    /// 0 to 100, as the form had it: the number large, and under each end of the slider what that end means.
+    private func scale(_ title: LocalizedStringKey, low: LocalizedStringKey, high: LocalizedStringKey,
+                       value: Binding<Double>) -> some View {
+        VStack(spacing: 16) {
             Text("\(Int(value.wrappedValue)) of 100")
                 .font(.largeTitle.weight(.light).monospacedDigit())
                 .numericMotion(Int(value.wrappedValue))
                 .accessibilityHidden(true)
-            Slider(value: value, in: 0...100, step: 1) {
-                Text(title)
-            } minimumValueLabel: {
-                Text(verbatim: "0").font(.callout)
-            } maximumValueLabel: {
-                Text(verbatim: "100").font(.callout)
-            }
-            .frame(minHeight: 44)
-            .accessibilityValue(Text("\(Int(value.wrappedValue)) of 100"))
-            // A tick every ten, not on every step, so dragging stays calm.
-            .sensoryFeedback(.selection, trigger: Int(value.wrappedValue) / 10)
-        }
-    }
-
-    // MARK: Progress and controls
-
-    private var progress: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\(step.number) of \(CheckInStep.total)")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(HubStyle.muted)
-                .numericMotion(step.number)
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(HubStyle.controlFill))
-                    Capsule().fill(.white)
-                        .frame(width: geometry.size.width * Double(step.number) / Double(CheckInStep.total))
+            VStack(spacing: 6) {
+                Slider(value: value, in: 0...100, step: 1) {
+                    Text(title)
                 }
+                .frame(minHeight: 44)
+                .accessibilityValue(Text("\(Int(value.wrappedValue)) of 100"))
+                .accessibilityHint(Text("0 is \(Text(low)), 100 is \(Text(high))"))
+                // A tick every ten, not on every step, so dragging stays calm.
+                .sensoryFeedback(.selection, trigger: Int(value.wrappedValue) / 10)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(low).multilineTextAlignment(.leading)
+                    Spacer(minLength: 12)
+                    Text(high).multilineTextAlignment(.trailing)
+                }
+                .font(.footnote)
+                .foregroundStyle(HubStyle.muted)
+                .accessibilityHidden(true)
             }
-            .frame(height: 3)
-            .animation(Motion.movement(Motion.content, reduceMotion), value: step)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(.background)
-        // The question says where the person is.
-        .accessibilityHidden(true)
     }
 
-    private var controls: some View {
-        HStack(spacing: 12) {
-            if step != .headache {
-                Button("Back") { move(by: -1) }
-                    .buttonStyle(.projection)
-            }
-            Button(action: next) {
-                if sending { ProgressView().tint(HubStyle.solidFill) } else { Text(nextTitle) }
-            }
-            .buttonStyle(.projectionProminent)
-            .accessibilityLabel(sending ? Text("Sending…") : Text(nextTitle))
-        }
-        .disabled(sending)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.background)
-    }
+    // MARK: Moving
 
     /// Next; Skip where a step may be left unanswered and is; Done on the last step.
     private var nextTitle: LocalizedStringKey {
@@ -279,7 +243,6 @@ struct CheckInFlow: View {
     private func move(by offset: Int) {
         guard let target = CheckInStep(rawValue: step.rawValue + offset) else { return }
         focus = nil
-        forward = offset > 0
         withAnimation(Motion.reduced(Motion.content, reduceMotion)) {
             if case .refused = outcome { outcome = nil }
             draft.step = target
@@ -296,49 +259,48 @@ struct CheckInFlow: View {
         }
     }
 
-    private func focusQuestion() {
-        Task {
-            // After the slide has started, so VoiceOver reads the new question.
-            try? await Task.sleep(for: .milliseconds(100))
-            questionFocused = true
-        }
-    }
-
-    private var slide: AnyTransition {
-        if reduceMotion { return .opacity }
-        return .asymmetric(insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
-                           removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity))
-    }
-
     // MARK: Sending
 
     private func send() {
         focus = nil
         sending = true
         let answers = draft.answers
+        let rows = draft.rows(at: 0)
         Task {
             let result = await model.submitCheckin(answers)
             sending = false
+            if case .refused = result {
+                withAnimation(Motion.reduced(Motion.appear, reduceMotion)) { outcome = result }
+                return
+            }
+            given = rows
             withAnimation(Motion.reduced(Motion.appear, reduceMotion)) { outcome = result }
-            if case .refused = result { return }
             saved(result)
             AccessibilityNotification.Announcement(words(for: result)).post()
-            try? await Task.sleep(for: .seconds(result == .sent ? 1.2 : 3))
+            // Long enough to read the answers listed on the finish screen.
+            try? await Task.sleep(for: .seconds(3))
             dismiss()
         }
     }
 
-    private func confirmation(_ outcome: CheckinOutcome) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: outcome == .sent ? "checkmark.circle" : "clock")
-                .font(.largeTitle.weight(.light))
-                .accessibilityHidden(true)
-            Text(words(for: outcome))
-                .font(.title3)
-                .fixedSize(horizontal: false, vertical: true)
+    /// The end: what happened, and the answers just given, one per line.
+    private func finish(_ outcome: CheckinOutcome) -> some View {
+        SetupPage(
+            symbol: outcome == .sent ? "checkmark.circle" : "clock",
+            title: outcome == .sent ? String(localized: "Saved.") : words(for: outcome),
+            centered: true
+        ) {
+            VStack(spacing: 6) {
+                ForEach(Array(CheckInSummary.lines(given).enumerated()), id: \.offset) { _, line in
+                    Text(verbatim: line)
+                }
+            }
+            .font(.callout)
+            .foregroundStyle(HubStyle.muted)
+            .padding(.top, 16)
+        } buttons: {
+            EmptyView()
         }
-        .padding(.vertical, 8)
-        .projectionCard()
     }
 
     private func words(for outcome: CheckinOutcome) -> String {

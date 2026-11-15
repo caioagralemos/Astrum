@@ -60,7 +60,30 @@ extension AppModel {
         return history.rows.contains { CheckInSummary.questions.contains($0.signal) && Calendar.current.isDateInToday($0.date) }
     }
 
+    /// Only once notifications are allowed: never before the first run's alerts step has asked.
     func rescheduleCheckInReminder() {
-        CheckInReminder.reschedule(doneToday: checkInDoneToday)
+        Task {
+            guard await Self.notificationAccess().allowed else { return }
+            CheckInReminder.reschedule(doneToday: checkInDoneToday)
+        }
     }
+
+    /// What iOS allows for notifications right now.
+    static func notificationAccess() async -> NotificationAccess {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return settings.timeSensitiveSetting == .enabled ? .allowed : .allowedNotTimeSensitive
+        case .denied: return .denied
+        case .notDetermined: return .notAsked
+        @unknown default: return .denied
+        }
+    }
+}
+
+/// Notifications, as the first run reports them.
+enum NotificationAccess: Sendable {
+    case notAsked, allowed, allowedNotTimeSensitive, denied
+
+    var allowed: Bool { self == .allowed || self == .allowedNotTimeSensitive }
 }

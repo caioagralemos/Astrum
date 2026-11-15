@@ -217,6 +217,7 @@ extension AppModel {
     func openAlert(notification identifier: String) {
         if identifier.hasPrefix(CheckInReminder.prefix) { startTodaysCheckIn(); return }
         if identifier.hasPrefix(AlarmNotifier.followUpPrefix) { selectedTab = .me; return }
+        if identifier.hasPrefix(AlarmNotifier.earthPrefix) { selectedTab = .station; return }
         guard let bar = identifier.lastIndex(of: "|") else { return }
         openedAlertID = String(identifier[..<bar])
         selectedTab = .me

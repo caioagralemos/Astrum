@@ -3,6 +3,7 @@
 // hub is out of reach and sent later with the times they happened. Settings
 // shows the result in one row.
 
+import CoreBluetooth
 import Foundation
 import os
 
@@ -12,9 +13,10 @@ extension AppModel {
     /// The source the hub records these stays under.
     var roomSource: String { "phone:\(person):ble" }
 
-    /// Starts the locator once a crewmate is chosen, so the Bluetooth question comes with a reason.
-    func startRoomLocation() {
-        guard !person.isEmpty else { return }
+    /// Starts the locator once a crewmate is chosen. Only the first run's Bluetooth step (`asking`)
+    /// may bring up iOS's question; otherwise it starts once that question has been answered.
+    func startRoomLocation(asking: Bool = false) {
+        guard !person.isEmpty, asking || (onboarded && CBManager.authorization != .notDetermined) else { return }
         roomLocator.onChange = { [weak self] board, at in self?.roomChanged(board: board, at: at) }
         roomLocator.start()
     }

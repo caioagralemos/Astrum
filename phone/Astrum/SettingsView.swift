@@ -125,13 +125,25 @@ struct SettingsView: View {
                 Text("Connect to the hub to see the crew.")
                     .foregroundStyle(.secondary)
             } else {
-                Picker("Crewmate", selection: Binding(get: { model.person }, set: { model.choose(person: $0) })) {
-                    Text("Not chosen").tag("")
-                    ForEach(model.crew) { member in
-                        Text(member.name).tag(member.id)
+                HStack(spacing: 12) {
+                    if let owner = model.crew.first(where: { $0.id == model.person }) {
+                        CrewPortrait(member: owner, shape: .circle)
+                            .frame(width: 32, height: 32)
+                    }
+                    Picker("Crewmate", selection: Binding(get: { model.person }, set: { model.choose(person: $0) })) {
+                        Text("Not chosen").tag("")
+                        ForEach(model.crew) { member in
+                            Text(member.name).tag(member.id)
+                        }
                     }
                 }
             }
+            Button("Run setup again") {
+                dismiss()
+                model.runSetupAgain()
+            }
+            .buttonStyle(.projection)
+            .accessibilityHint("Shows the first-run screens again: hub, who you are, Health, alerts")
         } header: {
             ProjectionHeader(.crew, "Whose phone")
         } footer: {

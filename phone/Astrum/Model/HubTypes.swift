@@ -110,12 +110,18 @@ struct EarthMessage: Codable, Sendable, Hashable, Identifiable {
         let simulated: Bool
         let key: String?
         /// The values the hub filled into `key`'s sentence ({min}).
-        var vars: [String: Double]? = nil
+        var vars: [String: FactValue]? = nil
 
         /// The reply in the phone's language: the hub's fixed sentence when it sent a key, else its text.
         var shownText: String {
-            let min = Int(vars?["min"] ?? 0)
+            let min = Int(vars?["min"]?.text ?? "") ?? 0
+            let name = vars?["name"]?.text ?? ""
+            let room = vars?["room"]?.text ?? ""
             switch key {
+            case "earth.reportFallback": return String(localized: "Mission control here. We have your incident report for \(name) in \(room). Keep following the steps card on your screen. We will write again in about \(min) minutes.")
+            case "earth.reportFallbackNoCard": return String(localized: "Mission control here. We have your incident report for \(name) in \(room). We will write again in about \(min) minutes.")
+            case "earth.reportFallbackNoRoom": return String(localized: "Mission control here. We have your incident report for \(name). Keep following the steps card on your screen. We will write again in about \(min) minutes.")
+            case "earth.reportFallbackNoRoomNoCard": return String(localized: "Mission control here. We have your incident report for \(name). We will write again in about \(min) minutes.")
             case "earth.aiFallback": return String(localized: "Mission control here. We have your message and we are watching the readings with you. Keep following the steps card on your screen. We will write again in about \(min) minutes.")
             case "earth.aiFallbackOne": return String(localized: "Mission control here. We have your message and we are watching the readings with you. Keep following the steps card on your screen. We will write again in about 1 minute.")
             case "earth.aiFallbackNoCard": return String(localized: "Mission control here. We have your message and we are watching the readings with you. We will write again in about \(min) minutes.")
@@ -143,6 +149,76 @@ struct EarthMessage: Codable, Sendable, Hashable, Identifiable {
     var simulated: String? = nil
     /// Demo mode only: the reply time is the demo's shortened delay, not the mission's.
     var simulatedDelay: Bool? = nil
+    /// Demo mode only: who wrote the simulated reply, "cloud", "onboard" or "fixed".
+    var simulatedBy: String? = nil
+    /// An alert's message: the incident report the hub filed with it.
+    var report: IncidentReport? = nil
+
+    /// What marks the reply as simulated: by AI (cloud, onboard, or no word but "ai"), or the hub's fixed sentence.
+    var simulatedLabel: String? {
+        guard reply != nil else { return nil }
+        switch simulatedBy {
+        case "fixed": return String(localized: "Simulated reply")
+        case "cloud", "onboard": return String(localized: "Reply simulated by AI")
+        default: return simulated == "ai" ? String(localized: "Reply simulated by AI") : nil
+        }
+    }
+}
+
+/// The incident report a level 3 alert filed with its message to Earth (earth-report.ts), every field optional
+/// so a report from a newer hub never loses the message list.
+struct IncidentReport: Codable, Sendable, Hashable {
+    struct Reading: Codable, Sendable, Hashable, Identifiable {
+        var id: String { signal }
+        let signal: String
+        let name: String?
+        let value: Double?
+        let unit: String?
+        let kind: String?
+        let limit: Double?
+        let limitSource: String?
+        let stale: Bool?
+    }
+
+    struct Event: Codable, Sendable, Hashable {
+        let at: Double
+        let event: String
+    }
+
+    struct Subject: Codable, Sendable, Hashable {
+        let id: String?
+        let name: String?
+        let level: Int?
+        let reason: String?
+    }
+
+    struct Where: Codable, Sendable, Hashable {
+        let room: String?
+        let roomName: String?
+    }
+
+    struct Who: Codable, Sendable, Hashable {
+        let person: String?
+        let name: String?
+    }
+
+    struct Card: Codable, Sendable, Hashable {
+        let id: String?
+        let title: String?
+    }
+
+    let missionDay: Int?
+    let filedAt: Double?
+    let restricted: Bool?
+    let summary: String?
+    let alert: Subject?
+    let `where`: Where?
+    let who: Who?
+    let readings: [Reading]?
+    let bodyReadings: [Reading]?
+    let timeline: [Event]?
+    let card: Card?
+    let crewTold: [String]?
 }
 
 // MARK: Evidence

@@ -143,8 +143,13 @@ enum AlertText {
         let signal = Signals.name(alert.signal)
         if let event = alert.declared {
             // Never "Are you OK?": a warning is a notice to acknowledge, the event itself is level 3 for everyone.
-            let body = eventLines(event, by: name, shelter: shelter, now: now).joined(separator: "\n")
-            return (alert.level >= 3 ? String(localized: "Dangerous: \(signal)") : signal, body)
+            // On the lock screen: "Emergency: Quake", then where to go, the note and who declared it, as sentences.
+            // "Now" is left out there: the title and the notification's own time already say it.
+            let lines = eventLines(event, by: name, shelter: shelter, now: now)
+            let happening = alert.level >= 3
+            let kept = happening && event.expectedAt == nil ? Array(lines.dropFirst()) : lines
+            let body = kept.map { $0.hasSuffix(".") || $0.hasSuffix("”") ? $0 : $0 + "." }.joined(separator: " ")
+            return (happening ? String(localized: "Emergency: \(signal)") : signal, body)
         }
         switch alert.reason {
         case "room-limit":

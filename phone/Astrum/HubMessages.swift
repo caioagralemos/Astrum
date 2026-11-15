@@ -107,10 +107,46 @@ struct HubSource: Codable, Sendable, Hashable {
 struct CrewMember: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let name: String
-    /// A key in the hub's string table, e.g. "role.cmo".
-    let role: String
+    /// A key in the hub's string table, e.g. "role.cmo". Empty when the hub sends none.
+    var role: String = ""
     /// "she", "he" or "they". Unset means they/them.
     var pronouns: String? = nil
+    /// A photo set up on the hub: a path under its public folder ("crew/crew-4.jpg") or a full address.
+    var portrait: String? = nil
+    /// The crew's medical officer, if the hub says so.
+    var medicalOfficer: Bool? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, role, pronouns, portrait, medicalOfficer
+    }
+
+    /// An older hub sends neither portrait nor medical officer; some send `pronoun` for `pronouns`.
+    private enum OtherKeys: String, CodingKey {
+        case pronoun
+    }
+
+    init(id: String, name: String, role: String = "", pronouns: String? = nil, portrait: String? = nil, medicalOfficer: Bool? = nil) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.pronouns = pronouns
+        self.portrait = portrait
+        self.medicalOfficer = medicalOfficer
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        role = (try? c.decodeIfPresent(String.self, forKey: .role)) ?? ""
+        let other = try decoder.container(keyedBy: OtherKeys.self)
+        pronouns = (try? c.decodeIfPresent(String.self, forKey: .pronouns))
+            ?? (try? other.decodeIfPresent(String.self, forKey: .pronoun))
+        portrait = (try? c.decodeIfPresent(String.self, forKey: .portrait)).flatMap { $0.isEmpty ? nil : $0 }
+        medicalOfficer = try? c.decodeIfPresent(Bool.self, forKey: .medicalOfficer)
+    }
+
+    var isMedicalOfficer: Bool { medicalOfficer == true }
 }
 
 /// One room over a limit (RoomAlarm in hub/engine/cabin.ts).
@@ -265,6 +301,8 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
 
     /// One occurrence of it: the hub reuses an alert's id, so the same alert happening again later
     /// (another night, another drill) must be announced again. `since` is when this one began.
+    /// One occurrence of one level, for "the screen has been put away" (AppModel.closedAlerts).
+    var closeKey: String { "\(id)|\(level)|\(Int64(levelSince ?? since ?? 0))" }
     var occurrenceKey: String { "\(key)|\(Int64(since ?? 0))" }
 }
 

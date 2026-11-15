@@ -49,13 +49,13 @@ struct MeAlertBanners: View {
             let settled = alert.settledBy.map { String(localized: "Settled by \(world.name(of: $0)) at \(time)") }
                 ?? String(localized: "Settled at the shared screen at \(time)")
             text = (alert.declared != nil ? signal : headline) + "\n" + settled
-        } else if let event = alert.declared, alert.level < 3 || model.closedAlerts.contains(alert.key) {
+        } else if let event = alert.declared, alert.level < 3 || model.closedAlerts.contains(alert.closeKey) {
             // A base-wide event, for everyone: a warning's notice, or the event itself once closed (tap to open it again).
             let shelter = event.shelter.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) }
             let lines = AlertText.eventLines(event, by: world.name(of: alert.person), shelter: shelter, now: model.hubNow())
             let first = event.stage == "warning" ? [] : [alert.level == 3 ? String(localized: "Dangerous: \(signal)") : signal]
             text = (first + lines).joined(separator: "\n")
-        } else if let card = AlertText.findingCard(alert), alert.level < 3 || model.closedAlerts.contains(alert.key) {
+        } else if let card = AlertText.findingCard(alert), alert.level < 3 || model.closedAlerts.contains(alert.closeKey) {
             let match = AlertText.cardMatch(alert, viewer: model.person, name: world.name(of: alert.person),
                                             cardTitle: cards.first { $0.id == card }?.title)
             text = alert.level == 3 ? String(localized: "Dangerous: \(match) Open") : match
@@ -63,9 +63,11 @@ struct MeAlertBanners: View {
             text = headline
         } else if alert.level == 2 && mine && alert.answer == "ok" {
             text = String(localized: "Answered: OK. \(signal) is still over NASA's limit in \(room).")
+        } else if alert.level == 2 && mine && model.closedAlerts.contains(alert.closeKey) {
+            text = headline
         } else if alert.level == 2 && !mine {
             text = headline
-        } else if alert.level == 3 && model.closedAlerts.contains(alert.key) {
+        } else if alert.level == 3 && model.closedAlerts.contains(alert.closeKey) {
             text = alert.reason == "room-limit" ? String(localized: "Dangerous: \(world.name(of: alert.person)) in \(room). Open")
                                                 : String(localized: "Dangerous: \(headline) Open")
         } else {
@@ -105,7 +107,7 @@ struct MeAlertBanners: View {
             row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
         } else {
             Button {
-                model.closedAlerts.remove(alert.key)
+                model.closedAlerts.remove(alert.closeKey)
             } label: {
                 row(text, mark: .symbol("exclamationmark.octagon.fill"), tone: .danger, kind: alert.kind)
             }

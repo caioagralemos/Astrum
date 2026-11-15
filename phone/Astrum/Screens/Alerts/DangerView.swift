@@ -18,6 +18,8 @@ struct DangerView: View {
     @State private var sending = false
     @State private var problem: String?
     @State private var openCard: CardView?
+    /// The person has acted on it here ("I've seen it", or back from the steps): the screen can be closed.
+    @State private var seen = false
     @AccessibilityFocusState private var headingFocused: Bool
 
     var body: some View {
@@ -32,7 +34,7 @@ struct DangerView: View {
         .background(Color.black)
         .accessibilityHidden(openCard != nil)
         .task { await loadCards() }
-        .stepsModal(item: $openCard)
+        .stepsModal(item: $openCard) { _ in returnedFromSteps() }
     }
 
     private func content(_ alert: HubAlert, now: Double) -> some View {
@@ -51,6 +53,7 @@ struct DangerView: View {
         } buttons: {
             actions(alert, card: card, mine: mine)
         }
+        .accessibilityAction(.escape) { if closable(alert, mine: mine) { close(alert) } }
         .onAppear {
             // Into the screen at once, on its name and room (the cover's own focus lands on the first element otherwise).
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { headingFocused = true }
@@ -130,12 +133,18 @@ struct DangerView: View {
     @ViewBuilder
     private func earth(_ alert: HubAlert, now: Double) -> some View {
         let message = model.world.earthMessages.first { $0.id == alert.earthId }
+        if let report = message?.report {
+            VStack(alignment: .leading, spacing: 2) {
+                if let text = message?.text { Text(text).font(.footnote).foregroundStyle(HubStyle.muted) }
+                IncidentReportLink(report: report)
+            }
+        }
         if let reply = message?.reply {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("Earth replied").font(.footnote.weight(.semibold))
-                    if message?.simulated == "ai" {
-                        Text("Reply simulated by AI")
+                    if let label = message?.simulatedLabel {
+                        Text(label)
                             .font(.caption)
                             .foregroundStyle(HubStyle.muted)
                             .padding(.horizontal, 6)
@@ -186,9 +195,10 @@ struct DangerView: View {
                     EmergencyButton("I've seen it", filled: false, natural: card != nil) { acknowledge(alert) }
                         .disabled(sending || !model.isConnected)
                         .accessibilityHint(Text("Tells the crew you have seen it. The alert stays until it ends."))
-                } else if alert.seenAt != nil || alert.isRecorded {
-                    EmergencyButton("Close", filled: false, natural: card != nil) { model.closedAlerts.insert(alert.key) }
-                        .accessibilityHint(Text("The alert stays on Me until it ends"))
+                }
+                if closable(alert, mine: mine) {
+                    EmergencyButton("Close", filled: false, natural: card != nil) { close(alert) }
+                        .accessibilityHint(Text("Puts this screen away. The emergency stays open."))
                 }
                 if let card {
                     EmergencyButton("Start help", filled: true) { StepsPresentation.open { openCard = card } }
@@ -252,13 +262,31 @@ struct DangerView: View {
         id.map { Signals.roomName($0, rooms: model.world.profile?.rooms ?? []) } ?? String(localized: "an unknown room")
     }
 
+    /// Every state has a way out: your own emergency at once (the crew is told), someone else's once it has
+    /// been seen (by anyone, or by you here), and always in a recorded story.
+    private func closable(_ alert: HubAlert, mine: Bool) -> Bool {
+        mine || seen || alert.seenBy != nil || alert.seenAt != nil || alert.isRecorded
+    }
+
+    private func close(_ alert: HubAlert) {
+        model.closedAlerts.insert(alert.closeKey)
+    }
+
     private func acknowledge(_ alert: HubAlert) {
+        seen = true
         guard !alert.isRecorded else { return }
         sending = true
         Task {
             problem = await model.acknowledge(alert)
             sending = false
         }
+    }
+
+    /// Back from the steps (Done) counts as seen: the same acknowledge the button sends.
+    private func returnedFromSteps() {
+        guard let alert = model.visibleAlerts.first(where: { $0.id == alertID }) else { return }
+        seen = true
+        if !isMine(alert), alert.seenBy == nil, !sending { acknowledge(alert) }
     }
 
     private func loadCards() async {
@@ -273,18 +301,22 @@ struct DangerView: View {
 // MARK: - The emergency screens' shared parts (DangerView, AreYouOKView)
 
 /// One projection frame filling the screen: the content scrolls, the buttons stay pinned at the bottom.
+/// `centered`: the content sits in the middle of the space above the buttons (it still scrolls when it is taller).
 struct EmergencyFrame<Content: View, Buttons: View>: View {
+    var centered = false
     @ViewBuilder let content: Content
     @ViewBuilder let buttons: Buttons
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) { content }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(EdgeInsets(top: 20, leading: 18, bottom: 12, trailing: 18))
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) { content }
+                        .frame(maxWidth: .infinity, minHeight: centered ? max(0, proxy.size.height - 32) : nil, alignment: centered ? .leading : .topLeading)
+                        .padding(EdgeInsets(top: 20, leading: 18, bottom: 12, trailing: 18))
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .scrollBounceBehavior(.basedOnSize)
             buttons
                 .padding(EdgeInsets(top: 8, leading: 18, bottom: 18, trailing: 18))
         }

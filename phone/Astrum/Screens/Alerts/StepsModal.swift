@@ -60,7 +60,7 @@ struct StepsModal: View {
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
                 panel
-                    .frame(maxHeight: min(geo.size.height - 16, 680))
+                    .frame(maxHeight: max(1, min(geo.size.height - 16, 680))) // the first layout pass can report a zero height
                     .opacity(shown ? 1 : 0)
                     .scaleEffect(shown || reduceMotion ? 1 : 0.96)
                     .accessibilityAddTraits(.isModal)
@@ -165,13 +165,13 @@ struct StepsModal: View {
                 let lines = Self.sentences(card.steps[index])
                 if lines.count > 2 {
                     // A long step: the card's own sentences, in order and word for word, one to a line.
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .center, spacing: 8) {
                         ForEach(Array(lines.enumerated()), id: \.offset) { item in
                             Text(item.element)
                                 .font(item.offset == 0 ? .body.weight(.semibold) : .body)
-                                .multilineTextAlignment(.leading)
+                                .multilineTextAlignment(.center)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
                 } else {

@@ -94,6 +94,34 @@ final class AlarmNotifier {
         post(id: Self.followUpPrefix + ask.key, title: String(localized: "Astra has a question for you"), body: lang == "pt" ? ask.text.pt : ask.text.en, delay: nil, interruption: .active)
     }
 
+    /// Earth replied to a message this phone's owner sent, or to the message of an alert they are told about:
+    /// one quiet notification per reply, its identifier the message's id (so it never stacks). Tapping opens Station.
+    /// The first list after launch only seeds the remembered set: a reply that was already there is not news.
+    static let earthPrefix = "earth|"
+    private var earthSeeded = false
+    func handle(earth messages: [EarthMessage], alerts: [HubAlert], owner: String) {
+        guard !owner.isEmpty else { return }
+        let seeding = !earthSeeded
+        earthSeeded = true
+        for message in messages {
+            guard let reply = message.reply else { continue }
+            let key = "earthReply|\(message.id)"
+            guard !notified.contains(key) else { continue }
+            let mine: Bool
+            if message.kind == "crew" {
+                mine = message.from == owner
+            } else {
+                mine = message.about.person == owner || alerts.contains { $0.earthId == message.id && $0.toldTo.includes(owner) }
+            }
+            guard mine else { continue }
+            remember(key)
+            if seeding { continue }
+            let text = reply.shownText
+            let body = text.count > 120 ? String(text.prefix(120)).trimmingCharacters(in: .whitespaces) + "…" : text
+            post(id: message.id, title: String(localized: "Earth replied"), body: body, delay: nil, interruption: .active)
+        }
+    }
+
     /// Announces every alert this phone's owner is told about and has not heard at this level.
     func handle(_ alerts: [HubAlert], owner: String, crew: [CrewMember], rooms: [HubRoom] = [], now: Double = Date.now.timeIntervalSince1970 * 1000) {
         guard !owner.isEmpty else { return }
