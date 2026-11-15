@@ -25,7 +25,7 @@ import type { PersonDose } from '../engine/dose.ts';
 import type { CrewWatch } from '../engine/sensors.ts';
 import { sleepersOf } from '../engine/activity.ts';
 import type { Activity } from '../engine/activity.ts';
-import { alertsFor, evidenceFor, rowsFor } from '../engine/privacy.ts';
+import { alertsFor, evidenceFor, latestFor, rowsFor } from '../engine/privacy.ts';
 import type { Viewer } from '../engine/privacy.ts';
 import type { CardLang, CardView } from '../engine/cards.ts';
 
@@ -284,7 +284,7 @@ export class Hub {
       type: 'state',
       now,
       profile: this.profile,
-      latest: rowsFor(this.store.recent(now - STATE_WINDOW_MS), viewer),
+      latest: latestFor(this.store.recent(now - STATE_WINDOW_MS), viewer),
       stays: this.store.stays(now - FRESH_MS, now),
       sources: [...this.sources.values()],
       alarms: this.alarms,

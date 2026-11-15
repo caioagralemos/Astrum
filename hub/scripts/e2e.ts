@@ -301,13 +301,14 @@ async function missionChecks(mission: string): Promise<void> {
 
     await check(mission, 'lone "pressão alta" / "perna inchada" ask her questions and raise nothing', async () => {
       const keys: string[] = [];
-      for (const q of ['pressão alta', 'perna inchada']) {
-        const r = await post(B, '/api/ask', { person: p2, question: q, lang: 'pt' });
+      // Each as its own crewmate: once her questions are asked, the hub reads that person's next words as an answer.
+      for (const [q, who] of [['pressão alta', p2], ['perna inchada', p1]] as const) {
+        const r = await post(B, '/api/ask', { person: who, question: q, lang: 'pt' });
         must(r.status === 200 && r.json.askFirst?.card === 'heart-circulation', `${q}: askFirst ${JSON.stringify(r.json.askFirst ?? r.json).slice(0, 120)}`);
         keys.push(`${q} -> ${r.json.askFirst.questions.length} questions`);
       }
       await sleep(3000);
-      const raised = (await get(B, '/api/state')).json.alerts.filter((a: Alert) => a.person === p2 && a.reason === 'finding');
+      const raised = (await get(B, '/api/state')).json.alerts.filter((a: Alert) => (a.person === p2 && a.reason === 'finding') || a.card === 'heart-circulation');
       must(!raised.length, `raised ${raised.map((a: Alert) => `${a.card} L${a.level}`).join(', ')}`);
       return keys.join('; ');
     });

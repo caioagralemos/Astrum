@@ -43,12 +43,12 @@ test("Reyes's story question: true facts with labels, the verdict as \"points to
   assert.equal(a.relevant, true);
   const lines = renderItems(a.items, 'en', a.who);
   assert.deepEqual(lines, [
+    'From what the hub can see, this points to the room (Quarters 2), not to you. (hub)',
     "The CO2 in your cabin reads 2.6 mmHg (1-hour average), 0.4 mmHg below NASA's limit of 3 mmHg. (replayed)",
     'None of your body readings is unusual for you right now. (simulated)',
     'In the last 72 hours you spent 10.9 hours in Quarters 2 with CO2 above 2.8 mmHg; none of your crewmates spent any time above it. (CO2 replayed; location simulated)',
     'In the same 72 hours you spent 6.1 hours with single CO2 readings above 3 mmHg. (CO2 replayed; location simulated)',
     'You reported headache on 3 days in a row. (reported)',
-    'This points to the room (Quarters 2), not to you. (hub)',
   ]);
   const exposure = a.items.find((i) => i.key === 'answer.exposure.standsOut')!;
   assert.equal(exposure.label, 'simulated', 'the single weakest label stays for anything downstream');
@@ -71,7 +71,7 @@ test('a danger question about a reading under the limit says so, first, and neve
 test('advice and diagnosis questions get the facts and the verdict, never a recommendation', () => {
   const advice = composeAnswer({ name: 'Reyes', question: 'Should I sleep somewhere else?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'en', roomName });
   assert.equal(advice.items[advice.items.length - 1].key, 'answer.noAdvice');
-  assert.ok(advice.items.some((i) => i.key === 'answer.points.room'));
+  assert.ok(advice.items.some((i) => i.key === 'answer.lead.room'));
   assert.doesNotMatch(advice.factsText, /\byou should\b|\bsleep (in|somewhere)\b|\bmove (to|rooms)\b/i);
   const sick = composeAnswer({ name: 'Reyes', question: 'Am I sick?', readings: reyes, evidence: reyesCard(), passages: [CO2], lang: 'en', roomName });
   assert.equal(sick.items[sick.items.length - 1].key, 'answer.noDiagnosis');
@@ -102,7 +102,7 @@ test('every key has English and Portuguese; Portuguese renders', () => {
     assert.deepEqual(data(v.en), data(v.pt), `${key}: same data blanks`);
   }
   const a = composeAnswer({ name: 'Reyes', question: 'Is it my room?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'pt', roomName });
-  assert.match(a.factsText, /Isso aponta para o ambiente \(Quarters 2\), não para você\./);
+  assert.match(a.factsText, /^Pelo que o hub vê, isso aponta para o ambiente \(Quarters 2\), não para você\./);
 });
 
 test('evidence lines for the prompt: hub numbers with labels, "points to", and they pass the cause check', () => {
@@ -120,18 +120,17 @@ test('evidence lines for the prompt: hub numbers with labels, "points to", and t
 test('a crewmate asking about someone else: the name first, then the profile\'s pronouns', () => {
   const she = composeAnswer({ name: 'Reyes', who: { name: 'Reyes', pronouns: 'she', self: false }, question: 'Why does she keep waking up with a headache?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'en', roomName });
   const lines = renderItems(she.items, 'en', she.who);
-  assert.equal(lines[0], "The CO2 in Reyes's cabin reads 2.6 mmHg (1-hour average), 0.4 mmHg below NASA's limit of 3 mmHg. (replayed)");
-  assert.equal(lines[1], 'None of her body readings is unusual for her right now. (simulated)');
-  assert.match(lines[2], /^In the last 72 hours she spent 10\.9 hours in Quarters 2/);
-  assert.equal(lines[4], 'She reported headache on 3 days in a row. (reported)');
-  assert.equal(lines[5], 'This points to the room (Quarters 2), not to her. (hub)');
+  assert.equal(lines[0], 'From what the hub can see, this points to the room (Quarters 2), not to Reyes. (hub)');
+  assert.equal(lines[1], "The CO2 in her cabin reads 2.6 mmHg (1-hour average), 0.4 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.equal(lines[2], 'None of her body readings is unusual for her right now. (simulated)');
+  assert.match(lines[3], /^In the last 72 hours she spent 10\.9 hours in Quarters 2/);
+  assert.equal(lines[5], 'She reported headache on 3 days in a row. (reported)');
   assert.doesNotMatch(she.factsText, /\byou(r)?\b/i);
   const they = composeAnswer({ name: 'Okafor', who: { name: 'Okafor', pronouns: 'they', self: false }, question: 'Is it their room?', readings: { ...reyes, name: 'Okafor' }, evidence: reyesCard(), passages: [], lang: 'en', roomName });
-  assert.match(they.factsText, /not to them\. \(hub\)/);
+  assert.match(they.factsText, /^From what the hub can see, this points to the room \(Quarters 2\), not to Okafor\. \(hub\) The CO2 in their cabin/);
   assert.doesNotMatch(they.factsText, /\b(she|her|he|him|his)\b/i, 'unset means they/them');
   const pt = composeAnswer({ name: 'Reyes', who: { name: 'Reyes', pronouns: 'she', self: false }, question: 'Is it her room?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'pt', roomName });
-  assert.match(pt.factsText, /^O CO2 na cabine de Reyes está em 2\.6 mmHg/);
-  assert.match(pt.factsText, /Isso aponta para o ambiente \(Quarters 2\), não para ela\./);
+  assert.match(pt.factsText, /^Pelo que o hub vê, isso aponta para o ambiente \(Quarters 2\), não para Reyes\. \(hub\) O CO2 na cabine dela está em 2\.6 mmHg/);
 });
 
 test('the 1-hour average: said only when the evidence card carries the highest one', () => {
@@ -140,7 +139,8 @@ test('the 1-hour average: said only when the evidence card carries the highest o
   const card = reyesCard();
   (card.whereBeen.windows[0].people[0] as unknown as { maxHourAverage: number }).maxHourAverage = 2.94;
   const a = composeAnswer({ name: 'Reyes', question: 'Is it my room?', readings: reyes, evidence: card, passages: [], lang: 'en', roomName });
-  assert.ok(a.factsText.includes("The 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it throughout; the highest was 2.9 mmHg."));
+  assert.ok(a.factsText.includes("In the same 72 hours you spent 6.1 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg."), 'the two overlapping sentences, merged');
+  assert.ok(!a.items.some((i) => i.key === 'answer.exposure.above'));
   assert.doesNotMatch(a.factsText, /above (the|NASA's) limit/);
 });
 
@@ -228,18 +228,18 @@ test('the cabin sentence names the room the person is in now, and "your cabin" o
   const names: Record<string, string> = { galley: 'the Galley', 'quarters-2': 'Quarters 2' };
   const quartersNow = [{ type: 'limit' as const, name: 'cabin CO2', value: 2.7, unit: 'mmHg', label: 'replayed' as const, window: '1-hour average', limit: 3 }];
   const base = { name: 'Reyes', question: 'Why do I keep waking up with a headache?', evidence: reyesCard(), passages: [], lang: 'en' as const, roomName: (id: string) => names[id] ?? id, quarters: 'quarters-2', roomReadings: (room: string) => (room === 'quarters-2' ? quartersNow : []) };
-  const self = renderItems(composeAnswer({ ...base, readings: inGalley }).items, 'en', { name: 'Reyes', pronouns: 'she', self: true });
+  const self = renderItems(composeAnswer({ ...base, readings: inGalley }).items, 'en', { name: 'Reyes', pronouns: 'she', self: true }).slice(1);
   assert.equal(self[0], "The CO2 in the Galley, where you are now, reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed)");
   assert.equal(self[1], "The CO2 in your cabin reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)", 'the room the card points to, her quarters, as its own sentence');
   const other = composeAnswer({ ...base, readings: inGalley, who: { name: 'Reyes', pronouns: 'she', self: false } });
-  const lines = renderItems(other.items, 'en', other.who);
-  assert.equal(lines[0], "The CO2 in the Galley, where Reyes is now, reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  const lines = renderItems(other.items, 'en', other.who).slice(1);
+  assert.equal(lines[0], "The CO2 in the Galley, where she is now, reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed)");
   assert.equal(lines[1], "The CO2 in her cabin reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)");
-  assert.match(renderItems(other.items, 'pt', other.who)[0], /^O CO2 em the Galley, onde Reyes está agora, está em 2\.4 mmHg/);
+  assert.match(renderItems(other.items, 'pt', other.who)[1], /^O CO2 em the Galley, onde ela está agora, está em 2\.4 mmHg/);
   // Nobody's cabin but theirs: a focus room that is not her quarters is named plainly.
   const lab = composeAnswer({ ...base, readings: inGalley, evidence: reyesCard({ focusRoom: 'lab' }), roomReadings: () => quartersNow });
   const labLines = renderItems(lab.items, 'en', lab.who);
-  assert.equal(labLines[1], "The CO2 in lab reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)");
+  assert.equal(labLines[2], "The CO2 in lab reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed)");
   assert.ok(labLines.every((l) => !/your cabin/.test(l)), labLines.join('\n'));
   // In her own quarters now: the cabin sentence, once, and nothing added.
   const home = composeAnswer({ ...base, readings: { name: 'Reyes', readings: [{ ...galleyCo2, room: 'quarters-2' }] } });

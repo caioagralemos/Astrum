@@ -49,6 +49,11 @@ export interface Row {
   person?: string | null;
   /** Which room, if it is a cabin reading (or where the body reading was taken). */
   room?: string | null;
+  /**
+   * Only on a summary of older rows (core/retention.ts): `value` is their mean, over `ms` from `t`.
+   * Same signal, place, source, unit and kind as the rows it replaced.
+   */
+  summary?: { n: number; min: number; max: number; ms: number };
 }
 
 /** Where one crewmate was, from when until when. Open stays have until = null. */

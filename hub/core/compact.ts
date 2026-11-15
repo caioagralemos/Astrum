@@ -21,12 +21,15 @@ import { Persistence } from './persist.ts';
 import { STAND_IN } from './server.ts';
 import { NASA_SOURCE } from './nasa.ts';
 import { databaseFile, lockFile, missionName } from './paths.ts';
+import { Retention } from './retention.ts';
 
 export interface CompactOptions {
   /** The port a running hub would answer on. */
   port?: number;
   /** Where the copy goes; by default beside the database, stamped with the time. */
   backup?: string;
+  /** Also run the retention tiers (core/retention.ts) to the end. On unless false. */
+  retention?: boolean;
 }
 
 export interface CompactReport {
@@ -105,7 +108,13 @@ export async function compact(file: string, options: CompactOptions = {}): Promi
       db.exec('ROLLBACK');
       throw err;
     }
+    // Then the same tiers the hub runs by itself (core/retention.ts), all at once.
+    if (!(db.prepare('PRAGMA table_info(readings)').all() as { name: string }[]).some((c) => c.name === 'summary')) db.exec('ALTER TABLE readings ADD COLUMN summary TEXT');
+    db.exec('CREATE TABLE IF NOT EXISTS raw_holds (key TEXT PRIMARY KEY, t_from INTEGER NOT NULL, t_until INTEGER)');
+    if (options.retention !== false) new Retention(db).runAll(Date.now());
     const rowsAfter = count();
+    // From now on the file returns freed space by itself (VACUUM applies the setting to an existing file).
+    db.exec('PRAGMA auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
     db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
     db.close();

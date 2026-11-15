@@ -194,6 +194,14 @@ test('SpO2: one low reading never alerts; the next, at least 60 s later, does, a
   assert.equal(mild.nextQuestion, 'Are you short of breath?', 'her card\'s own question');
 });
 
+test('SpO2: an old low reading never raises her rule, alone or repeated, as on the live hub (a reading 885 minutes old)', () => {
+  const now = 100 * 3_600_000;
+  assert.equal(spo2Finding([spo2(now - 885 * 60_000, 89)], 'reyes', now, cards), null, 'a single old value');
+  assert.equal(spo2Finding([spo2(now - 886 * 60_000, 84), spo2(now - 885 * 60_000, 84)], 'reyes', now, cards), null, 'repeated, but hours ago');
+  // One old low reading and one fresh low one are not a repeat: the repeat must be within the live hour.
+  assert.equal(spo2Finding([spo2(now - 885 * 60_000, 84), spo2(now, 84)], 'reyes', now, cards), null);
+});
+
 // ---------- blood ----------
 
 test('pH: unusual outside her range (7.31 to 7.41 venous, from blood.json), dangerous at 7.60 or more, no low dangerous cut-off', () => {

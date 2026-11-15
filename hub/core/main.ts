@@ -38,23 +38,25 @@ import type { Finding } from '../engine/alerts.ts';
 import { Baselines } from './baseline.ts';
 import { EvidenceCards, evidenceRoute } from './evidence.ts';
 import { CrewDose, doseRoute } from './dose.ts';
+import { Retention } from './retention.ts';
 import { ScenarioPlayer, listRecordings, loadRecording, scenarioRoute } from './scenario.ts';
 import { Drill, drillRoute } from './drill.ts';
+import { BaseEvents, eventsRoute } from './events.ts';
 import { handleBlood, demoBloodRows, loadInspiration4, loadBloodFile, latestResults, INSPIRATION4_SOURCE } from './blood.ts';
 import { CARD_FINDING_KEEP_MS, crisisFinding, findingsNow, parseLevelOverrides } from '../engine/medical.ts';
 import type { LevelOverride } from '../engine/medical.ts';
 import type { Profile } from '../engine/types.ts';
 import { AiRuntime, handleAsk } from './ai.ts';
+import { Threads } from '../engine/conversation.ts';
+import { checkinRows } from '../engine/checkin.ts';
 import { buildIndex } from '../engine/search.ts';
 import type { Passage } from '../engine/search.ts';
 import { parseCards } from '../engine/cards.ts';
 import type { ParsedCards } from '../engine/cards.ts';
-import { detectorLine } from '../engine/baseline.ts';
+import { detectorLine, plainSignalName, summaryReadings } from '../engine/baseline.ts';
 import type { Reading } from '../engine/prompt.ts';
 import { LIMITS, windowAverage } from '../engine/cabin.ts';
 import { t } from '../engine/strings.ts';
-import { KIND_RANK } from '../engine/types.ts';
-import type { Kind } from '../engine/types.ts';
 import { SensorRegistry, handleSensors } from './sensors.ts';
 import { SerialJsonAdapter } from './serial-json.ts';
 
@@ -143,6 +145,8 @@ hub.routes.push(evidenceRoute(profile, cards));
 const dose = new CrewDose(store, profile);
 dose.onChange = (all) => hub.setDose(all);
 hub.routes.push(doseRoute(profile, dose));
+// Older readings become summaries by themselves, a slice at a time (core/retention.ts).
+const retention = new Retention(store.handle);
 // The recorded story ("npm run scenario"), played to every screen for filming. Production refuses it.
 const scenarioDir = join(hubDir, 'ui', 'public', 'scenario');
 const scenarios = new ScenarioPlayer({ hub, load: (id) => loadRecording(scenarioDir, id), list: () => listRecordings(scenarioDir) });
@@ -154,6 +158,14 @@ const drill = new Drill({
   roomOf: (person, now) => store.stays(now, now, person).find((s) => s.until === null)?.room ?? null,
 });
 hub.routes.push(drillRoute(drill));
+// A base-wide event a crewmate declares (core/events.ts): one level 3 for everyone. A real report, so production too.
+const baseEvents = new BaseEvents({
+  profile, alerts,
+  storyPlaying: () => scenarios.status().playing !== null,
+  cardUsable: (id) => loadCards().cards.some((c) => c.id === id && displayLangs(c).length > 0 && appliesAt(c, gravity)),
+  file: `${dbFile}.events.json`,
+});
+hub.routes.push(eventsRoute(baseEvents));
 // Choosing the place on screen restarts the hub; that needs the supervisor (core/run.ts) to start it again.
 const supervised = process.env[SUPERVISED_ENV] === '1';
 hub.routes.push(missionsRoute(missionsDir, missionFile, missionFile === null ? process.env.ASTRUM_PROFILE ?? null : null, {
@@ -318,7 +330,7 @@ const CARD_SIGNAL: Record<string, string> = { co2: 'cabin_co2', pressure: 'cabin
 // A level the crew set brings a steps card only if one of hers names that signal, for this gravity.
 alerts.cardFor = (signal) => loadCards().cards.find((c) => c.id !== 'unknown-urgent' && displayLangs(c).length > 0 && appliesAt(c, gravity)
   && c.signs.readings.some((r) => r.signal === (CARD_SIGNAL[signal] ?? signal)))?.id ?? null;
-const nameOf = (signal: string) => { const n = t(`signal.${signal}`, 'en'); return n === n.toUpperCase() ? n : n.toLowerCase(); };
+const nameOf = (signal: string) => { const n = plainSignalName(signal, t(`signal.${signal}`, 'en')); return n === n.toUpperCase() ? n : n.toLowerCase(); };
 const round1 = (v: number) => Math.round(v * 10) / 10;
 // The summaries the alert watcher keeps fresh; computed here only before the first.
 const summaryOf = (person: string) => baselines.cached(person) ?? baselines.refresh(person, Date.now());
@@ -332,19 +344,15 @@ const limitReadings = (room: string, here: boolean, now = Date.now()): Extract<R
   }
   return out;
 };
+const askThreads = new Threads();
 hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   ai, index: passageIndex, cards: loadCards,
   readingsFor: (person) => {
     const p = profile.crew.find((c) => c.id === person);
     if (!p) return null;
     const now = Date.now();
-    const readings: Reading[] = [];
-    for (const s of summaryOf(person)?.signals ?? []) {
-      if (s.status !== 'judged') continue;
-      const label = (Object.keys(s.kinds) as Kind[]).sort((a, b) => KIND_RANK[b] - KIND_RANK[a])[0] ?? 'simulated';
-      const unit = store.recent(0).find((r) => r.person === person && r.signal === s.signal)?.unit ?? '';
-      readings.push({ type: 'normal', name: nameOf(s.signal), value: round1(s.recent), unit, label, normal: round1(s.usual), judged: s.unusual ? (s.direction === 'high' ? 'above' : 'below') : 'inside' });
-    }
+    // Only readings inside their freshness window; a daily value is named with its time (engine/baseline.ts summaryReadings).
+    const readings: Reading[] = summaryReadings(summaryOf(person), nameOf, (signal) => store.recent(0).find((r) => r.person === person && r.signal === signal)?.unit ?? '');
     const room = roomOf(person);
     if (room) readings.push(...limitReadings(room, true, now));
     return { name: p.name, readings };
@@ -367,6 +375,15 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   gravity,
   quartersOf: (id) => places[id]?.quarters ?? null,
   roomReadings: (room) => limitReadings(room, false),
+  // Each crewmate's conversation with Astra, kept here for 30 minutes of quiet (engine/conversation.ts).
+  threads: askThreads,
+  crew: () => profile.crew.map((p) => ({ id: p.id, name: p.name })),
+  // A reply to one of her questions in the chat: the same reported check-in row POST /api/checkin makes.
+  storeCheckin: (person, answer) => {
+    const made = checkinRows({ person, answers: [answer] }, crewIds, Date.now(), roomOf);
+    if ('error' in made) return false;
+    return hub.ingest(made.rows).length > 0;
+  },
 }));
 
 // Sensors the crew adds. Each one describes its signals; readings outside what the
@@ -409,6 +426,7 @@ hub.http.listen(port, '0.0.0.0', () => {
   hub.startClock();
   cards.start();
   dose.start();
+  retention.start();
   // Give real sources a few seconds to answer before filling any gap.
   setTimeout(() => standIn?.start(), 5000);
 });
@@ -437,6 +455,7 @@ function shutdown(code = 0): void {
   alerts.stop();
   cards.stop();
   dose.stop();
+  retention.stop();
   standIn?.stop();
   bonjour?.unpublishAll(() => bonjour?.destroy());
   hub.http.close();

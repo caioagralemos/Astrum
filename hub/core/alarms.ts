@@ -25,6 +25,8 @@ import { DRILL_SOURCE } from './drill.ts';
 
 export class RoomAlarms {
   private active = new Map<string, RoomAlarm>();
+  /** NASA-limit alarms whose raw rows are held (core/retention.ts), by room|signal|since. */
+  private held = new Set<string>();
   private timer: NodeJS.Timeout | null = null;
   private hub: Hub;
   private store: Store;
@@ -115,6 +117,16 @@ export class RoomAlarms {
     this.unjudged = out.unjudged;
     this.averages = out.averages;
     this.crewWatch = crew.watch;
+    // The raw rows around a room alarm are never summarised (core/retention.ts): 2 hours either side.
+    for (const a of out.alarms) {
+      const key = `${a.room}|${a.signal}|${a.since}`;
+      if (!this.held.has(key)) { this.held.add(key); this.store.holdRaw(`alarm|${key}`, a.since - 2 * 3600_000, null); }
+    }
+    for (const key of [...this.held]) if (!out.alarms.some((a) => `${a.room}|${a.signal}|${a.since}` === key)) {
+      this.held.delete(key);
+      const [room, signal, since] = key.split('|');
+      this.store.holdRaw(`alarm|${room}|${signal}|${since}`, Number(since) - 2 * 3600_000, now + 2 * 3600_000);
+    }
     const after = this.fingerprint();
     if (before !== after) this.hub.setAlarms(this.list(), this.unjudged, this.stuck, this.crewWatch);
   }

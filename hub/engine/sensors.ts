@@ -448,7 +448,7 @@ export interface BuiltInSignal {
 
 export function builtInSignals(): BuiltInSignal[] {
   return Object.keys(allStrings())
-    .filter((k) => k.startsWith('signal.'))
+    .filter((k) => k.startsWith('signal.') && !k.endsWith('.short') && k !== 'signal.checkin.q')
     .map((nameKey) => {
       const signal = nameKey.slice('signal.'.length);
       const b = BOUNDS.find((x) => x.signal === signal);

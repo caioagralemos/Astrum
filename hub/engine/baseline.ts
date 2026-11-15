@@ -9,6 +9,8 @@
 // not move the baseline. Pure functions: no I/O, runs in the hub and the browser.
 
 import type { Kind, Row } from './types.ts';
+import { KIND_RANK } from './types.ts';
+import type { Reading, ReadingLabel } from './prompt.ts';
 import { HEART_RATE_SIGNALS, heartRateRiseCounts } from './medical.ts';
 
 const MINUTE = 60_000;
@@ -69,6 +71,14 @@ export const DEFAULTS = {
   /** Her rule: a heart rate rise counts only above 20 % or 20 bpm over the person's usual. */
   riseCounts: (signal: string, usual: number, recent: number): boolean => !HEART_RATE_SIGNALS.includes(signal) || heartRateRiseCounts(usual, recent),
 };
+
+/**
+ * The same freshness rule for a screen: a vital sign counts as current for an
+ * hour, any other body value (sleep, steps, energy, exercise, check-in) for 36 hours.
+ */
+export function isCurrentReading(signal: string, t: number, now: number): boolean {
+  return now - t <= (DEFAULTS.liveSignals.includes(signal) ? DEFAULTS.liveFreshMs : DEFAULTS.dailyFreshMs);
+}
 
 /**
  * A state function that also knows sleep: the gym is exercise, the sleep
@@ -173,11 +183,13 @@ export function signalBaseline(rows: Row[], signal: string, now: number, opts: B
     before = all.filter((r) => r.t <= recentStart);
   } else {
     const latest = all[all.length - 1];
-    // A dense signal that went quiet is a gap, not a daily value; so is a stale daily value.
+    // A dense signal that went quiet is a gap, not a daily value; so is a stale daily value,
+    // and so is a vital sign older than its live window.
     const older = all.filter((r) => r.t <= recentStart);
     const windows = older.length ? Math.max(1, (recentStart - older[0].t) / o.recentMs) : 1;
     const usuallyDense = older.length / windows >= o.denseMin;
-    if (!latest || usuallyDense || now - latest.t > o.dailyFreshMs) {
+    const freshMs = o.liveSignals.includes(signal) ? o.liveFreshMs : o.dailyFreshMs;
+    if (!latest || usuallyDense || now - latest.t > freshMs) {
       return { status: 'no-recent', signal, baselineCount: older.length, lastSeen: latest?.t ?? null };
     }
     mode = 'daily';
@@ -190,7 +202,7 @@ export function signalBaseline(rows: Row[], signal: string, now: number, opts: B
   const recent = median(recentRows.map((r) => r.value!));
   const needed = mode === 'dense' ? o.minDense : o.minDaily;
   const kinds = mix([...baseline, ...recentRows]);
-  const common = { signal, mode, state, baselineCount: baseline.length, kinds };
+  const common = { signal, mode, state, baselineCount: baseline.length, kinds, latestAt: recentRows[recentRows.length - 1].t };
 
   if (baseline.length < needed) return { status: 'not-enough-history', ...common, recent, needed };
 
@@ -243,6 +255,41 @@ export function detectorLine(summary: PersonSummary, names: Record<string, strin
   if (summary.top.length === 0) return 'Detector: normal.';
   const list = summary.top.map((s) => names[s] ?? s);
   return `Detector: anomaly ${summary.score.toFixed(2)}. Main signal${list.length > 1 ? 's' : ''}: ${list.join(', ')}.`;
+}
+
+/**
+ * A signal's name as the crew reads it. `named` is the string table's name;
+ * when the table has none (it hands back "signal.blood_oxygen"), the id is
+ * written out in words ("blood oxygen"), so a code name never reaches a sentence.
+ */
+export function plainSignalName(signal: string, named?: string | null): string {
+  if (named && !/^signal\./.test(named) && !/[._]/.test(named)) return named;
+  if (signal === 'hrv') return 'HRV';
+  return signal.replace(/^(checkin|mood)\./, '').replace(/[._]+/g, ' ').trim();
+}
+
+/**
+ * The person's judged body readings, as the hub hands them to Astra and to its
+ * own sentences: only readings inside their freshness window (signalBaseline
+ * leaves the rest out as gaps). A daily value is named with its time: "sleep
+ * last night" already is; any other is "…, latest daily value", never shown
+ * as a current vital sign.
+ */
+export function summaryReadings(
+  summary: PersonSummary | null,
+  nameOf: (signal: string) => string,
+  unitOf: (signal: string) => string,
+): Extract<Reading, { type: 'normal' }>[] {
+  const out: Extract<Reading, { type: 'normal' }>[] = [];
+  const round1 = (v: number) => Math.round(v * 10) / 10;
+  for (const s of summary?.signals ?? []) {
+    if (s.status !== 'judged') continue;
+    const label: ReadingLabel = (Object.keys(s.kinds) as Kind[]).sort((a, b) => KIND_RANK[b] - KIND_RANK[a])[0] ?? 'simulated';
+    let name = plainSignalName(s.signal, nameOf(s.signal));
+    if (s.mode === 'daily' && !/\b(last night|yesterday)\b/i.test(name)) name = `${name.replace(/\s*\btoday\b\s*/i, ' ').trim()}, latest daily value`;
+    out.push({ type: 'normal', name, value: round1(s.recent), unit: unitOf(s.signal), label, normal: round1(s.usual), judged: s.unusual ? (s.direction === 'high' ? 'above' : 'below') : 'inside' });
+  }
+  return out;
 }
 
 export interface RoomOrPerson {

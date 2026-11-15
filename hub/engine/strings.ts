@@ -117,6 +117,7 @@ const table = {
   'dock.name.cabin': { en: 'Cabin', pt: 'Cabine' },
   'dock.cabin': { en: 'Cabin', pt: 'Cabine' },
   'dock.aboard': { en: '{count} aboard', pt: '{count} a bordo' },
+  'dock.crewPortraits': { en: 'Simulated crew · AI-generated portraits', pt: 'Tripulação simulada · retratos gerados por IA' },
   'dock.highestCo2': { en: 'Highest CO2: {room} · {value}', pt: 'CO2 mais alto: {room} · {value}' },
   'dock.updatedNow': { en: 'Updated just now', pt: 'Atualizado agora' },
   'dock.updatedMin': { en: 'Updated {min} min ago', pt: 'Atualizado há {min} min' },
@@ -148,6 +149,8 @@ const table = {
   'kind.simulated': { en: 'Simulated', pt: 'Simulado' },
   'reading.stale': { en: 'No recent reading', pt: 'Sem leitura recente' },
   'reading.none': { en: 'No reading yet', pt: 'Ainda sem leitura' },
+  'reading.agoHours': { en: '{hours} h ago', pt: 'há {hours} h' },
+  'reading.agoDays': { en: '{days} days ago', pt: 'há {days} dias' },
 
   'signal.co2': { en: 'CO2', pt: 'CO2' },
   'signal.temperature': { en: 'Temperature', pt: 'Temperatura' },
@@ -174,6 +177,68 @@ const table = {
   'signal.checkin.stress': { en: 'Stress (check-in)', pt: 'Estresse (check-in)' },
   'signal.checkin.fatigue': { en: 'Tiredness (check-in)', pt: 'Cansaço (check-in)' },
   'signal.earth.message': { en: 'Message to Earth', pt: 'Mensagem à Terra' },
+  // The phone's Health signals (docs/READING-FORMAT.md), the rest of the body and check-in signals, and blood (medical/blood.json).
+  'signal.hrv': { en: 'Heart rate variability', pt: 'Variabilidade da frequência cardíaca' },
+  'signal.resting_heart_rate': { en: 'Resting heart rate', pt: 'Frequência cardíaca em repouso' },
+  'signal.resting_heart_rate.short': { en: 'Resting HR', pt: 'FC em repouso' },
+  'signal.breathing_rate': { en: 'Breathing rate', pt: 'Frequência respiratória' },
+  'signal.breathing_rate.short': { en: 'Breathing', pt: 'Respiração' },
+  'signal.respiratory_rate': { en: 'Breathing rate', pt: 'Frequência respiratória' },
+  'signal.respiratory_rate.short': { en: 'Breathing', pt: 'Respiração' },
+  'signal.blood_oxygen': { en: 'Blood oxygen', pt: 'Oxigênio no sangue' },
+  'signal.blood_oxygen.short': { en: 'Blood oxygen', pt: 'Oxigênio' },
+  'signal.body_temperature': { en: 'Body temperature', pt: 'Temperatura corporal' },
+  'signal.body_temperature.short': { en: 'Body temp.', pt: 'Temp. corporal' },
+  'signal.steps': { en: 'Steps today', pt: 'Passos hoje' },
+  'signal.steps.short': { en: 'Steps', pt: 'Passos' },
+  'signal.active_energy': { en: 'Active energy today', pt: 'Energia ativa hoje' },
+  'signal.active_energy.short': { en: 'Energy', pt: 'Energia' },
+  'signal.sound_level': { en: 'Sound around them', pt: 'Som ao redor' },
+  'signal.sound_level.short': { en: 'Sound', pt: 'Som' },
+  'signal.dose': { en: 'Radiation dose', pt: 'Dose de radiação' },
+  'signal.dose.short': { en: 'Dose', pt: 'Dose' },
+  'signal.earth.message.short': { en: 'Message', pt: 'Mensagem' },
+  'signal.checkin.stress.short': { en: 'Stress', pt: 'Estresse' },
+  'signal.checkin.fatigue.short': { en: 'Tired', pt: 'Cansaço' },
+  'signal.checkin.note': { en: 'Note', pt: 'Anotação' },
+  'signal.checkin.got_better': { en: 'Got better (check-in)', pt: 'Melhorou (check-in)' },
+  'signal.checkin.got_better.short': { en: 'Got better', pt: 'Melhorou' },
+  'signal.checkin.fasting': { en: 'Fasting (check-in)', pt: 'Em jejum (check-in)' },
+  'signal.checkin.fasting.short': { en: 'Fasting', pt: 'Jejum' },
+  'signal.checkin.bp_slept_well': { en: 'Slept well (check-in)', pt: 'Dormiu bem (check-in)' },
+  'signal.checkin.bp_slept_well.short': { en: 'Slept well', pt: 'Dormiu bem' },
+  'signal.checkin.bp_heavy_head': { en: 'Heavy head and unwell (check-in)', pt: 'Cabeça pesada e mal-estar (check-in)' },
+  'signal.checkin.bp_heavy_head.short': { en: 'Heavy head', pt: 'Cabeça pesada' },
+  'signal.checkin.bp_diagnosed': { en: 'High blood pressure diagnosed (check-in)', pt: 'Pressão alta diagnosticada (check-in)' },
+  'signal.checkin.bp_diagnosed.short': { en: 'High BP known', pt: 'Pressão alta' },
+  'signal.checkin.bp_took_medicine': { en: 'Took the medicine (check-in)', pt: 'Tomou o remédio (check-in)' },
+  'signal.checkin.bp_took_medicine.short': { en: 'Medicine', pt: 'Remédio' },
+  'signal.checkin.bp_measured': { en: 'Blood pressure entered (check-in)', pt: 'Pressão anotada (check-in)' },
+  'signal.checkin.bp_measured.short': { en: 'BP entered', pt: 'Pressão anotada' },
+  'signal.checkin.leg_colour_changed': { en: 'Leg or arm colour changed (check-in)', pt: 'Cor da perna ou do braço mudou (check-in)' },
+  'signal.checkin.leg_colour_changed.short': { en: 'Colour change', pt: 'Cor mudou' },
+  'signal.checkin.leg_pain': { en: 'Pain (check-in)', pt: 'Dor (check-in)' },
+  'signal.checkin.leg_pain.short': { en: 'Pain', pt: 'Dor' },
+  'signal.checkin.leg_inflammation': { en: 'Signs of inflammation (check-in)', pt: 'Sinais de inflamação (check-in)' },
+  'signal.checkin.leg_inflammation.short': { en: 'Inflammation', pt: 'Inflamação' },
+  'signal.checkin.glucose_high_signs': { en: 'Signs of high glucose (check-in)', pt: 'Sinais de glicose alta (check-in)' },
+  'signal.checkin.glucose_high_signs.short': { en: 'Glucose signs', pt: 'Sinais de glicose' },
+  'signal.checkin.sodium_group1': { en: 'Confusion, headache or nausea (check-in)', pt: 'Confusão, dor de cabeça ou náusea (check-in)' },
+  'signal.checkin.sodium_group1.short': { en: 'Confusion', pt: 'Confusão' },
+  'signal.checkin.sodium_group2': { en: 'Very sleepy or a seizure (check-in)', pt: 'Muito sono ou convulsão (check-in)' },
+  'signal.checkin.sodium_group2.short': { en: 'Very sleepy', pt: 'Muito sono' },
+  'signal.checkin.calcium_symptoms': { en: 'Tingling, cramps or weakness (check-in)', pt: 'Formigamento, cãibras ou fraqueza (check-in)' },
+  'signal.checkin.calcium_symptoms.short': { en: 'Tingling', pt: 'Formigamento' },
+  // Every steps card question (engine/cards.ts checkin.q_…) is named by this one string.
+  'signal.checkin.q': { en: 'Answer to a steps card question', pt: 'Resposta a uma pergunta do cartão de passos' },
+  'signal.checkin.q.short': { en: 'Card answer', pt: 'Resposta' },
+  'signal.blood.glucose': { en: 'Glucose', pt: 'Glicose' },
+  'signal.blood.sodium': { en: 'Sodium', pt: 'Sódio' },
+  'signal.blood.potassium': { en: 'Potassium', pt: 'Potássio' },
+  'signal.blood.ionized_calcium': { en: 'Ionized calcium', pt: 'Cálcio ionizado' },
+  'signal.blood.ph': { en: 'Blood pH', pt: 'pH do sangue' },
+  'signal.blood.hematocrit': { en: 'Hematocrit', pt: 'Hematócrito' },
+  'signal.blood.hemoglobin': { en: 'Hemoglobin', pt: 'Hemoglobina' },
 
   'room.command': { en: 'Command', pt: 'Comando' },
   'room.quarters-1': { en: 'Quarters 1', pt: 'Alojamento 1' },
@@ -317,14 +382,15 @@ const table = {
   'scene.label': { en: 'The station: rooms and crew. Drag to turn, pinch or scroll to zoom, tap a room or a person to look closer.', pt: 'A estação: ambientes e tripulação. Arraste para girar, use pinça ou rolagem para aproximar, toque em um ambiente ou pessoa para ver de perto.' },
   'scene.whole': { en: 'Whole station', pt: 'Estação inteira' },
   'scene.in': { en: '{name}, in {room}', pt: '{name}, em {room}' },
-  'ai.refusal': { en: "I don't have that in NASA's text or in your readings, so I won't guess. Tap Ask Houston and the question goes to your flight surgeon.", pt: 'Não tenho isso no texto da NASA nem nas suas leituras, então não vou adivinhar. Toque em Perguntar a Houston e a pergunta vai para o seu cirurgião de voo.' },
-  'ai.unavailable': { en: "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.", pt: 'A IA não está disponível agora. Aqui estão as leituras e o texto da NASA como estão. Toque em Perguntar a Houston para falar com seu cirurgião de voo.' },
-  'ai.slow': { en: "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Ask Houston to ask your flight surgeon.", pt: 'Não consegui terminar uma resposta a tempo. Aqui estão as leituras e o texto da NASA como estão. Toque em Perguntar a Houston para falar com seu cirurgião de voo.' },
-  'ai.busy': { en: 'Too many questions are waiting. Ask again in a moment, or tap Ask Houston.', pt: 'Há perguntas demais esperando. Pergunte de novo em instantes ou toque em Perguntar a Houston.' },
+  'ai.refusal': { en: "I don't have that in NASA's text or in your readings, so I won't guess. Tap Contact Earth and the question goes to your flight surgeon.", pt: 'Não tenho isso no texto da NASA nem nas suas leituras, então não vou adivinhar. Toque em Contatar a Terra e a pergunta vai para o seu cirurgião de voo.' },
+  'ai.unavailable': { en: "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.", pt: 'A IA não está disponível agora. Aqui estão as leituras e o texto da NASA como estão. Toque em Contatar a Terra para falar com seu cirurgião de voo.' },
+  'ai.slow': { en: "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.", pt: 'Não consegui terminar uma resposta a tempo. Aqui estão as leituras e o texto da NASA como estão. Toque em Contatar a Terra para falar com seu cirurgião de voo.' },
+  'ai.busy': { en: 'Too many questions are waiting. Ask again in a moment, or tap Contact Earth.', pt: 'Há perguntas demais esperando. Pergunte de novo em instantes ou toque em Contatar a Terra.' },
+  'ai.greeting': { en: "Hi, I'm Astra. I answer from your readings and NASA's text. Ask me about a reading, your sleep, the air in a room, or a NASA limit. If someone is hurt or unwell, say what is happening.", pt: 'Oi, eu sou a Astra. Respondo a partir das suas leituras e do texto da NASA. Pergunte sobre uma leitura, seu sono, o ar de um ambiente ou um limite da NASA. Se alguém estiver machucado ou passando mal, diga o que está acontecendo.' },
   'ai.card': { en: 'This needs the steps card, not an answer from me. The card is on screen.', pt: 'Isto precisa do cartão de passos, não de uma resposta minha. O cartão está na tela.' },
   'ai.crisis': { en: 'This needs a person, not me. Please go to a crewmate or your Crew Medical Officer now.', pt: 'Isto precisa de uma pessoa, não de mim. Procure agora um colega ou seu oficial médico.' },
   'ai.crisisTold': { en: "This needs a person, not me. I've asked a crewmate to come and be with you.", pt: 'Isto precisa de uma pessoa, não de mim. Pedi a um colega que venha ficar com você.' },
-  'ai.urgentNoCard': { en: "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Houston.", pt: 'Nenhum cartão de passos cobre isto, e não vou adivinhar um tratamento. Use o checklist de emergência a bordo, chame agora o oficial médico e mande mensagem a Houston.' },
+  'ai.urgentNoCard': { en: "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Earth.", pt: 'Nenhum cartão de passos cobre isto, e não vou adivinhar um tratamento. Use o checklist de emergência a bordo, chame agora o oficial médico e mande mensagem à Terra.' },
   "sensors.add": { en: "Add a sensor", pt: "Adicionar um sensor" },
   "sensors.remove": { en: "Remove sensor", pt: "Remover sensor" },
   "sensors.removeKeeps": { en: "Its readings stay in the record.", pt: "As leituras dele continuam no registro." },
@@ -372,6 +438,49 @@ const table = {
   'drill.alert': { en: 'Drill: the reading is simulated. The alert and your answers are real.', pt: 'Simulado: a leitura é simulada. O alerta e as suas respostas são reais.' },
   'drill.alarm': { en: 'Drill: a simulated reading in {room}, not the room\'s air.', pt: 'Simulado: uma leitura simulada em {room}, não o ar do ambiente.' },
   'drill.earth': { en: 'Drill: a simulated message to Earth.', pt: 'Simulado: uma mensagem simulada à Terra.' },
+  // A base-wide event a crewmate declared (core/events.ts). 'event.<kind>' is also the alert's signal.
+  'event.title': { en: 'Base-wide event', pt: 'Evento em toda a base' },
+  'event.dust_storm': { en: 'Dust storm', pt: 'Tempestade de poeira' },
+  'event.solar_particle_event': { en: 'Solar particle event', pt: 'Evento de partículas solares' },
+  'event.pressure_loss': { en: 'Loss of pressure', pt: 'Perda de pressão' },
+  'event.fire': { en: 'Fire', pt: 'Incêndio' },
+  'event.other': { en: 'Other event', pt: 'Outro evento' },
+  'event.declaredBy': { en: 'Declared by {name} at {time}', pt: 'Declarado por {name} às {time}' },
+  'event.goTo': { en: 'Go to {room}', pt: 'Vá para {room}' },
+  // The warning stage: expected, not here yet. Nothing is worded "detected": the hub has no sensor for these.
+  'event.warning': { en: '{kind} expected at {time}, in about {hours} h.', pt: 'Previsão: {kind} às {time}, em cerca de {hours} h.' },
+  'event.fromEarth': { en: 'Forecast from Earth', pt: 'Previsão da Terra' },
+  'event.enteredBy': { en: 'Entered by {name} at {time}', pt: 'Registrado por {name} às {time}' },
+  'event.wasExpected': { en: 'Expected at {time}', pt: 'Previsão: {time}' },
+  // The alerts panel: a declared event's own item, its actions, and the form that declares one (ui/src/panels/Events.tsx).
+  'event.now': { en: 'Now', pt: 'Agora' },
+  'event.quoted': { en: '“{note}”', pt: '“{note}”' },
+  'event.sharedScreen': { en: 'the shared screen', pt: 'a tela compartilhada' },
+  'event.changeTime': { en: 'Change time', pt: 'Mudar horário' },
+  'event.didNotHappen': { en: 'Did not happen', pt: 'Não aconteceu' },
+  'event.end': { en: 'End event', pt: 'Encerrar evento' },
+  'event.who': { en: 'Who is doing this', pt: 'Quem está fazendo isto' },
+  'event.confirm': { en: 'Confirm', pt: 'Confirmar' },
+  'event.back': { en: 'Back', pt: 'Voltar' },
+  'event.declare': { en: 'Declare a base-wide event', pt: 'Declarar um evento em toda a base' },
+  'event.kind': { en: 'What is happening', pt: 'O que está acontecendo' },
+  'event.by': { en: 'Who is declaring', pt: 'Quem está declarando' },
+  'event.source': { en: 'Where the word came from', pt: 'De onde veio o aviso' },
+  'event.onBoard': { en: 'On board', pt: 'A bordo' },
+  'event.when': { en: 'When', pt: 'Quando' },
+  'event.later': { en: 'At a time', pt: 'Em um horário' },
+  'event.in': { en: 'In', pt: 'Daqui a' },
+  'event.unit': { en: 'Unit', pt: 'Unidade' },
+  'event.minutes': { en: 'minutes', pt: 'minutos' },
+  'event.hours': { en: 'hours', pt: 'horas' },
+  'event.range': { en: 'Choose a time from 1 minute to 72 hours ahead.', pt: 'Escolha um horário entre 1 minuto e 72 horas à frente.' },
+  'event.shelter': { en: 'Where to go (optional)', pt: 'Para onde ir (opcional)' },
+  'event.noShelter': { en: 'No room named', pt: 'Nenhum ambiente indicado' },
+  'event.note': { en: 'Note for everyone (optional)', pt: 'Nota para todos (opcional)' },
+  'event.noteCount': { en: '{n} of {max} characters', pt: '{n} de {max} caracteres' },
+  'event.send': { en: 'Declare', pt: 'Declarar' },
+  'event.cancelForm': { en: 'Cancel', pt: 'Cancelar' },
+  'event.sent': { en: 'Declared. Every screen shows it now.', pt: 'Declarado. Todas as telas mostram agora.' },
   // Sentences of the hub-written answer, copied from engine/answer.ts ANSWER_STRINGS.
   "answer.limit.under": { en: "The {signal} in {your} cabin reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.", pt: "O {signal} na cabine {de_voce} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}." },
   "answer.limit.at": { en: "The {signal} in {your} cabin reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.", pt: "O {signal} na cabine {de_voce} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}." },
@@ -404,6 +513,7 @@ const table = {
   "answer.exposure.plainNone": { en: "In the last {hours} hours {you} spent {spent} hours with CO2 above {level} mmHg; none of {your} crewmates spent any time above it.", pt: "Nas últimas {hours} horas {voce} passou {spent} horas com CO2 acima de {level} mmHg; nenhum colega passou tempo algum acima disso." },
   "answer.exposure.above": { en: "In the same {hours} hours {you} spent {spent} hours with single CO2 readings above {level} mmHg.", pt: "Nas mesmas {hours} horas {voce} passou {spent} horas com leituras isoladas de CO2 acima de {level} mmHg." },
   "answer.exposure.hourUnder": { en: "The 1-hour average, which is what NASA's limit of {limit} mmHg applies to, stayed under it throughout; the highest was {max} mmHg.", pt: "A média de 1 hora, que é a que o limite da NASA de {limit} mmHg considera, ficou abaixo dele o tempo todo; a mais alta foi {max} mmHg." },
+  "answer.exposure.aboveHourUnder": { en: "In the same {hours} hours {you} spent {spent} hours with single CO2 readings above {level} mmHg, but the 1-hour average, which is what NASA's limit of {limit} mmHg applies to, stayed under it; the highest was {max} mmHg.", pt: "Nas mesmas {hours} horas {voce} passou {spent} horas com leituras isoladas de CO2 acima de {level} mmHg, mas a média de 1 hora, que é a que o limite da NASA de {limit} mmHg considera, ficou abaixo dele; a mais alta foi {max} mmHg." },
   "answer.exposure.hourOver": { en: "The highest 1-hour average was {max} mmHg, above NASA's limit of {limit} mmHg.", pt: "A média de 1 hora mais alta foi {max} mmHg, acima do limite da NASA de {limit} mmHg." },
   "answer.reported.run": { en: "{You} reported {what} on {days} days in a row.", pt: "{Voce} relatou {what} em {days} dias seguidos." },
   "answer.reported.count": { en: "{You} reported {what} {count} times in the last {hours} hours.", pt: "{Voce} relatou {what} {count} vezes nas últimas {hours} horas." },
@@ -414,6 +524,9 @@ const table = {
   "answer.points.room": { en: "This points to the room ({room}), not to {them}.", pt: "Isso aponta para o ambiente ({room}), não para {voce}." },
   "answer.points.person": { en: "This points to {them}, not to the room.", pt: "Isso aponta para {voce}, não para o ambiente." },
   "answer.points.sensor": { en: "This points to the sensor: the room's reading may not be right.", pt: "Isso aponta para o sensor: a leitura do ambiente pode não estar certa." },
+  "answer.lead.room": { en: "From what the hub can see, this points to the room ({room}), not to {them}.", pt: "Pelo que o hub vê, isso aponta para o ambiente ({room}), não para {voce}." },
+  "answer.lead.person": { en: "From what the hub can see, this points to {them}, not to the room.", pt: "Pelo que o hub vê, isso aponta para {voce}, não para o ambiente." },
+  "answer.lead.sensor": { en: "From what the hub can see, this points to the sensor: the room's reading may not be right.", pt: "Pelo que o hub vê, isso aponta para o sensor: a leitura do ambiente pode não estar certa." },
   "answer.points.unknown": { en: "The readings do not point anywhere yet.", pt: "As leituras ainda não apontam para nada." },
   "answer.notExact": { en: "NASA's text does not answer this exactly. Here is what it does say, and what the readings show.", pt: "O texto da NASA não responde a isso exatamente. Aqui está o que ele diz, e o que as leituras mostram." },
   "answer.noAdvice": { en: "The hub does not recommend what to do. Ask your Crew Medical Officer, and follow the steps card if one is on screen.", pt: "O hub não recomenda o que fazer. Fale com o oficial médico da tripulação e siga o cartão de passos, se houver um na tela." },
@@ -503,8 +616,9 @@ const table = {
   'bench.ask.noPassages': { en: 'No NASA passage came with this answer.', pt: 'Nenhum trecho da NASA veio com esta resposta.' },
   'bench.card.steps': { en: 'Steps', pt: 'Passos' },
   'bench.card.doNot': { en: 'Do not', pt: 'Não faça' },
-  'bench.card.houston': { en: 'This card says to message Houston.', pt: 'Este cartão diz para mandar mensagem a Houston.' },
-  'bench.card.unverified': { en: 'Not yet verified by the medical lead', pt: 'Ainda não verificado pela responsável médica' },
+  'bench.card.houston': { en: 'This card says to message Earth.', pt: 'Este cartão diz para mandar mensagem à Terra.' },
+  // Every card shown is approved by the medical lead; her own `unverified` list names the parts not checked against a source.
+  'bench.card.unverified': { en: 'Approved by the medical lead. Parts not checked against a source', pt: 'Aprovado pela responsável médica. Partes não conferidas com uma fonte' },
   'bench.card.title': { en: 'Steps card: {title}', pt: 'Cartão de passos: {title}' },
 
   'bench.ev.for': { en: 'For {person}', pt: 'Para {person}' },
@@ -835,6 +949,10 @@ const table = {
   'ask.state.ready': { en: 'ready', pt: 'pronta' },
   'ask.state.loading': { en: 'loading', pt: 'carregando' },
   'ask.state.unavailable': { en: 'unavailable', pt: 'indisponível' },
+  'ask.mark.ready': { en: 'Ready', pt: 'Pronta' },
+  'ask.mark.loading': { en: 'Starting', pt: 'Iniciando' },
+  'ask.mark.unavailable': { en: 'Not available', pt: 'Indisponível' },
+  'ask.mark.working': { en: 'Working…', pt: 'Trabalhando…' },
   'ask.sending': { en: 'Sending the question…', pt: 'Enviando a pergunta…' },
   'ask.queued': { en: 'Waiting in line: position {position}', pt: 'Esperando na fila: posição {position}' },
   'ask.working': { en: 'Astra is working: {seconds} s', pt: 'Astra está trabalhando: {seconds} s' },
@@ -898,10 +1016,43 @@ const table = {
 
 export type StringKey = keyof typeof table;
 
-/** Looks a string up. Unknown keys come back as the key, so a gap is visible. */
+type Entry = Record<Lang, string>;
+const entries = table as Record<string, Entry>;
+
+let onUnnamed: ((signal: string) => void) | null = null;
+/** Called once per signal that has no name in the table (the screens log it in development). */
+export function reportUnnamedSignals(fn: ((signal: string) => void) | null): void {
+  onUnnamed = fn;
+}
+const reported = new Set<string>();
+
+/**
+ * A signal's name, never its key. `form` 'short' falls back to the full name.
+ * A signal the table does not name is written in plain words: namespaces
+ * dropped, separators as spaces, sentence case ("some_new.thing_here" is "Thing here").
+ */
+export function signalName(signal: string, lang: Lang, form: 'long' | 'short' = 'long'): string {
+  const named = (form === 'short' ? entries[`signal.${signal}.short`] : undefined) ?? entries[`signal.${signal}`]
+    ?? (signal.startsWith('checkin.q_') ? entries[form === 'short' ? 'signal.checkin.q.short' : 'signal.checkin.q'] : undefined);
+  if (named) return named[lang];
+  if (!reported.has(signal)) {
+    reported.add(signal);
+    onUnnamed?.(signal);
+  }
+  const words = (signal.split('.').pop() ?? signal).replace(/[_-]+/g, ' ').trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : signal;
+}
+
+/**
+ * Looks a string up. Unknown keys come back as the key, so a gap is visible;
+ * except a signal's name ("signal.<key>" or "signal.<key>.short"), which goes
+ * through signalName and is never shown as a key.
+ */
 export function t(key: string, lang: Lang, vars: Record<string, string | number> = {}): string {
-  const entry = (table as Record<string, Record<Lang, string>>)[key];
-  const text = entry ? entry[lang] : key;
+  const entry = entries[key];
+  const text = entry ? entry[lang]
+    : key.startsWith('signal.') ? (key.endsWith('.short') ? signalName(key.slice(7, -6), lang, 'short') : signalName(key.slice(7), lang))
+    : key;
   return text.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
 }
 

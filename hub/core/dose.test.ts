@@ -88,3 +88,26 @@ test('production keeps no simulated rate, so a crew with only simulated rates an
   hub.move('ana', 'lab', START, 'measured', 'test');
   assert.deepEqual(new CrewDose(store, profile).refresh(NOW), {});
 });
+
+test('a long history read a slice per turn at start gives the same doses as reading it at once', async () => {
+  const store = new Store(':memory:');
+  const rows: Row[] = [];
+  const later = NOW + 3 * 24 * HOUR;
+  for (let t = START; t < later; t += 45_000) rows.push(rate(t, 'lab', 1.8 + ((t / 45_000) % 7) * 0.1, 'measured'), rate(t + 7000, 'galley', 0.5 + ((t / 45_000) % 3) * 0.05, 'simulated', 'sim:hub'));
+  store.addRows(rows);
+  store.moveTo('ana', 'lab', START, 'measured', 'test');
+  store.moveTo('ana', 'galley', START + 30 * HOUR, 'measured', 'test');
+  store.moveTo('ben', 'galley', START + 5 * HOUR, 'measured', 'test');
+  const once = new CrewDose(store, profile);
+  once.clock = () => later;
+  const atOnce = once.refresh(later);
+  const sliced = new CrewDose(store, profile);
+  sliced.clock = () => later;
+  const got = await new Promise<Record<string, unknown>>((resolve) => {
+    sliced.onChange = (dose) => resolve(dose);
+    sliced.start();
+  });
+  sliced.stop();
+  assert.deepEqual(got, atOnce);
+  store.close();
+});

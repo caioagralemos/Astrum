@@ -49,7 +49,8 @@ test('compaction copies the database aside, then removes only what the rule woul
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const file = oldDatabase(dir);
   const before = count(file);
-  const report = await compact(file, { port: await freePort(), backup: join(dir, 'copy.sqlite') });
+  // The write-time rule only: the retention tiers have their own tests (core/retention.test.ts).
+  const report = await compact(file, { port: await freePort(), backup: join(dir, 'copy.sqlite'), retention: false });
 
   assert.equal(count(report.backup), before, 'the copy holds every row');
   assert.equal(report.rowsBefore, before);

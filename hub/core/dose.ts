@@ -25,6 +25,8 @@ export const DOSE_RESEND_MS = 5 * 60_000;
 const SAMPLE_MS = 60_000;
 /** The first read goes a day at a time, under the store's limit per read. */
 const CHUNK_MS = 24 * 3600_000;
+/** At start, the history is read in slices this long, one per turn of the event loop, so alerts are never held up by it. */
+export const CATCH_UP_SLICE_MS = 2 * 3600_000;
 
 /** Room radiation rates as held spans, from the mission start, read incrementally. */
 export class RateSpans {
@@ -38,6 +40,20 @@ export class RateSpans {
   constructor(store: Store, from: number) {
     this.store = store;
     this.from = from;
+  }
+
+  /**
+   * Reads one slice of history toward `now` (CATCH_UP_SLICE_MS of rows) and says whether it is caught up.
+   * The spans are the same as at() reading it all at once: slices start on whole minutes from the mission
+   * start, like at()'s days, and a row read twice at a slice edge counts once.
+   */
+  catchUpSlice(now: number): boolean {
+    const t = this.readTo ?? this.from;
+    if (now - t <= CHUNK_MS) return true;
+    const to = t + CATCH_UP_SLICE_MS;
+    for (const row of this.store.sampled(DOSE_SIGNAL, t, to, SAMPLE_MS)) this.add(row);
+    this.readTo = to;
+    return false;
   }
 
   /** Every span up to `now`, the open ones held for at most 10 minutes. A new list each time. */
@@ -106,7 +122,13 @@ export class CrewDose {
   /** Works the doses out once right away (off the caller's path), then every DOSE_EVERY_MS. */
   start(): void {
     this.stop();
-    this.first = setImmediate(() => { this.first = null; this.refresh(this.clock()); });
+    // A long mission's history is read a slice per turn of the event loop first: read at once, it held the loop for seconds.
+    const step = () => {
+      this.first = null;
+      if (this.spans.catchUpSlice(this.clock())) this.refresh(this.clock());
+      else this.first = setImmediate(step);
+    };
+    this.first = setImmediate(step);
     this.timer = setInterval(() => this.refresh(this.clock()), DOSE_EVERY_MS);
   }
 

@@ -4,7 +4,7 @@
 // asleep: engine/activity.ts).
 
 import { answerAlert, seeAlert, stepAlerts, stepEarth } from '../engine/alerts.ts';
-import type { Alert, AlertEvent, EarthMessage, Finding, Unusual } from '../engine/alerts.ts';
+import type { Alert, AlertEvent, DeclaredEvent, EarthMessage, Finding, Unusual } from '../engine/alerts.ts';
 import { occupants } from '../engine/timeline.ts';
 import type { Profile } from '../engine/types.ts';
 import { REAL_WITHIN_MS, decideActivity, settleActivity, sleepersOf } from '../engine/activity.ts';
@@ -41,6 +41,8 @@ export class AlertWatcher {
    * that room and nobody else there: the drill is about one person, wherever the others walk.
    */
   placed: () => { person: string; room: string } | null = () => null;
+  /** Base-wide events a crewmate declared and nobody has ended (core/events.ts). */
+  declared: (now: number) => DeclaredEvent[] = () => [];
   /** Messages to Earth listed by a drill's alerts: they stay marked after the drill ends. */
   private drillEarth = new Set<string>();
   /** Findings raised by a question (a card her signs picked, a crisis), each kept until its time ends. */
@@ -120,6 +122,7 @@ export class AlertWatcher {
       actWithin: this.actWithin,
       cardFor: (signal) => this.cardFor(signal),
       findings: this.allFindings(now),
+      declared: this.declared(now),
     });
     // An alert on a drill's alarm is a drill's, and so is the message to Earth it lists.
     const drillRoom = (a: Alert) => a.reason === 'room-limit' && roomAlarms.some((x) => x.drill && x.room === a.room && x.signal === a.signal && x.limitSource === a.limitSource);
@@ -131,7 +134,13 @@ export class AlertWatcher {
     this.alerts = out.alerts;
     this.earth = stepEarth(this.earth, this.alerts, out.events, now).map((m) => (m.drill || !this.drillEarth.has(m.id) ? m : { ...m, drill: true }));
     for (const id of this.drillEarth) if (!this.earth.some((m) => m.id === id) && !this.alerts.some((a) => a.earthId === id)) this.drillEarth.delete(id);
-    for (const event of out.events) this.onEvent(event);
+    for (const event of out.events) {
+      // The raw rows around an alert are never summarised (core/retention.ts): 2 hours either side.
+      const key = `alert|${event.alert.id}|${event.alert.since}`;
+      if (event.type === 'raised') this.store.holdRaw(key, event.alert.since - 2 * 3600_000, null);
+      if (event.type === 'resolved') this.store.holdRaw(key, event.alert.since - 2 * 3600_000, now + 2 * 3600_000);
+      this.onEvent(event);
+    }
     if (changed) this.hub.setAlerts(this.alerts);
     this.hub.setEarthMessages(this.allEarth(now));
   }

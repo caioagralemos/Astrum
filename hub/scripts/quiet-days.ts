@@ -183,15 +183,19 @@ export function runMission(missionId: string, from: number, days: number, inject
   // As the live hub starts: three days of history, then Okafor's replayed Inspiration4 blood values.
   crew.catchUp(from);
   nasa.catchUp(from);
-  // Speed only: table statistics let SQLite pick the narrower index for this in-memory copy. No row or rule changes.
-  if (process.env.QUIET_ANALYZE !== '0') (store as unknown as { db: { exec(sql: string): void } }).db.exec('ANALYZE');
   hub.ingest(demoBloodRows(loadInspiration4(join(hubDir, 'data-nasa', 'inspiration4')), 'C001', 'okafor',
     [{ timepoint: 'L-3', t: from - 14 * DAY }, { timepoint: 'R+1', t: from - 2 * DAY }]));
 
   const until = from + days * DAY;
   let climbing = false;
+  let dayStarted = Date.now();
   for (let t = from; t <= until; t += STEP_MS) {
     clock = t;
+    if (t > from && (t - from) % DAY === 0) {
+      process.stderr.write(`  ${missionId}: day ${(t - from) / DAY} of ${days} done in ${((Date.now() - dayStarted) / 1000).toFixed(0)} s\n`);
+      dayStarted = Date.now();
+    }
+
     if (inject && !climbing && t >= climb.at && t < climb.until) { climbing = true; nasa.aheadMs += Date.parse(CLIMB_FROM) - nasa.recordTime(subjectRoom!, t); }
     if (inject && climbing && t >= climb.until) { climbing = false; nasa.aheadMs += Date.parse(CALM_FROM) - nasa.recordTime(subjectRoom!, t); }
     if (inject && t >= spo2.at && t <= spo2.until && (t - spo2.at) % MIN === 0) {

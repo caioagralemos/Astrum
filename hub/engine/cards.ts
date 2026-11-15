@@ -307,7 +307,15 @@ export interface CardView {
   steps: string[];
   doNot: string[];
   sources: CardSource[];
+  /**
+   * Her own list of the parts of this card not checked against a source. It does
+   * not mean the card is unapproved: every card a screen gets is approved by her
+   * (`approvedBy`). A screen says "Approved by the medical lead. Parts not checked
+   * against a source: …" when this is not empty.
+   */
   unverified: string[];
+  /** Who approved the card: always the medical lead, since only approved cards are ever shown. */
+  approvedBy: 'medical_lead';
   /** Where the card applies, when she wrote it for one gravity only. */
   appliesIn?: GravityClass[];
   /** 'hub-table' when appliesIn is the hub's reading of her titles (GRAVITY_TABLE), not a field of hers. */
@@ -321,7 +329,7 @@ export function cardView(card: Card, lang: CardLang): CardView | null {
   const view: CardView = {
     id: card.id, lang: l, title: card.title[l], level: card.level, notify: card.notify, messageHouston: card.message_houston,
     steps: card.steps.map((s) => s[l]), doNot: card.do_not.map((s) => s[l]).filter(Boolean),
-    sources: card.sources, unverified: card.unverified,
+    sources: card.sources, unverified: card.unverified, approvedBy: 'medical_lead',
   };
   if (card.applies_in) view.appliesIn = card.applies_in;
   if (card.applies_in_from) view.appliesInFrom = card.applies_in_from;

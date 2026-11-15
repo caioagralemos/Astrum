@@ -24,8 +24,8 @@ import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
-  agreesWithDanger, buildMessages, buildUrgentMessages, buildUserMessage, checkAnswer, dangerCheck, FIXED_TEXTS, parseUrgentLabel, readingLine,
-  readingsBlock, screenInput, URGENT_FORMAT,
+  agreesWithDanger, buildMessages, buildUrgentMessages, buildUserMessage, checkAnswer, dangerCheck, FIXED_TEXTS, isComplaint, modelReadingsBlock, parseUrgentLabel,
+  readingLine, readingsBlock, screenInput, URGENT_FORMAT,
 } from '../engine/prompt.ts';
 import { asksAdviceOrDiagnosis, asksAmountOrTreatment, composeAnswer, evidenceLines, maxHourAverage, namesTreatment } from '../engine/answer.ts';
 import type { Who } from '../engine/answer.ts';
@@ -33,14 +33,20 @@ import { LIMITS } from '../engine/cabin.ts';
 import type { HubAnswer } from '../engine/answer.ts';
 import type { Evidence } from '../engine/evidence.ts';
 import type { ChatMessage, CheckResult, PersonReadings, PromptPassage, Reading, ReadingLabel } from '../engine/prompt.ts';
-import { cardView, pickCard } from '../engine/cards.ts';
-import type { CardLang, CardView, Facts, ParsedCards } from '../engine/cards.ts';
+import { NO_CARD_FITS, cardView, pickCard } from '../engine/cards.ts';
+import type { CardLang, CardView, Facts, ParsedCards, Picked } from '../engine/cards.ts';
 import { search } from '../engine/search.ts';
 import { CARD_FINDING_KEEP_MS, FOLLOW_UP_QUESTION, FOLLOW_UP_SIGNAL, cardFinding } from '../engine/medical.ts';
 import type { LevelOverride } from '../engine/medical.ts';
 import { askFirstFinding, pickWithFollowUp } from '../engine/followup.ts';
 import type { AskFirst, FollowUpRow, Given } from '../engine/followup.ts';
 import { t } from '../engine/strings.ts';
+import {
+  MAX_HISTORY, REMARK_NEXT, YES_NO, conversationText, earlierLine, interpretReply, looksLikeReply, offerText, parseHistory, previousFromHistory, remarkKind,
+  remarkReply, remarkTopic, resolveFollowUp, smallTalkKind, smallTalkReply, standaloneQuestion, topicOf, topicOptions, TOPICS,
+} from '../engine/conversation.ts';
+import type { CrewName, HistoryItem, Pending, Previous, Remark, SmallTalk, Thread, Threads, Topic } from '../engine/conversation.ts';
+import { answerSignal } from '../engine/cards.ts';
 import type { Finding } from '../engine/alerts.ts';
 import type { SearchIndex } from '../engine/search.ts';
 
@@ -595,6 +601,25 @@ export interface AskContext {
   quartersOf?: (id: string) => string | null;
   /** Current readings against NASA's limits in one room, for the room the evidence card points to. */
   roomReadings?: (room: string) => Extract<Reading, { type: 'limit' }>[];
+  /** Each crewmate's conversation (engine/conversation.ts). Unset: every question stands alone, as before. */
+  threads?: Threads;
+  /** The crew, to know who "what about Leo?" means. */
+  crew?: () => CrewName[];
+  /**
+   * Stores a reply to one of her questions as a reported check-in answer, the
+   * same row POST /api/checkin makes (engine/checkin.ts). True when stored.
+   */
+  storeCheckin?: (person: string, answer: { signal: string; value: number | null; text: string | null; unit?: string }) => boolean;
+}
+
+/** A question Astra asked and waits on: her follow-up and card questions, "Did it get better?", or "which one?". */
+export interface PendingQuestion {
+  purpose: Pending['purpose'];
+  kind: Pending['kind'];
+  text: string;
+  /** The answers a screen may offer as buttons; typed words are read against them too. */
+  options: { value: string; label: string }[];
+  unit?: string;
 }
 
 export interface AskPassage {
@@ -623,7 +648,7 @@ export interface AskResult {
   by: 'model' | 'hub' | 'fixed';
   /** English. For fixed text, `key` names it in the string table. */
   text: string;
-  key: keyof typeof FIXED_TEXTS | 'ai.urgentNoCard' | null;
+  key: keyof typeof FIXED_TEXTS | 'ai.urgentNoCard' | 'ai.conversation' | null;
   /** The cited passage, when the answer cites one. */
   source: string | null;
   /** Every passage sent to the model (or that would have been), with its source. */
@@ -653,11 +678,36 @@ export interface AskResult {
    * first of them, the same way it carries "Did it get better?".
    */
   askFirst?: { card: string; intro: { en: string; pt: string }; questions: { signal: string; kind: 'yes_no' | 'value'; unit?: string; en: string; pt: string }[] };
+  /** The complete question the hub made of a message that leaned on the one before ("and yesterday?"), shown under the reply. */
+  understoodAs?: string;
+  /** A question Astra asks back and waits on. The next message is read against it first. */
+  pendingQuestion?: PendingQuestion;
+  /** Set when the message was small talk, answered by the hub's own sentence. */
+  smallTalk?: SmallTalk;
+  /** Set when the message was a remark on the previous answer, answered by the hub's own sentence (a plain bubble). */
+  remark?: Remark;
+  /**
+   * Why the reply reads as it does, for a screen's "About this answer":
+   * model (the model's text, checked), setAside (the model's text failed the checks; the hub's facts instead),
+   * hub (the hub's facts; no model text), smallTalk, remark, conversation (a reply to Astra's question),
+   * fixed (a fixed text), card, crisis, unavailable, fallback.
+   */
+  reason?: 'model' | 'setAside' | 'hub' | 'smallTalk' | 'remark' | 'conversation' | 'fixed' | 'card' | 'crisis' | 'unavailable' | 'fallback';
 }
 
-/** Shown when a message is urgent and none of the medical lead's approved cards fits: the checklist, a person, Houston. */
+/** The reason a screen shows under a reply. Never "set aside" unless a model answer was in fact set aside. */
+export function replyReason(r: AskResult): NonNullable<AskResult['reason']> {
+  if (r.smallTalk) return 'smallTalk';
+  if (r.remark) return 'remark';
+  if (r.key === 'ai.conversation') return 'conversation';
+  if (r.route !== 'answer') return r.route;
+  if (r.by === 'model') return 'model';
+  return r.check?.discarded ? 'setAside' : 'hub';
+}
+
+/** Shown when a message is urgent and none of the medical lead's approved cards fits: the checklist, a person, Earth. */
 export const URGENT_NO_CARD =
-  "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Houston.";
+  "No steps card fits this, and I won't guess a treatment. Use your onboard emergency checklist, call your Crew Medical Officer now, and message Earth.";
 
 function send(res: ServerResponse, status: number, body: unknown): true {
   res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
@@ -686,8 +736,10 @@ export async function handleAsk(req: IncomingMessage, res: ServerResponse, url: 
   if (url.pathname !== '/api/ask') return false;
   if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
 
-  const b = (await readJson(req)) as { person?: unknown; about?: unknown; question?: unknown; lang?: unknown } | undefined;
-  if (!b || typeof b !== 'object') return send(res, 400, { error: 'body must be JSON: { person, question, about?, lang? }' });
+  const b = (await readJson(req)) as { person?: unknown; about?: unknown; question?: unknown; lang?: unknown; history?: unknown } | undefined;
+  if (!b || typeof b !== 'object') return send(res, 400, { error: 'body must be JSON: { person, question, about?, lang?, history? }' });
+  const history = parseHistory(b.history);
+  if (history === null) return send(res, 400, { error: `history must be a list of at most ${MAX_HISTORY} { question, route?, card?, understoodAs? }, each text at most 600 characters` });
   if (b.about !== undefined && (typeof b.about !== 'string' || !b.about)) return send(res, 400, { error: 'about must be a crewmate id' });
   if (typeof b.person !== 'string' || !b.person) return send(res, 400, { error: 'needs a person' });
   if (typeof b.question !== 'string') return send(res, 400, { error: 'needs a question' });
@@ -695,11 +747,12 @@ export async function handleAsk(req: IncomingMessage, res: ServerResponse, url: 
   const out = stream(res);
   const abort = new AbortController();
   res.once('close', () => { if (!res.writableFinished) abort.abort(); });
-  const result = await askQuestion(ctx, { person: b.person, about: b.about as string | undefined, question: b.question, lang: b.lang === 'pt' ? 'pt' : 'en' }, {
+  const result = await askInConversation(ctx, { person: b.person, about: b.about as string | undefined, question: b.question, lang: b.lang === 'pt' ? 'pt' : 'en', history }, {
     onEvent: (e) => out.line(e), signal: abort.signal,
   });
   if (result === null) return out.end(null);
   if ('error' in result) return out.end(result, 404);
+  result.reason = replyReason(result);
   return out.end(result);
 }
 
@@ -712,6 +765,8 @@ export interface AskOptions {
   onRaw?: (raw: { answer: string; urgent: 'URGENT' | 'ROUTINE' | null }) => void;
   /** For the eval only: the passages to send instead of the search's. */
   passages?: AskPassage[];
+  /** Hub-written lines about the conversation so far (askInConversation), for the model's message. */
+  earlier?: string[];
 }
 
 /**
@@ -724,21 +779,13 @@ export async function askQuestion(
 ): Promise<AskResult | { error: string } | null> {
   const result = await answerQuestion(ctx, q, opts);
   if (!result || 'error' in result || result.route === 'crisis') return result;
+  // A message that asks nothing: no card is looked for, nothing is raised, nothing is asked back.
+  if (result.key === 'ai.greeting') return result;
   const about = q.about ?? q.person;
-  const cards = ctx.cards().cards;
-  const given = ctx.followUpAnswers?.(about) ?? {};
-  const { picked, askFirst } = pickWithFollowUp(cards, { ...ctx.facts(about), text: q.question }, ctx.gravity ?? null, ctx.followUps?.() ?? [], given);
-  const overrides = ctx.levelOverrides?.() ?? [];
-  const finding = cardFinding(picked, about, cards, 'reported', overrides);
-  const raise = (f: Finding) => { try { ctx.onFinding?.(f, CARD_FINDING_KEEP_MS); } catch { /* the hub's side failed; the answer still goes out */ } };
-  if (finding) raise(finding);
+  const { picked, askFirst, finding } = applyHerRules(ctx, about, q.question);
   const out: AskResult = { ...result };
   if (picked?.otherGravity) out.otherGravity = picked.otherGravity;
   if (askFirst) {
-    // Only a lone symptom: nothing is raised for this card until a rule of hers is met by the answers.
-    try { ctx.onAskFirst?.(about, askFirst); } catch { /* the hub's side failed; the answer still goes out */ }
-    const ruled = askFirstFinding(askFirst, about);
-    if (ruled) raise(ruled);
     const questions = askFirst.questions.map((x) => {
       const one: NonNullable<AskResult['askFirst']>['questions'][number] = { signal: x.signal, kind: x.kind, en: t(x.stringKey, 'en'), pt: t(x.stringKey, 'pt') };
       if (x.unit) one.unit = x.unit;
@@ -746,8 +793,291 @@ export async function askQuestion(
     });
     out.askFirst = { card: askFirst.card, intro: { en: t('followup.intro', 'en'), pt: t('followup.intro', 'pt') }, questions };
     if (questions[0]) out.followUp = { question: q.lang === 'pt' ? questions[0].pt : questions[0].en, signal: questions[0].signal };
-  } else if (!finding) out.followUp = { question: FOLLOW_UP_QUESTION, signal: FOLLOW_UP_SIGNAL };
+  } else if (!finding && (isComplaint(q.question) || result.route === 'card')) {
+    // Her rule f: "Did it get better?" follows a real complaint that no card of hers fits; never a plain question or a greeting.
+    out.followUp = { question: FOLLOW_UP_QUESTION, signal: FOLLOW_UP_SIGNAL };
+  }
   return out;
+}
+
+/**
+ * One message in a crewmate's conversation with Astra (tracker item 533). The
+ * hub keeps the thread (engine/conversation.ts Threads: per person asking, 30
+ * minutes of quiet); a screen's `history` only stands in for the topic when the
+ * hub has none (after a restart), and its words go nowhere. In this order:
+ *   1. a crisis phrase in this message or anywhere in the history: the crisis path, at once;
+ *   2. a reply to the question Astra asked: stored as her check-in answer, then her rules
+ *      give the next question, the card or the level; an unclear reply gets the question again;
+ *   3. small talk: the hub's own sentence;
+ *   4. a message that leans on the one before: the hub makes a complete question of it
+ *      (or asks which one it means), then
+ *   5. the single-question pipeline (askQuestion), with every screen and check.
+ * Without ctx.threads every message stands alone, as before.
+ */
+export async function askInConversation(
+  ctx: AskContext, q: { person: string; question: string; lang: CardLang; about?: string; history?: HistoryItem[] }, opts: AskOptions = {},
+): Promise<AskResult | { error: string } | null> {
+  const threads = ctx.threads;
+  if (!threads) return askQuestion(ctx, q, opts);
+  const started = Date.now();
+  const { person, lang } = q;
+  const thread = threads.get(person, started);
+  thread.turn++;
+  const save = () => threads.save(person, thread, Date.now());
+  const crew = ctx.crew?.() ?? [];
+
+  // 1. A crisis anywhere in the conversation goes to a person, now. The words are never repeated.
+  const crisisText = [q.question, ...(q.history ?? []).map((h) => h.question)].find((x) => screenInput(x).route === 'crisis');
+  if (crisisText !== undefined) {
+    thread.pending = null;
+    thread.previous = null;
+    save();
+    return askQuestion(ctx, { person, question: crisisText, lang }, opts);
+  }
+  if (!ctx.readingsFor(q.about ?? person)) return { error: 'unknown person' };
+
+  const fixed = (text: string, extra: Partial<AskResult> = {}): AskResult => ({
+    type: 'result', route: 'fixed', by: 'fixed', text, key: 'ai.conversation', source: null, passages: [], readings: [], card: null,
+    urgent: false, check: null, facts: null, ms: Date.now() - started, ...extra,
+  });
+
+  // 2. A reply to the question Astra asked.
+  const pending = thread.pending;
+  if (pending) {
+    const reply = interpretReply(q.question, pending);
+    if (reply) {
+      thread.pending = null;
+      const out = await answerPending(ctx, thread, pending, reply, q, opts, fixed);
+      save();
+      return out;
+    }
+    if (looksLikeReply(q.question) && pending.asked < 3 && !remarkKind(q.question)) {
+      pending.asked++;
+      save();
+      const view = pendingView(pending, lang);
+      return fixed(conversationText('again', lang, { question: view.text }), { pendingQuestion: view });
+    }
+    thread.pending = null; // a new message: the question is dropped
+  }
+
+  // 3. Small talk.
+  const kind = smallTalkKind(q.question);
+  if (kind && screenInput(q.question).route !== 'card') {
+    save();
+    return fixed(smallTalkReply(kind, lang, thread.turn - 1), { key: 'ai.greeting', smallTalk: kind });
+  }
+
+  // 4. A remark on the previous answer ("I really did sense something weird", "that makes sense"): the hub's own sentence, then one honest next step.
+  const remark = screenInput(q.question).route === 'model' ? remarkKind(q.question) : null;
+  if (remark) {
+    const out = answerRemark(ctx, thread, remark, q, crew, fixed);
+    save();
+    return out;
+  }
+
+  // 5. A message that leans on the one before.
+  const previous = thread.previous ?? previousFromHistory(q.history ?? [], crew, person);
+  const about0 = q.about ?? previous?.topic.about ?? person;
+  const candidates = topicsInReadings(ctx, about0);
+  const resolved = screenInput(q.question).route === 'model' ? resolveFollowUp(q.question, previous, crew, person, lang, candidates) : { kind: 'standalone' as const };
+  if (resolved.kind === 'clarify') {
+    thread.pending = {
+      purpose: 'clarify', kind: 'choice', text: { en: resolved.text, pt: resolved.text }, options: topicOptions(resolved.options), about: about0,
+      shape: resolved.base, topic: { signals: resolved.options, about: about0, window: topicOf(q.question, crew, person, about0).window }, asked: 1,
+    };
+    save();
+    return fixed(resolved.text, { pendingQuestion: pendingView(thread.pending, lang) });
+  }
+  const question = resolved.kind === 'rewritten' ? resolved.question : q.question;
+  const about = resolved.kind === 'rewritten' ? resolved.topic.about : q.about ?? person;
+  const out = await runQuestion(ctx, thread, { person, about, question, lang }, opts, previous, resolved.kind === 'rewritten' ? resolved.topic : null);
+  save();
+  if (out && !('error' in out) && resolved.kind === 'rewritten') out.understoodAs = question;
+  return out;
+}
+
+/**
+ * A remark: one sentence that acknowledges it, in relation to the previous
+ * topic, then ONE next step, by what exists: her questions for the previous
+ * complaint (follow-up.json, else the card her signs pick); for something they
+ * noticed, an offer to save it as a check-in note (typed text reaches only its
+ * author: engine/privacy.ts); else an offer of what the hub can show about the
+ * previous topic. No model, no facts, nothing raised.
+ */
+function answerRemark(
+  ctx: AskContext, thread: Thread, remark: Remark, q: { person: string; question: string; lang: CardLang; about?: string; history?: HistoryItem[] },
+  crew: CrewName[], fixed: (text: string, extra?: Partial<AskResult>) => AskResult,
+): AskResult {
+  const { person, lang } = q;
+  const last = q.history?.[q.history.length - 1];
+  // The previous message's words are read by rule here only; they are never sent anywhere.
+  const prevText = thread.previous?.question ?? (last ? last.understoodAs ?? last.question : null);
+  const plainReply = (text: string, extra: Partial<AskResult> = {}) => fixed(text, { key: 'ai.greeting', remark, ...extra });
+  if (!prevText) return plainReply(REMARK_NEXT.noTopic[lang]);
+  const about = q.about ?? thread.previous?.topic.about ?? person;
+  const signals = thread.previous?.topic.signals.length ? thread.previous.topic.signals : topicOf(prevText, crew, person, about).signals;
+  const lead = remarkReply(remark, lang, thread.turn - 1, remarkTopic(prevText, signals, lang));
+  const ask = (next: Pending, extra: Partial<AskResult> = {}) => {
+    thread.pending = next;
+    const view = pendingView(next, lang);
+    return plainReply(`${lead} ${view.text}`, { pendingQuestion: view, ...extra });
+  };
+
+  // (a) Her questions for the complaint before: picked by her rules, nothing raised.
+  if (isComplaint(prevText)) {
+    const cards = ctx.cards().cards;
+    const given = ctx.followUpAnswers?.(about) ?? {};
+    const { picked, askFirst } = pickWithFollowUp(cards, { ...ctx.facts(about), text: prevText }, ctx.gravity ?? null, ctx.followUps?.() ?? [], given);
+    const first = askFirst?.questions[0];
+    if (first) {
+      const next: Pending = { purpose: 'askFirst', kind: first.kind, signal: first.signal, text: { en: t(first.stringKey, 'en'), pt: t(first.stringKey, 'pt') }, options: first.kind === 'yes_no' ? YES_NO : [], about, complaint: prevText, asked: 1 };
+      if (first.unit) next.unit = first.unit;
+      return ask(next);
+    }
+    const card = picked && !picked.fallback && picked.card.id !== NO_CARD_FITS ? picked.card : null;
+    const cq = card ? cardQuestion(ctx, card.id, about, prevText) : null;
+    if (cq) return ask(cq);
+  }
+  // (c) Something they noticed: save it as their own check-in note, if the hub can store it.
+  if (remark === 'noticed' && ctx.storeCheckin && about === person) {
+    return ask({ purpose: 'note', kind: 'yes_no', signal: NOTE_SIGNAL, text: { en: REMARK_NEXT.note.en, pt: REMARK_NEXT.note.pt }, options: YES_NO, about: person, note: q.question.slice(0, 600), asked: 1 });
+  }
+  // (b) What the hub can show about the previous topic: its own signals, else the person's sleep and air.
+  const have = topicsInReadings(ctx, about);
+  const options = (signals.length ? signals.filter((s) => have.includes(s)) : ['sleep', 'co2'].filter((s) => have.includes(s))).slice(0, 3);
+  if (options.length) {
+    return ask({ purpose: 'clarify', kind: 'choice', text: { en: offerText(options, 'en'), pt: offerText(options, 'pt') }, options: topicOptions(options), about, shape: 'how', topic: { signals: options, about, window: null }, asked: 1 });
+  }
+  return plainReply(`${lead} ${REMARK_NEXT.noTopic[lang]}`);
+}
+
+/** The check-in signal a saved remark goes to (stored as "checkin.note"; its words reach only its author). */
+const NOTE_SIGNAL = 'note';
+
+/** The single-question pipeline for one turn, then what the thread keeps: the topic, and the question Astra asks back. */
+async function runQuestion(
+  ctx: AskContext, thread: Thread, q: { person: string; about: string; question: string; lang: CardLang }, opts: AskOptions,
+  previous: Previous | null, topic: Topic | null,
+): Promise<AskResult | { error: string } | null> {
+  const crew = ctx.crew?.() ?? [];
+  const result = await askQuestion(ctx, { person: q.person, about: q.about === q.person ? undefined : q.about, question: q.question, lang: q.lang }, { ...opts, earlier: earlierLine(previous) });
+  if (!result || 'error' in result) return result;
+  if (result.route === 'crisis') { thread.previous = null; thread.pending = null; return result; }
+  if (result.key === 'ai.greeting') return result;
+  const complaint = isComplaint(q.question);
+  thread.previous = { question: q.question, topic: topic ?? topicOf(q.question, crew, q.person, q.about), complaint };
+  // What she asks back: her follow-up questions first, then a card's own yes/no questions, then "Did it get better?".
+  let next: Pending | null = null;
+  const first = result.askFirst?.questions[0];
+  if (result.askFirst && first) {
+    next = { purpose: 'askFirst', kind: first.kind, signal: first.signal, text: { en: first.en, pt: first.pt }, options: first.kind === 'yes_no' ? YES_NO : [], about: q.about, complaint: q.question, asked: 1 };
+    if (first.unit) next.unit = first.unit;
+  } else if (result.card && result.card.id !== NO_CARD_FITS && complaint) {
+    next = cardQuestion(ctx, result.card.id, q.about, q.question);
+  } else if (result.followUp?.signal === FOLLOW_UP_SIGNAL) {
+    next = { purpose: 'better', kind: 'yes_no', signal: FOLLOW_UP_SIGNAL, text: { en: FOLLOW_UP_QUESTION, pt: BETTER_PT }, options: YES_NO, about: q.about, complaint: q.question, asked: 1 };
+  }
+  thread.pending = next;
+  if (next) result.pendingQuestion = pendingView(next, q.lang);
+  return result;
+}
+
+/** Her "Did it get better?" (engine/medical.ts FOLLOW_UP_QUESTION) in Portuguese. */
+const BETTER_PT = 'Melhorou?';
+
+/** The first of a card's own yes/no questions not yet answered in the last hour, as the hub asks it. Null when none is left. */
+function cardQuestion(ctx: AskContext, cardId: string, about: string, complaint: string): Pending | null {
+  const card = ctx.cards().cards.find((c) => c.id === cardId);
+  const answered = new Set(ctx.facts(about).answers.map((a) => a.question));
+  const sign = card?.signs.answers.find((a) => (a.answer === 'yes' || a.answer === 'no') && !answered.has(a.question));
+  if (!sign) return null;
+  // Her card questions are written in English only; both languages show her words.
+  return { purpose: 'card', kind: 'yes_no', signal: answerSignal(sign.question), text: { en: sign.question, pt: sign.question }, options: YES_NO, about, complaint, asked: 1 };
+}
+
+/** A reply to her question: stored as her check-in answer, then her rules on the complaint again (no model). */
+async function answerPending(
+  ctx: AskContext, thread: Thread, pending: Pending, reply: { value: number | null; text: string | null; option?: string },
+  q: { person: string; question: string; lang: CardLang }, opts: AskOptions, fixed: (text: string, extra?: Partial<AskResult>) => AskResult,
+): Promise<AskResult | { error: string } | null> {
+  const lang = q.lang;
+  const crew = ctx.crew?.() ?? [];
+  if (pending.purpose === 'clarify') {
+    const topic = { ...(pending.topic ?? { about: pending.about, window: null, signals: [] }), signals: [reply.option!] };
+    const question = standaloneQuestion(pending.shape ?? 'how', reply.option!, topic, q.person, crew, lang);
+    const out = await runQuestion(ctx, thread, { person: q.person, about: topic.about, question, lang }, opts, thread.previous, topic);
+    if (out && !('error' in out)) out.understoodAs = question;
+    return out;
+  }
+  if (pending.purpose === 'note') {
+    if (reply.value !== 1 || !pending.note) return fixed(REMARK_NEXT.notSaved[lang]);
+    let ok = false;
+    try { ok = ctx.storeCheckin?.(pending.about, { signal: NOTE_SIGNAL, value: null, text: pending.note }) ?? false; } catch { /* the hub's side failed */ }
+    return fixed(ok ? REMARK_NEXT.saved[lang] : REMARK_NEXT.notSaved[lang]);
+  }
+  if (pending.signal) {
+    try { ctx.storeCheckin?.(pending.about, { signal: pending.signal, value: reply.value, text: reply.text, ...(pending.unit ? { unit: pending.unit } : {}) }); } catch { /* the hub's side failed; the conversation goes on */ }
+  }
+  if (pending.purpose === 'better') return fixed(conversationText(reply.value === 0 ? 'betterNo' : 'betterYes', lang));
+  // Her rules again on the complaint, with the answer just given.
+  const { picked, askFirst } = applyHerRules(ctx, pending.about, pending.complaint ?? '');
+  const cards = ctx.cards().cards;
+  if (pending.purpose === 'askFirst' && askFirst) {
+    const nextQ = askFirst.questions[0];
+    if (nextQ) {
+      const next: Pending = { purpose: 'askFirst', kind: nextQ.kind, signal: nextQ.signal, text: { en: t(nextQ.stringKey, 'en'), pt: t(nextQ.stringKey, 'pt') }, options: nextQ.kind === 'yes_no' ? YES_NO : [], about: pending.about, complaint: pending.complaint, asked: 1 };
+      if (nextQ.unit) next.unit = nextQ.unit;
+      thread.pending = next;
+      const view = pendingView(next, lang);
+      return fixed(conversationText('next', lang, { question: view.text }), { pendingQuestion: view });
+    }
+    const card = cards.find((c) => c.id === askFirst.card);
+    return fixed(conversationText(askFirst.rule ? 'notedCard' : 'notedNoRule', lang), { card: card ? cardView(card, lang) : null });
+  }
+  // A card's own question: the card her signs now pick (its level may have changed with the answer), and its next question.
+  const card = picked && !picked.fallback ? picked.card : null;
+  const next = card && pending.purpose === 'card' ? cardQuestion(ctx, card.id, pending.about, pending.complaint ?? '') : null;
+  thread.pending = next;
+  const view = next ? pendingView(next, lang) : undefined;
+  return fixed(view ? conversationText('next', lang, { question: view.text }) : conversationText(card ? 'notedCard' : 'noted', lang), {
+    card: card ? cardView(card, lang) : null, ...(view ? { pendingQuestion: view } : {}),
+  });
+}
+
+/** A waiting question as a screen shows it, in one language. */
+function pendingView(p: Pending, lang: CardLang): PendingQuestion {
+  const view: PendingQuestion = { purpose: p.purpose, kind: p.kind, text: p.text[lang], options: p.options.map((o) => ({ value: o.value, label: o.label[lang] })) };
+  if (p.unit) view.unit = p.unit;
+  return view;
+}
+
+/** The hub's topics among a person's readings, for "Do you mean …?" when nothing earlier says what "that" is. */
+function topicsInReadings(ctx: AskContext, about: string): string[] {
+  const readings = ctx.readingsFor(about)?.readings ?? [];
+  const names = readings.map((r) => (r.type === 'note' ? '' : r.name));
+  return TOPICS.filter((topic) => names.some((n) => topic.re.test(n))).map((topic) => topic.id);
+}
+
+/**
+ * Her rules on what a person typed, with the answers they have given: the card
+ * her signs pick raises the alert its level gives; a card picked only by her
+ * lone-symptom words waits for her questions (raised only once a rule of hers
+ * is met by the answers). No model.
+ */
+function applyHerRules(ctx: AskContext, about: string, text: string): { picked: Picked | null; askFirst: AskFirst | null; finding: Finding | null } {
+  const cards = ctx.cards().cards;
+  const given = ctx.followUpAnswers?.(about) ?? {};
+  const { picked, askFirst } = pickWithFollowUp(cards, { ...ctx.facts(about), text }, ctx.gravity ?? null, ctx.followUps?.() ?? [], given);
+  const finding = cardFinding(picked, about, cards, 'reported', ctx.levelOverrides?.() ?? []);
+  const raise = (f: Finding) => { try { ctx.onFinding?.(f, CARD_FINDING_KEEP_MS); } catch { /* the hub's side failed; the answer still goes out */ } };
+  if (finding) raise(finding);
+  if (askFirst) {
+    // Only a lone symptom: nothing is raised for this card until a rule of hers is met by the answers.
+    try { ctx.onAskFirst?.(about, askFirst); } catch { /* the hub's side failed; the answer still goes out */ }
+    const ruled = askFirstFinding(askFirst, about);
+    if (ruled) raise(ruled);
+  }
+  return { picked, askFirst, finding };
 }
 
 /**
@@ -798,9 +1128,11 @@ async function answerQuestion(
   }
 
   const base = { type: 'result' as const, source: null, passages, readings: readingList, check: null, facts: null };
-  const viewOf = (text?: string) => {
+  const viewOf = (text?: string, noCardFits = true) => {
     // As askQuestion picks: a card picked only by her lone-symptom words gives way to another card that fits, else it is shown (its steps are hers) with no level.
     const { picked, askFirst } = pickWithFollowUp(cards, { ...facts, text }, gravity, ctx.followUps?.() ?? []);
+    // Her "no card fits" card only where a rule asked for one (an urgent word, or a complaint the urgent check marked); never for a plain question.
+    if (picked?.fallback && !noCardFits) return null;
     const card = picked?.card ?? cards.find((c) => c.id === askFirst?.card) ?? null;
     return card ? cardView(card, lang) : null;
   };
@@ -841,6 +1173,8 @@ async function answerQuestion(
   };
 
   if (screen.route === 'fixed') {
+    // A greeting gets who Astra is and nothing else: no readings, no passages, no facts.
+    if (screen.reason === 'greeting') return { ...base, passages: [], readings: [], route: 'fixed', by: 'fixed', text: FIXED_TEXTS[screen.key], key: screen.key, card: null, urgent: false, ms: Date.now() - started };
     return { ...withFacts, route: 'fixed', by: 'fixed', text: FIXED_TEXTS[screen.key], key: screen.key, card: null, urgent: false, ms: Date.now() - started };
   }
   if (ctx.ai.state !== 'ready') {
@@ -851,6 +1185,7 @@ async function answerQuestion(
     readings, detectorLine: detector, passages: passages.map((p): PromptPassage => ({ name: p.name, text: p.text })), question,
     evidence: evidence ? evidenceLines(evidence, readings.name, roomName) : [],
     asker: { ...who, askerName: ctx.personName?.(person) ?? person },
+    earlier: opts.earlier ?? [],
   };
   // Was any 1-hour average over NASA's CO2 limit? Only the evidence card can say; without its field, no.
   const longest = evidence ? [...evidence.whereBeen.windows].sort((a, b) => b.ms - a.ms)[0] : undefined;
@@ -858,7 +1193,8 @@ async function answerQuestion(
   const co2Limit = LIMITS.find((l) => l.signal === 'co2')?.max ?? Infinity;
   const hourOverLimit = maxHour !== null && maxHour > co2Limit;
   const message = buildUserMessage(prompt);
-  const factsAll = [readingsBlock(readings, detector, prompt.evidence) ?? '', ...prompt.passages.map((p) => p.text)].join('\n');
+  // The facts exactly as the model saw them: the only places a number may come from.
+  const factsAll = [modelReadingsBlock(readings, detector, prompt.evidence) ?? '', ...prompt.passages.map((p) => p.text)].join('\n');
   const signal = opts.signal ?? new AbortController().signal;
   const emit = opts.onEvent ?? (() => {});
   let timings: ChatTimings | null = null;
@@ -894,8 +1230,11 @@ async function answerQuestion(
     }, (position) => emit({ type: 'status', state: 'queued', position }), () => signal.aborted);
     opts.onRaw?.({ answer: result.answer.text, urgent: result.label });
 
-    const urgent = result.label === 'URGENT';
-    const card = urgent ? viewOf(question) : null;
+    // The urgent check can only add urgency, and only to what was typed: a reading alone never marks a message urgent
+    // or brings her "no card fits" card. A card her rules pick for this person is shown either way it was asked for.
+    const complaint = isComplaint(question);
+    const card = result.label === 'URGENT' ? viewOf(question, complaint) : null;
+    const urgent = result.label === 'URGENT' && (complaint || card !== null);
     if (result.answer.error) {
       // A slow or failed answer never takes the runtime down; it only makes the watcher look now.
       if (!signal.aborted) void ctx.ai.checkNow();
@@ -904,7 +1243,7 @@ async function answerQuestion(
     }
     const checked = checkAnswer({
       answer: result.answer.text, passageNames: prompt.passages.map((p) => p.name), facts: factsAll, message,
-      subject: { name: who.name, pronouns: who.pronouns, self: who.self }, hourOverLimit,
+      subject: { name: who.name, pronouns: who.pronouns, self: who.self }, hourOverLimit, readings: readings.readings,
     });
     // A danger question: the hub's under/over verdict decides, and a model answer that disagrees, or doesn't answer, goes.
     if (danger && (checked.by !== 'model' || !agreesWithDanger(checked.text, danger))) {

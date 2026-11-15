@@ -156,6 +156,10 @@ export const ANSWER_STRINGS = {
     en: "The 1-hour average, which is what NASA's limit of {limit} mmHg applies to, stayed under it throughout; the highest was {max} mmHg.",
     pt: 'A média de 1 hora, que é a que o limite da NASA de {limit} mmHg considera, ficou abaixo dele o tempo todo; a mais alta foi {max} mmHg.',
   },
+  'answer.exposure.aboveHourUnder': {
+    en: "In the same {hours} hours {you} spent {spent} hours with single CO2 readings above {level} mmHg, but the 1-hour average, which is what NASA's limit of {limit} mmHg applies to, stayed under it; the highest was {max} mmHg.",
+    pt: 'Nas mesmas {hours} horas {voce} passou {spent} horas com leituras isoladas de CO2 acima de {level} mmHg, mas a média de 1 hora, que é a que o limite da NASA de {limit} mmHg considera, ficou abaixo dele; a mais alta foi {max} mmHg.',
+  },
   'answer.exposure.hourOver': {
     en: "The highest 1-hour average was {max} mmHg, above NASA's limit of {limit} mmHg.",
     pt: 'A média de 1 hora mais alta foi {max} mmHg, acima do limite da NASA de {limit} mmHg.',
@@ -195,6 +199,18 @@ export const ANSWER_STRINGS = {
   'answer.points.sensor': {
     en: "This points to the sensor: the room's reading may not be right.",
     pt: 'Isso aponta para o sensor: a leitura do ambiente pode não estar certa.',
+  },
+  'answer.lead.room': {
+    en: 'From what the hub can see, this points to the room ({room}), not to {them}.',
+    pt: 'Pelo que o hub vê, isso aponta para o ambiente ({room}), não para {voce}.',
+  },
+  'answer.lead.person': {
+    en: 'From what the hub can see, this points to {them}, not to the room.',
+    pt: 'Pelo que o hub vê, isso aponta para {voce}, não para o ambiente.',
+  },
+  'answer.lead.sensor': {
+    en: "From what the hub can see, this points to the sensor: the room's reading may not be right.",
+    pt: 'Pelo que o hub vê, isso aponta para o sensor: a leitura do ambiente pode não estar certa.',
   },
   'answer.points.unknown': {
     en: 'The readings do not point anywhere yet.',
@@ -401,6 +417,16 @@ export function maxHourAverage(person: object | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
+/** Signals whose values are minutes (sleep duration). */
+const DURATION = /sleep|duration/i;
+
+/** Minutes the way a person reads them: "7 h 29 min", "45 min". The one formatter for every duration fact. */
+export function durationText(minutes: number): string {
+  const m = Math.round(minutes);
+  const h = Math.floor(m / 60);
+  return h ? `${h} h ${m % 60} min` : `${m} min`;
+}
+
 /** The evidence card's facts, as sentences. */
 function evidenceItems(e: Evidence, readings: PersonReadings | null, roomName: (id: string) => string, personName: (id: string) => string): FactItem[] {
   const items: FactItem[] = [];
@@ -411,7 +437,8 @@ function evidenceItems(e: Evidence, readings: PersonReadings | null, roomName: (
     if (label) items.push({ key: 'answer.unusual.none', vars: {}, label });
   }
   for (const s of e.unusual.signals) {
-    items.push({ key: 'answer.unusual.signal', vars: { signal: s.signal.replace(/_/g, ' '), recent: round1(s.recent), usual: round1(s.usual) }, label: s.kind });
+    const minutes = DURATION.test(s.signal);
+    items.push({ key: 'answer.unusual.signal', vars: { signal: s.signal.replace(/_/g, ' '), recent: minutes ? durationText(s.recent) : round1(s.recent), usual: minutes ? durationText(s.usual) : round1(s.usual) }, label: s.kind });
   }
   // 2. The same room.
   for (const r of e.reasons) {
@@ -443,9 +470,14 @@ function evidenceItems(e: Evidence, readings: PersonReadings | null, roomName: (
     const overLimit = at(me, LEVEL_LIMIT);
     if (overLimit > 0) {
       // Single readings above 3 mmHg are not time "above the limit": NASA's limit is a 1-hour average.
-      items.push({ key: 'answer.exposure.above', vars: { hours: hours(long.ms), spent: hours(overLimit), level: LEVEL_LIMIT }, ...exposureLabels(me.kind, me.stayKind) });
       const max = maxHourAverage(me);
-      if (max !== null) {
+      // Single readings above the level and a 1-hour average under the limit: one sentence, both facts.
+      if (max !== null && max <= LEVEL_LIMIT) {
+        items.push({ key: 'answer.exposure.aboveHourUnder', vars: { hours: hours(long.ms), spent: hours(overLimit), level: LEVEL_LIMIT, max: round1(max), limit: LEVEL_LIMIT }, ...exposureLabels(me.kind, me.stayKind) });
+      } else {
+        items.push({ key: 'answer.exposure.above', vars: { hours: hours(long.ms), spent: hours(overLimit), level: LEVEL_LIMIT }, ...exposureLabels(me.kind, me.stayKind) });
+      }
+      if (max !== null && max > LEVEL_LIMIT) {
         items.push({ key: max > LEVEL_LIMIT ? 'answer.exposure.hourOver' : 'answer.exposure.hourUnder', vars: { max: round1(max), limit: LEVEL_LIMIT }, ...exposureLabels(me.kind, me.stayKind) });
       }
     }
@@ -556,7 +588,13 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
   }
 
   // The evidence card, when the question is about the air, the room, how they are, or what to do.
-  if (input.evidence && (air || advice || diagnosis)) items.push(...evidenceItems(input.evidence, input.readings, roomName, personName));
+  if (input.evidence && (air || advice || diagnosis)) {
+    const found = evidenceItems(input.evidence, input.readings, roomName, personName);
+    // The evidence card's verdict leads, in a conversational sentence; the facts follow it (after a danger reading, which always comes first).
+    const verdict = found.find((i) => i.key === 'answer.points.room' || i.key === 'answer.points.person' || i.key === 'answer.points.sensor');
+    items.push(...found.filter((i) => i !== verdict));
+    if (verdict) items.splice(input.danger ? 1 : 0, 0, { ...verdict, key: verdict.key.replace('answer.points.', 'answer.lead.') as AnswerKey });
+  }
 
   if (diagnosis) items.push({ key: 'answer.noDiagnosis', vars: {}, label: 'hub' });
   else if (advice) items.push({ key: 'answer.noAdvice', vars: {}, label: 'hub' });

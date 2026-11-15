@@ -26,7 +26,18 @@ export function newestKey(row: Pick<Row, 'signal' | 'person' | 'room' | 'source'
   return `${row.signal}|${row.person ?? ''}|${row.person ? '' : (row.room ?? '')}|${row.source}`;
 }
 
-const COLUMNS = 'id, t, signal, value, text, unit, kind, source, person, room';
+const COLUMNS = 'id, t, signal, value, text, unit, kind, source, person, room, summary';
+
+/** A summary row (core/retention.ts) carries `summary`; a raw row carries none, as before. */
+function shape(rows: (Row & { summary?: unknown })[]): Row[] {
+  for (const r of rows) {
+    if (r.summary == null) delete r.summary;
+    else if (typeof r.summary === 'string') r.summary = JSON.parse(r.summary);
+  }
+  return rows;
+}
+/** Table statistics are refreshed after this many rows written (PRAGMA optimize, bounded by analysis_limit). */
+export const OPTIMIZE_EVERY_ROWS = 200_000;
 
 export class Store {
   private db: DatabaseSync;
@@ -37,10 +48,18 @@ export class Store {
   private newestT = -Infinity;
   private prunedAt = -Infinity;
   private insert: StatementSync;
+  /** Prepared statements by their SQL, reused: the alert path runs the same few queries every tick. */
+  private statements = new Map<string, StatementSync>();
+  /** Rows written since the statistics were last refreshed. */
+  private sinceOptimize = 0;
+  /** Hears every batch of rows the database wrote (they carry ids), after the write. */
+  private writtenListeners: ((rows: Row[]) => void)[] = [];
 
   constructor(file: string, options: StoreOptions = {}) {
     this.persistence = options.thin === false ? null : new Persistence();
     this.db = new DatabaseSync(file);
+    // A new file returns the space retention frees (core/retention.ts); an existing one keeps its setting until "npm run compact".
+    this.db.exec('PRAGMA auto_vacuum = INCREMENTAL;');
     this.db.exec(`
       PRAGMA journal_mode = WAL;
       CREATE TABLE IF NOT EXISTS readings (
@@ -76,7 +95,21 @@ export class Store {
         source  TEXT    NOT NULL
       );
       CREATE INDEX IF NOT EXISTS stays_person_from ON stays (person, t_from);
+      -- Stays overlapping a period: the open ones, and those that ended inside it (see stays()).
+      CREATE INDEX IF NOT EXISTS stays_until ON stays (t_until);
+      -- Raw rows kept around alerts and alarms (core/retention.ts): from, until (null while it lasts).
+      CREATE TABLE IF NOT EXISTS raw_holds (key TEXT PRIMARY KEY, t_from INTEGER NOT NULL, t_until INTEGER);
     `);
+    // Summary rows (core/retention.ts): {n, min, max, ms} as JSON; null on raw rows. Added in place to an older file.
+    const columns = this.db.prepare('PRAGMA table_info(readings)').all() as { name: string }[];
+    if (!columns.some((c) => c.name === 'summary')) this.db.exec('ALTER TABLE readings ADD COLUMN summary TEXT');
+    // A hold left open by a hub that stopped: its alert is gone, so it ends now, plus the margin.
+    this.db.prepare('UPDATE raw_holds SET t_until = ? WHERE t_until IS NULL').run(Date.now() + 2 * 3600_000);
+    // Statistics, so the planner picks the narrow index: without them a person's rare signal (exercise minutes,
+    // blood oxygen, "did it get better?") was read through all of that person's rows, 10 to 40 ms every alert
+    // check. A new index would do the same but take minutes to build on a large file at the first start.
+    // analysis_limit keeps this quick on a large file.
+    this.db.exec('PRAGMA analysis_limit = 1000; PRAGMA optimize = 0x10002;');
     this.insert = this.db.prepare(
       'INSERT INTO readings (t, signal, value, text, unit, kind, source, person, room, received) VALUES (?,?,?,?,?,?,?,?,?,?)',
     );
@@ -103,7 +136,35 @@ export class Store {
       throw err;
     }
     for (const r of out) this.remember(r);
+    const written = out.filter((r) => r.id !== undefined);
+    if (written.length) {
+      for (const listen of this.writtenListeners) listen(written);
+      this.sinceOptimize += written.length;
+      if (this.sinceOptimize >= OPTIMIZE_EVERY_ROWS) { this.sinceOptimize = 0; this.db.exec('PRAGMA optimize;'); }
+    }
     return out;
+  }
+
+  /** Keeps raw rows from `from` to `until` (null: until closed) out of retention's summaries. Same key again moves the end. */
+  holdRaw(key: string, from: number, until: number | null): void {
+    this.prepared('INSERT INTO raw_holds (key, t_from, t_until) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET t_until = excluded.t_until').run(key, from, until);
+  }
+
+  /** The database, for retention (core/retention.ts), which works on it in its own small transactions. */
+  get handle(): DatabaseSync {
+    return this.db;
+  }
+
+  /** Calls `listen` with every batch of rows the database writes (each with its id), in the order written. */
+  onWritten(listen: (rows: Row[]) => void): void {
+    this.writtenListeners.push(listen);
+  }
+
+  /** A prepared statement for this SQL, made once. */
+  private prepared(sql: string): StatementSync {
+    let statement = this.statements.get(sql);
+    if (!statement) this.statements.set(sql, statement = this.db.prepare(sql));
+    return statement;
   }
 
   private remember(r: Row): void {
@@ -177,11 +238,15 @@ export class Store {
     if (q.from != null) { where.push('t >= ?'); args.push(q.from); }
     if (q.to != null) { where.push('t <= ?'); args.push(q.to); }
     // Without statistics SQLite picks the room index and reads every signal of the room; name the better one.
-    const index = q.room && q.signal && !q.person ? 'INDEXED BY readings_room_signal_t' : '';
+    // One person's signal (blood oxygen, a check-in answer, exercise minutes): by signal. Those are rare, and through
+    // readings_person_t SQLite read every row of the person in the window, every alert check (10 to 40 ms, more
+    // as the file grows, and on a new file before it has statistics).
+    const index = q.room && q.signal && !q.person ? 'INDEXED BY readings_room_signal_t'
+      : q.person && !q.room && (q.signal || q.signalPrefix) ? 'INDEXED BY readings_signal_t' : '';
     const sql = `SELECT ${COLUMNS} FROM readings ${index}
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY t DESC LIMIT ?`;
     args.push(Math.min(q.limit ?? 5000, 50_000));
-    return (this.db.prepare(sql).all(...args) as unknown as Row[]).reverse();
+    return shape(this.prepared(sql).all(...args) as unknown as Row[]).reverse();
   }
 
   /**
@@ -191,11 +256,11 @@ export class Store {
    * of rows; a reading holds for up to 10 minutes, so one a minute loses nothing.
    */
   sampled(signal: string, from: number, to: number, everyMs: number, limit = 400_000): Row[] {
-    return this.db.prepare(`
-      SELECT id, MIN(t) AS t, signal, value, text, unit, kind, source, person, room FROM readings
+    return shape(this.prepared(`
+      SELECT id, MIN(t) AS t, signal, value, text, unit, kind, source, person, room, summary FROM readings
       WHERE signal = ? AND person IS NULL AND t >= ? AND t <= ?
       GROUP BY room, source, CAST(t / ? AS INTEGER)
-      ORDER BY t LIMIT ?`).all(signal, from, to, everyMs, limit) as unknown as Row[];
+      ORDER BY t LIMIT ?`).all(signal, from, to, everyMs, limit) as unknown as Row[]);
   }
 
   /**
@@ -216,7 +281,7 @@ export class Store {
 
   /** When a source last gave a row, or null if it never has. Counts rows that were not written. */
   lastTime(source: string): number | null {
-    const hit = this.db.prepare('SELECT MAX(t) AS t FROM readings WHERE source = ?').get(source) as { t: number | null };
+    const hit = this.prepared('SELECT MAX(t) AS t FROM readings WHERE source = ?').get(source) as { t: number | null };
     let t = hit.t;
     for (const row of this.newest.values()) if (row.source === source && (t === null || row.t > t)) t = row.t;
     return t;
@@ -259,11 +324,16 @@ export class Store {
 
   /** Stays that overlap a period. Open stays count as still running. */
   stays(from: number, to: number, person?: string): Stay[] {
-    const sql = `SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM stays
-      WHERE t_from <= ? AND (t_until IS NULL OR t_until >= ?) ${person ? 'AND person = ?' : ''} ORDER BY t_from`;
-    const args: (string | number)[] = [to, from];
-    if (person) args.push(person);
-    return this.db.prepare(sql).all(...args) as unknown as Stay[];
+    // Two halves, so each uses stays_until instead of reading every stay ever kept: the open stays, and those
+    // that ended at or after `from`. The same rows as "t_until IS NULL OR t_until >= from", in the same order.
+    const who = person ? 'AND person = ?' : '';
+    const sql = `SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM (
+      SELECT * FROM stays WHERE t_until IS NULL AND t_from <= ? ${who}
+      UNION ALL
+      SELECT * FROM stays WHERE t_until >= ? AND t_from <= ? ${who}
+    ) ORDER BY t_from, id`;
+    const args: (string | number)[] = person ? [to, person, from, to, person] : [to, from, to];
+    return this.prepared(sql).all(...args) as unknown as Stay[];
   }
 
   close(): void {

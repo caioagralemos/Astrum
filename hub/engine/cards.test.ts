@@ -78,6 +78,12 @@ test('English shows only when checked; Portuguese only when not marked unreviewe
   assert.deepEqual(view.doNot, [], 'empty do-not lines are dropped');
 });
 
+test('a card a screen gets is approved by the medical lead; her unverified list travels as hers, not as "not approved"', () => {
+  const view = cardView(parseCards([card('d', { unverified: ['step 2 from memory'] })]).cards[0], 'en')!;
+  assert.equal(view.approvedBy, 'medical_lead');
+  assert.deepEqual(view.unverified, ['step 2 from memory']);
+});
+
 test('a broken NASA limit picks its card, using her threshold', () => {
   const { cards } = parseCards([co2, chest, none]);
   const over = pickCard(cards, { readings: [{ signal: 'cabin_co2', direction: 'high', basis: 'nasa_limit', value: 3.4, unit: 'mmHg' }], answers: [] });

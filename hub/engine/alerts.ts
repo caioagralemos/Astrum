@@ -19,6 +19,13 @@
 //     NASA's (its own alert, its own station-wide count), worded as set by the
 //     crew, and with no steps card unless her cards have one for that signal.
 //   - A reading unusual for the person (baseline): level 1.
+//   - A base-wide event a crewmate declared (core/events.ts): level 3 for
+//     everyone at once, no countdown, no reading. The hub has no weather or
+//     radiation feed, so a person saying so is the only source (kind
+//     'reported'). One alert per event; its card only by EVENT_CARD. Declared
+//     ahead (expectedAt), it is first a warning: a level 2 notice for everyone
+//     (notice: true), no question, no countdown, no card, no buzzer, no
+//     message to Earth; at expectedAt the same alert becomes the level 3.
 //   - A finding by the medical lead's rules (engine/medical.ts): a body
 //     reading or blood result past one of her limits, a card her signs
 //     picked, or "it did not get better". The finding's level is hers, and it
@@ -76,7 +83,7 @@ export interface Alert {
   id: string;
   person: string;
   level: Level;
-  reason: 'room-limit' | 'unusual' | 'finding';
+  reason: 'room-limit' | 'unusual' | 'finding' | 'declared';
   room: string | null;
   signal: string;
   /** What was found, as data for the screen to word. */
@@ -150,6 +157,59 @@ export interface Alert {
   cardViews?: CardView[];
   /** Raised by a drill (core/drill.ts): the real engine on a simulated reading. It can be answered like any alert. */
   drill?: true;
+  /** A base-wide event a crewmate declared (core/events.ts). Its signal is "event.<kind>"; `person` is who declared it. */
+  declared?: Declared & { stage: 'warning' | 'event' };
+  /**
+   * Information for everyone to acknowledge ("I've seen it"), never a question:
+   * askKey and answerBy stay null and it cannot be answered. Only the warning
+   * stage of a declared event, at level 2.
+   */
+  notice?: true;
+}
+
+/** The base-wide events a crewmate may declare. A fixed list: each has its words in the string table ("event.<kind>"). */
+export const EVENT_KINDS = ['dust_storm', 'solar_particle_event', 'pressure_loss', 'fire', 'other'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+/**
+ * The medical lead's card that plainly covers an event, by its own id and title:
+ * "Smoke and toxic air" for a fire, "Pressure drop and radiation" for a loss of
+ * pressure or a solar particle event. A dust storm and "other" have none of
+ * hers, so they get no card; no steps are ever made up here.
+ */
+export const EVENT_CARD: Readonly<Partial<Record<EventKind, string>>> = {
+  fire: 'smoke-toxic-air',
+  pressure_loss: 'decompression-radiation',
+  solar_particle_event: 'decompression-radiation',
+};
+
+/**
+ * A base-wide event as a crewmate declared it. `note` is their own words, and,
+ * unlike every other typed text (engine/privacy.ts), it is addressed to all:
+ * a base-wide notice is written for the whole crew to read.
+ */
+export interface Declared {
+  kind: EventKind;
+  /** Crew id of who declared it (for a forecast from Earth, who entered it). */
+  by: string;
+  at: number;
+  note: string | null;
+  /** Room id: where to go. */
+  shelter: string | null;
+  /**
+   * Where the word came from: 'crew' (a person on board), 'earth' (a forecast
+   * mission control sent, entered by a crewmate), or 'sensor', reserved for a
+   * real sensor past a real limit; nothing sets it yet.
+   */
+  source: 'crew' | 'earth' | 'sensor';
+  /** When it is expected, on the hub's clock. Null: it is happening now. Before this time the event is a warning. */
+  expectedAt: number | null;
+}
+
+/** A declared event as the alert engine takes it: with its card, already checked against her file and the gravity. */
+export interface DeclaredEvent extends Declared {
+  id: string;
+  card: string | null;
 }
 
 /**
@@ -239,6 +299,8 @@ export interface AlertInputs {
   cardFor?: (signal: string) => string | null;
   /** What her rules found now (engine/medical.ts). */
   findings?: Finding[];
+  /** Base-wide events a crewmate declared and nobody has ended (core/events.ts). */
+  declared?: DeclaredEvent[];
 }
 
 /** The string keys a crew-level alert is worded with ('.above' or '.below'). They say the level was set by the crew. */
@@ -416,6 +478,30 @@ export function stepAlerts(before: Alert[], inputs: AlertInputs): { alerts: Aler
     alerts.push(alert);
   }
 
+  // Base-wide events a person declared: a level 2 notice while expected, level 3 for everyone once it is here.
+  for (const d of inputs.declared ?? []) {
+    const was = held.get(d.id);
+    const { id: _, card, ...rest } = d;
+    const warning = d.expectedAt !== null && now < d.expectedAt;
+    if (was && was.level === 3) { alerts.push(withEarthCheck(was, inputs)); continue; }
+    const base = {
+      id: d.id, person: d.by, reason: 'declared', room: null, signal: `event.${d.kind}`, value: null, unit: null, limit: null, limitSource: null,
+      direction: null, kind: 'reported', since: was?.since ?? now, ...blank, toldTo: 'everyone', alsoCard: null, stationWide: true,
+    } as const;
+    if (warning) {
+      // The time may move (POST /api/events/update): the notice follows, keeping who has seen it.
+      alerts.push({ ...base, level: 2, levelSince: was?.levelSince ?? now, seenBy: was?.seenBy ?? null, seenAt: was?.seenAt ?? null, notice: true, declared: { ...rest, stage: 'warning' } });
+      if (!was) events.push({ type: 'raised', alert: alerts[alerts.length - 1] });
+      continue;
+    }
+    const alert = withEarthCheck({
+      ...base, level: 3, levelSince: now, card, declared: { ...rest, stage: 'event' },
+      earth: { sentAt: now, arrivesAt: now + inputs.delayToEarthMs, replyAt: now + 2 * inputs.delayToEarthMs }, earthId: `earth|${d.id}`,
+    }, inputs);
+    events.push({ type: was ? 'escalated' : 'raised', alert });
+    alerts.push(alert);
+  }
+
   const kept = new Set(alerts.map((a) => a.id));
   for (const alert of before) if (!kept.has(alert.id)) events.push({ type: 'resolved', alert });
   return { alerts, events };
@@ -501,7 +587,7 @@ export function stepEarth(before: EarthMessage[], alerts: Alert[], events: Alert
   const listed = new Set(before.map((m) => m.id));
   for (const e of events) {
     const a = e.alert;
-    if ((e.type !== 'escalated' && !(e.type === 'raised' && a.reason === 'finding')) || a.level !== 3 || !a.earth || !a.earthId || listed.has(a.earthId)) continue;
+    if ((e.type !== 'escalated' && !(e.type === 'raised' && (a.reason === 'finding' || a.reason === 'declared'))) || a.level !== 3 || !a.earth || !a.earthId || listed.has(a.earthId)) continue;
     listed.add(a.earthId);
     before = [...before, {
       id: a.earthId, kind: 'alert', about: { person: a.person, room: a.room, signal: a.signal, level: a.level, stationWide: a.stationWide },
@@ -525,7 +611,7 @@ export function stepEarth(before: EarthMessage[], alerts: Alert[], events: Alert
 export function seeAlert(alerts: Alert[], id: string, by: string | null, now: number): { alerts: Alert[]; seen: boolean } {
   let seen = false;
   const next = alerts.map((alert) => {
-    if (alert.id !== id || alert.level !== 3 || alert.seenAt) return alert;
+    if (alert.id !== id || (alert.level !== 3 && !alert.notice) || alert.seenAt) return alert;
     seen = true;
     return { ...alert, seenBy: by, seenAt: now };
   });
@@ -536,7 +622,7 @@ export function seeAlert(alerts: Alert[], id: string, by: string | null, now: nu
 export function answerAlert(alerts: Alert[], id: string, answer: 'ok' | 'help'): { alerts: Alert[]; event: AlertEvent | null } {
   let event: AlertEvent | null = null;
   const next = alerts.map((alert) => {
-    if (alert.id !== id || alert.level !== 2 || alert.answer !== null) return alert;
+    if (alert.id !== id || alert.level !== 2 || alert.notice || alert.answer !== null) return alert;
     const answered = { ...alert, answer };
     event = { type: 'answered', alert: answered };
     return answered;

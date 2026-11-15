@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULTS, Z_CAP, detectorLine, median, personSummary, robust, roomOrPerson, signalBaseline, stateWithSleep } from './baseline.ts';
+import { DEFAULTS, Z_CAP, detectorLine, median, personSummary, plainSignalName, robust, roomOrPerson, signalBaseline, stateWithSleep, summaryReadings } from './baseline.ts';
 import type { Judged, PersonSummary } from './baseline.ts';
 import { USUAL, crewPeriod, crewStays } from './crew.ts';
 import { occupants } from './timeline.ts';
@@ -202,4 +202,43 @@ test('a shared drift points to the room; a lone one points to the person', () =>
   assert.equal(solo.length, 1);
   assert.equal(solo[0].pointsTo, 'unknown');
   assert.equal(solo[0].room, 'quarters-3');
+});
+
+// A phone's sparse blood oxygen: one reading every few hours for two weeks, as an Apple Watch sends it.
+const spo2 = (person: string, now: number, last: { ago: number; value: number }): Row[] => {
+  const rows: Row[] = [];
+  for (let t = now - 14 * DAY; t < now - last.ago - 4 * HOUR; t += 4 * HOUR) rows.push({ t, signal: 'blood_oxygen', value: 98, unit: '%', kind: 'measured', source: 'phone', person });
+  rows.push({ t: now - last.ago, signal: 'blood_oxygen', value: last.value, unit: '%', kind: 'measured', source: 'phone', person });
+  return rows;
+};
+
+test('a vital sign older than an hour is a gap, never "the latest": the live hub judged a blood oxygen 885 minutes old', () => {
+  const now = start + 15 * DAY + 23 * HOUR;
+  const stale = signalBaseline(spo2('reyes', now, { ago: 885 * MIN, value: 89 }), 'blood_oxygen', now);
+  assert.equal(stale.status, 'no-recent');
+  const summary = personSummary(spo2('reyes', now, { ago: 885 * MIN, value: 89 }), 'reyes', now);
+  assert.deepEqual(summary.top, [], 'nothing unusual from an old reading');
+  assert.equal(detectorLine(summary), 'Detector: normal.');
+  // The same reading 30 minutes old is current, and judged on its own value.
+  const fresh = judged(signalBaseline(spo2('reyes', now, { ago: 30 * MIN, value: 89 }), 'blood_oxygen', now));
+  assert.equal(fresh.mode, 'daily');
+  assert.equal(fresh.direction, 'low');
+  assert.equal(DEFAULTS.liveFreshMs, HOUR);
+  // A daily value, last night's sleep, is still judged 14 hours later: it is a daily value, not a vital sign.
+  const sleepRows: Row[] = Array.from({ length: 10 }, (_, i) => ({ t: now - (14 + 24 * i) * HOUR, signal: 'sleep_duration', value: i === 0 ? 449 : 320 + (i % 3), unit: 'min', kind: 'simulated', source: 'sim', person: 'reyes' }));
+  assert.equal(judged(signalBaseline(sleepRows, 'sleep_duration', now)).mode, 'daily');
+});
+
+test('the readings handed to Astra: only fresh ones, code names in words, a daily value named with its time', () => {
+  const now = start + 15 * DAY + 23 * HOUR;
+  const sleepRows: Row[] = Array.from({ length: 10 }, (_, i) => ({ t: now - (14 + 24 * i) * HOUR, signal: 'sleep_duration', value: i === 0 ? 449 : 320 + (i % 3), unit: 'min', kind: 'simulated', source: 'sim', person: 'reyes' }));
+  const steps: Row[] = Array.from({ length: 10 }, (_, i) => ({ t: now - (10 + 24 * i) * HOUR, signal: 'steps', value: 3500 + i, unit: 'count', kind: 'measured', source: 'phone', person: 'reyes' }));
+  const rows = [...spo2('reyes', now, { ago: 885 * MIN, value: 89 }), ...sleepRows, ...steps];
+  const names: Record<string, string> = { sleep_duration: 'sleep last night', steps: 'signal.steps', blood_oxygen: 'signal.blood_oxygen' };
+  const readings = summaryReadings(personSummary(rows, 'reyes', now), (s) => names[s] ?? s, (s) => rows.find((r) => r.signal === s)?.unit ?? '');
+  assert.deepEqual(readings.map((r) => r.name).sort(), ['sleep last night', 'steps, latest daily value']);
+  assert.equal(readings.some((r) => /blood|oxygen/.test(r.name)), false, 'the 885-minute-old blood oxygen is not handed on');
+  assert.equal(plainSignalName('blood_oxygen', 'signal.blood_oxygen'), 'blood oxygen');
+  assert.equal(plainSignalName('hrv', 'signal.hrv'), 'HRV');
+  assert.equal(plainSignalName('heart_rate', 'Heart rate'), 'Heart rate');
 });
