@@ -24,7 +24,7 @@ The design has three more readings than the board can make today. The chip names
 
 | Reading | Why it is missing | What would fill it |
 |---|---|---|
-| CO2 | The ENS160 on this board does not answer, and it only estimates CO2 from other gases | A true CO2 sensor (SCD41 or similar) on the air board's pins |
+| CO2 | The chip reports CO2 and air quality as missing today; the ENS160 only estimates CO2 from other gases. | A true CO2 sensor (SCD41 or similar) on the air board's pins |
 | Oxygen | No part fitted | An electrochemical O2 sensor |
 | Radiation | No part fitted | A Geiger tube or solid-state dosimeter on a free pin |
 
@@ -48,5 +48,5 @@ Noise and light are raw readings from 0 to 4095, not calibrated units.
 
 ## Known limits
 
-- The ENS160 on this board does not answer, so its code path has never run.
+- The ENS160 code path has not run on this board yet.
 - The chip has no clock. The hub stamps each reading when it arrives.

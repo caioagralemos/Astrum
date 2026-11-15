@@ -1,0 +1,477 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Astrum Cabin Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two blueprint sheets. Sheet 1 is the wiring schematic (every part to its ESP32 pin, 3.3 V and GND rails top and bottom). Sheet 2 is the pin table and build notes. Prints as two landscape A4 pages. */
+/* Single look by request: classic blueprint, white line work on blue paper */
+:root {
+  --paper: #1c5a9a; --paper-deep: #174d86; --ink: #f4f8fc; --ink-soft: rgba(244, 248, 252, .74); --ink-faint: rgba(244, 248, 252, .32);
+  --grid: rgba(255, 255, 255, .07); --grid-major: rgba(255, 255, 255, .13); --panel: rgba(255, 255, 255, .05);
+  --v33: #ff9d8a; --gnd: #e8eef5; --sda: #ffd76a; --scl: #8ff0bf; --sig: #c9b6ff; --dead: #ffb3b3;
+  --display: "Space Grotesk", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+  --body: "Inter", "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, ui-monospace, monospace;
+  color-scheme: dark;
+}
+body {
+  background-color: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+.sheet { border: 2px solid var(--ink); outline: 1px solid var(--ink-faint); outline-offset: 6px; padding: 18px 20px; display: grid; gap: 14px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 600; text-wrap: balance; }
+h1 { font-size: 1.7rem; letter-spacing: .05em; text-transform: uppercase; }
+h2 { font-size: .95rem; letter-spacing: .14em; text-transform: uppercase; }
+h3 { font-size: .95rem; }
+p { margin: 0; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.id { min-width: 0; }
+.brand { display: flex; align-items: last baseline; gap: 22px; }
+.logo { flex: none; line-height: 0; }
+.logo svg { display: block; width: 150px; height: auto; }
+.brand .eyebrow { line-height: 1; position: relative; bottom: calc(150px * 4 / 505); }
+.brand h1.eyebrow { font-family: var(--mono); font-size: .7rem; font-weight: 400; letter-spacing: .14em; text-wrap: nowrap; margin: 0; }
+.head p { color: var(--ink-soft); font-size: .9rem; }
+.svgbox { overflow-x: auto; }
+.svgbox svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--mono); }
+
+.foot { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media screen and (max-width: 760px) { .foot { grid-template-columns: 1fr; } }
+.titleblock { border: 1.5px solid var(--ink); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-family: var(--mono); font-size: .74rem; }
+.titleblock > div { padding: 7px 10px; border-right: 1px solid var(--ink-faint); border-bottom: 1px solid var(--ink-faint); min-width: 0; }
+.titleblock .k { color: var(--ink-soft); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; display: block; }
+.titleblock .wide { grid-column: 1 / -1; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .8rem; color: var(--ink-soft); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 22px; height: 3px; display: inline-block; }
+
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 620px; }
+th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px dashed var(--ink-faint); vertical-align: top; }
+th { font-family: var(--mono); font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); font-weight: 400; }
+td.pin { font-family: var(--mono); white-space: nowrap; }
+.ok { color: var(--scl); font-family: var(--mono); font-size: .8rem; white-space: nowrap; }
+.sim { color: var(--dead); font-family: var(--mono); font-size: .8rem; white-space: nowrap; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.note { border: 1px solid var(--ink-faint); background: var(--panel); padding: 10px 12px; display: grid; gap: 4px; align-content: start; font-size: .86rem; }
+.note b { font-family: var(--display); }
+.note span { color: var(--ink-soft); }
+
+@page { size: 297mm 210mm; margin: 0; }
+@media print {
+  .wrap { max-width: none; padding: 0; gap: 0; display: block; }
+  .sheet { box-sizing: border-box; width: 281mm; height: 194mm; margin: 8mm; overflow: hidden; break-after: page; break-inside: avoid; outline: none; padding: 9mm 7mm 5mm; gap: 3mm; align-content: start; }
+  .sheet:last-child { break-after: auto; }
+  .svgbox { overflow: visible; }
+  .svgbox svg { min-width: 0; width: auto; height: 128mm; margin: 0 auto; }
+  .head { flex-wrap: nowrap; align-items: start; }
+  .head p { max-width: 135mm; font-size: 11px; }
+  .brand { gap: 5mm; }
+  .logo svg { width: 36mm; }
+  .brand .eyebrow { bottom: calc(36mm * 8 / 505); }
+  .head { align-items: center; height: calc(36mm * 104 / 505); margin-bottom: 3mm; }
+  .head p { line-height: 1.4; position: relative; top: calc(36mm * 13.7 / 505 - .32mm); }
+  #real { height: 154mm; }
+  #sch { height: 126mm; }
+  .foot { grid-template-columns: 1.6fr 1fr; }
+  .titleblock { font-size: 9px; }
+  .titleblock > div { padding: 3px 7px; }
+  h1 { font-size: 1.3rem; }
+  body { font-size: 12px; }
+}
+</style>
+
+<div class="wrap">
+  <section class="sheet" aria-label="Your board as built">
+    <div class="head">
+      <div class="id">
+        <div class="brand"><div class="logo" role="img" aria-label="Astrum"><svg width="505" height="104" viewBox="0 0 505 104" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M122.875 100L120.625 78.5H88.875L77.125 100H57L107.938 9.8125H130.188L141.812 100H122.875ZM115.312 28.125L96.125 63.9375H119.5L115.75 28.125H115.312ZM156.625 52.8125C156.625 40.0625 167.688 31.375 184.438 31.375C200.438 31.375 211.625 40.25 211.938 53.0625H195.688C195.25 47.9375 190.625 44.3125 184.188 44.3125C177.688 44.3125 173.688 47.125 173.688 51.1875C173.688 54.6875 176 56.4375 183.312 58.8125L190 61.0625C202.438 65.1875 207.375 70.3125 207.375 79.25C207.375 92.4375 195.625 101.438 178.438 101.438C160.688 101.438 149.188 92.4375 148.688 79.125H165.812C166.438 84.625 171.312 88.5 179 88.5C185.375 88.5 189.625 85.4375 189.625 81.125C189.625 77.9375 187.562 76.375 180.375 74.0625L174.438 72.0625C162.062 68 156.625 62.0625 156.625 52.8125ZM241.5 100.75C229.312 100.75 221.438 95.9375 221.438 86.25C221.438 84.5625 221.562 82.1875 222.125 79.5625L228.938 47.9375H218.938L221.875 33.9375H231.875L235.25 17.625H253.125L249.625 33.9375H263.375L260.5 47.9375H246.812L240.5 76.875C240.188 78.25 240 79.875 240 81C240 85.1875 242.812 86.875 248.188 86.875C250.5 86.875 251.625 86.8125 252.688 86.5625L249.875 100C247.812 100.438 244.562 100.75 241.5 100.75ZM259.062 100L273.375 32.8125H290.625L288.75 42.1875H289.125C292.688 36 298.75 31.8125 306.562 31.8125C310.125 31.8125 313 32.5 315.062 33.5L311.562 49.875C309.25 48.8125 305.938 47.875 302.312 47.875C292.75 47.875 287 53.25 284.688 63.625L276.938 100H259.062ZM385.312 32.8125L371.062 100H353.875L356.062 89.6875H355.688C352.062 96.375 343.875 101.438 334.125 101.438C321.312 101.438 313.312 93.5 313.312 82.125C313.312 79.375 313.625 75.8125 314.188 73.1875L322.688 32.8125H340.562L332.562 70.25C332.25 72 332 74.1875 332 75.625C332 82.5 335.812 86.0625 343.125 86.0625C351.188 86.0625 357.25 80.5 359.125 72L367.438 32.8125H385.312ZM383.188 100L397.438 32.8125H414.625L412.312 43.5H412.688C416.5 36.375 424.125 31.3125 432.625 31.3125C441.5 31.3125 447.938 36.5 449.875 43.3125H450.188C454.812 36.5625 462.312 31.3125 472.562 31.3125C483.375 31.3125 491.312 39.0625 491.312 50C491.312 52.4375 491 55.125 490.438 57.9375L481.562 100H463.812L472.062 60.6875C472.5 58.8125 472.688 57.125 472.688 55.5625C472.688 50.1875 469.188 46.25 463.312 46.25C457.062 46.25 451.375 51.0625 449.625 59.0625L441 100H423.812L432.062 60.6875C432.5 58.8125 432.688 57.125 432.688 55.5625C432.688 50.1875 429.188 46.25 423.312 46.25C417.062 46.25 411.312 51.3125 409.688 59.0625L401 100H383.188Z" fill="white"/>
+<path d="M34 11C34 7.13401 37.134 4 41 4H47C50.866 4 54 7.13401 54 11V57C54 60.866 50.866 64 47 64H41C37.134 64 34 60.866 34 57V11Z" fill="white"/>
+<path d="M67 24C70.866 24 74 27.134 74 31V37C74 40.866 70.866 44 67 44H21C17.134 44 14 40.866 14 37V31C14 27.134 17.134 24 21 24H67Z" fill="white"/>
+<path fill="white" fill-opacity="0.6" fill-rule="evenodd" transform="translate(43.33 33.80) rotate(142.38)" d="M-53.56 0a53.56 10.01 0 1 0 107.12 0a53.56 10.01 0 1 0 -107.12 0ZM-36.44 0a36.44 6.76 0 1 0 72.88 0a36.44 6.76 0 1 0 -72.88 0Z"/>
+<path d="M497.333 32.1821H496.666L497.459 28.4434H496L496.133 27.8403H499.719L499.586 28.4434H498.132L497.333 32.1821ZM499.954 32.1821H499.351L500.271 27.8403H501.021L501.763 31.2617H501.782L503.947 27.8403H504.778L503.852 32.1821H503.242L503.947 28.9067H503.915L501.839 32.1758H501.37L500.671 28.9067H500.652L499.954 32.1821Z" fill="white"/>
+</svg></div><h1 class="eyebrow">Cabin chip · sheet 1 of 4 · as built</h1></div>
+      </div>
+      <p>The board as built: the ESP32 expansion board on the left, USB at the bottom, the breadboard on the right with row 1 nearest the viewer. Part positions follow a photo of the board; pin connections are exact.</p>
+    </div>
+    <div class="svgbox"><svg id="real" viewBox="0 0 1600 1000" role="img" aria-label="Drawing of the built board: ESP32 expansion board on the left with its long pin rows, breadboard on the right holding the microphone at rows 1 to 3, the ENS160 board at rows 6 to 13, the BMP280 at rows 17 to 22, the MPU6050 at rows 23 to 30, the LDR at rows 11 to 14 and the buzzer at rows 19 to 22, with jumper wires arcing to their ESP32 pins."></svg></div>
+    <div class="legend">
+      <span><i style="background:var(--v33)"></i>3.3 V</span>
+      <span><i style="background:var(--gnd)"></i>ground</span>
+      <span><i style="background:var(--sda)"></i>SDA</span>
+      <span><i style="background:var(--scl)"></i>SCL</span>
+      <span><i style="background:var(--sig)"></i>signal</span>
+      <span>Wire colours are for the drawing only; real wires can be any colour. Breadboard rows are approximate.</span>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Wiring schematic">
+    <div class="head">
+      <div class="id">
+        <div class="brand"><div class="logo" role="img" aria-label="Astrum"><svg width="505" height="104" viewBox="0 0 505 104" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M122.875 100L120.625 78.5H88.875L77.125 100H57L107.938 9.8125H130.188L141.812 100H122.875ZM115.312 28.125L96.125 63.9375H119.5L115.75 28.125H115.312ZM156.625 52.8125C156.625 40.0625 167.688 31.375 184.438 31.375C200.438 31.375 211.625 40.25 211.938 53.0625H195.688C195.25 47.9375 190.625 44.3125 184.188 44.3125C177.688 44.3125 173.688 47.125 173.688 51.1875C173.688 54.6875 176 56.4375 183.312 58.8125L190 61.0625C202.438 65.1875 207.375 70.3125 207.375 79.25C207.375 92.4375 195.625 101.438 178.438 101.438C160.688 101.438 149.188 92.4375 148.688 79.125H165.812C166.438 84.625 171.312 88.5 179 88.5C185.375 88.5 189.625 85.4375 189.625 81.125C189.625 77.9375 187.562 76.375 180.375 74.0625L174.438 72.0625C162.062 68 156.625 62.0625 156.625 52.8125ZM241.5 100.75C229.312 100.75 221.438 95.9375 221.438 86.25C221.438 84.5625 221.562 82.1875 222.125 79.5625L228.938 47.9375H218.938L221.875 33.9375H231.875L235.25 17.625H253.125L249.625 33.9375H263.375L260.5 47.9375H246.812L240.5 76.875C240.188 78.25 240 79.875 240 81C240 85.1875 242.812 86.875 248.188 86.875C250.5 86.875 251.625 86.8125 252.688 86.5625L249.875 100C247.812 100.438 244.562 100.75 241.5 100.75ZM259.062 100L273.375 32.8125H290.625L288.75 42.1875H289.125C292.688 36 298.75 31.8125 306.562 31.8125C310.125 31.8125 313 32.5 315.062 33.5L311.562 49.875C309.25 48.8125 305.938 47.875 302.312 47.875C292.75 47.875 287 53.25 284.688 63.625L276.938 100H259.062ZM385.312 32.8125L371.062 100H353.875L356.062 89.6875H355.688C352.062 96.375 343.875 101.438 334.125 101.438C321.312 101.438 313.312 93.5 313.312 82.125C313.312 79.375 313.625 75.8125 314.188 73.1875L322.688 32.8125H340.562L332.562 70.25C332.25 72 332 74.1875 332 75.625C332 82.5 335.812 86.0625 343.125 86.0625C351.188 86.0625 357.25 80.5 359.125 72L367.438 32.8125H385.312ZM383.188 100L397.438 32.8125H414.625L412.312 43.5H412.688C416.5 36.375 424.125 31.3125 432.625 31.3125C441.5 31.3125 447.938 36.5 449.875 43.3125H450.188C454.812 36.5625 462.312 31.3125 472.562 31.3125C483.375 31.3125 491.312 39.0625 491.312 50C491.312 52.4375 491 55.125 490.438 57.9375L481.562 100H463.812L472.062 60.6875C472.5 58.8125 472.688 57.125 472.688 55.5625C472.688 50.1875 469.188 46.25 463.312 46.25C457.062 46.25 451.375 51.0625 449.625 59.0625L441 100H423.812L432.062 60.6875C432.5 58.8125 432.688 57.125 432.688 55.5625C432.688 50.1875 429.188 46.25 423.312 46.25C417.062 46.25 411.312 51.3125 409.688 59.0625L401 100H383.188Z" fill="white"/>
+<path d="M34 11C34 7.13401 37.134 4 41 4H47C50.866 4 54 7.13401 54 11V57C54 60.866 50.866 64 47 64H41C37.134 64 34 60.866 34 57V11Z" fill="white"/>
+<path d="M67 24C70.866 24 74 27.134 74 31V37C74 40.866 70.866 44 67 44H21C17.134 44 14 40.866 14 37V31C14 27.134 17.134 24 21 24H67Z" fill="white"/>
+<path fill="white" fill-opacity="0.6" fill-rule="evenodd" transform="translate(43.33 33.80) rotate(142.38)" d="M-53.56 0a53.56 10.01 0 1 0 107.12 0a53.56 10.01 0 1 0 -107.12 0ZM-36.44 0a36.44 6.76 0 1 0 72.88 0a36.44 6.76 0 1 0 -72.88 0Z"/>
+<path d="M497.333 32.1821H496.666L497.459 28.4434H496L496.133 27.8403H499.719L499.586 28.4434H498.132L497.333 32.1821ZM499.954 32.1821H499.351L500.271 27.8403H501.021L501.763 31.2617H501.782L503.947 27.8403H504.778L503.852 32.1821H503.242L503.947 28.9067H503.915L501.839 32.1758H501.37L500.671 28.9067H500.652L499.954 32.1821Z" fill="white"/>
+</svg></div><h1 class="eyebrow">Cabin chip · sheet 2 of 4 · schematic</h1></div>
+      </div>
+      <p>Each part to its ESP32 pin. Every part takes 3.3 V and GND from the rails: any V and G pin on the expansion board, or breadboard strips fed from them.</p>
+    </div>
+    <div class="svgbox"><svg id="sch" viewBox="0 0 1600 1000" role="img" aria-label="Wiring schematic: ESP32 in the centre; BMP280 on D16/D15, MPU6050 on D4/D5, ENS160+AHT21 on D23/D22 to the right; microphone on D34, LDR divider on D35, buzzer on D25 to the left; all parts on a 3.3 V rail at the top and a GND rail at the bottom."></svg></div>
+    <div class="foot">
+      <div class="titleblock">
+        <div><span class="k">Project</span>ASTRUM</div>
+        <div><span class="k">Drawing</span>Cabin board · wiring</div>
+        <div><span class="k">Revision</span>C · final build</div>
+        <div><span class="k">Board</span>ESP32-D0WD-V3</div>
+        <div><span class="k">Logic</span>3.3 V everywhere</div>
+        <div><span class="k">Date</span>12 Nov 2026 · Revised 14 Nov 2026</div>
+        <div class="wide"><span class="k">Note</span>Expansion board JUMP cap on V + 3.3V. Use the long-row G/V/S pins, not the small 4-pin block.</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--v33)"></i>3.3 V</span>
+        <span><i style="background:var(--gnd)"></i>ground</span>
+        <span><i style="background:var(--sda)"></i>SDA</span>
+        <span><i style="background:var(--scl)"></i>SCL</span>
+        <span><i style="background:var(--sig)"></i>signal</span>
+        <span>Dot = connection · crossing lines without a dot don't touch.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Pin table and notes">
+    <div class="head">
+      <div class="id">
+        <div class="brand"><div class="logo" role="img" aria-label="Astrum"><svg width="505" height="104" viewBox="0 0 505 104" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M122.875 100L120.625 78.5H88.875L77.125 100H57L107.938 9.8125H130.188L141.812 100H122.875ZM115.312 28.125L96.125 63.9375H119.5L115.75 28.125H115.312ZM156.625 52.8125C156.625 40.0625 167.688 31.375 184.438 31.375C200.438 31.375 211.625 40.25 211.938 53.0625H195.688C195.25 47.9375 190.625 44.3125 184.188 44.3125C177.688 44.3125 173.688 47.125 173.688 51.1875C173.688 54.6875 176 56.4375 183.312 58.8125L190 61.0625C202.438 65.1875 207.375 70.3125 207.375 79.25C207.375 92.4375 195.625 101.438 178.438 101.438C160.688 101.438 149.188 92.4375 148.688 79.125H165.812C166.438 84.625 171.312 88.5 179 88.5C185.375 88.5 189.625 85.4375 189.625 81.125C189.625 77.9375 187.562 76.375 180.375 74.0625L174.438 72.0625C162.062 68 156.625 62.0625 156.625 52.8125ZM241.5 100.75C229.312 100.75 221.438 95.9375 221.438 86.25C221.438 84.5625 221.562 82.1875 222.125 79.5625L228.938 47.9375H218.938L221.875 33.9375H231.875L235.25 17.625H253.125L249.625 33.9375H263.375L260.5 47.9375H246.812L240.5 76.875C240.188 78.25 240 79.875 240 81C240 85.1875 242.812 86.875 248.188 86.875C250.5 86.875 251.625 86.8125 252.688 86.5625L249.875 100C247.812 100.438 244.562 100.75 241.5 100.75ZM259.062 100L273.375 32.8125H290.625L288.75 42.1875H289.125C292.688 36 298.75 31.8125 306.562 31.8125C310.125 31.8125 313 32.5 315.062 33.5L311.562 49.875C309.25 48.8125 305.938 47.875 302.312 47.875C292.75 47.875 287 53.25 284.688 63.625L276.938 100H259.062ZM385.312 32.8125L371.062 100H353.875L356.062 89.6875H355.688C352.062 96.375 343.875 101.438 334.125 101.438C321.312 101.438 313.312 93.5 313.312 82.125C313.312 79.375 313.625 75.8125 314.188 73.1875L322.688 32.8125H340.562L332.562 70.25C332.25 72 332 74.1875 332 75.625C332 82.5 335.812 86.0625 343.125 86.0625C351.188 86.0625 357.25 80.5 359.125 72L367.438 32.8125H385.312ZM383.188 100L397.438 32.8125H414.625L412.312 43.5H412.688C416.5 36.375 424.125 31.3125 432.625 31.3125C441.5 31.3125 447.938 36.5 449.875 43.3125H450.188C454.812 36.5625 462.312 31.3125 472.562 31.3125C483.375 31.3125 491.312 39.0625 491.312 50C491.312 52.4375 491 55.125 490.438 57.9375L481.562 100H463.812L472.062 60.6875C472.5 58.8125 472.688 57.125 472.688 55.5625C472.688 50.1875 469.188 46.25 463.312 46.25C457.062 46.25 451.375 51.0625 449.625 59.0625L441 100H423.812L432.062 60.6875C432.5 58.8125 432.688 57.125 432.688 55.5625C432.688 50.1875 429.188 46.25 423.312 46.25C417.062 46.25 411.312 51.3125 409.688 59.0625L401 100H383.188Z" fill="white"/>
+<path d="M34 11C34 7.13401 37.134 4 41 4H47C50.866 4 54 7.13401 54 11V57C54 60.866 50.866 64 47 64H41C37.134 64 34 60.866 34 57V11Z" fill="white"/>
+<path d="M67 24C70.866 24 74 27.134 74 31V37C74 40.866 70.866 44 67 44H21C17.134 44 14 40.866 14 37V31C14 27.134 17.134 24 21 24H67Z" fill="white"/>
+<path fill="white" fill-opacity="0.6" fill-rule="evenodd" transform="translate(43.33 33.80) rotate(142.38)" d="M-53.56 0a53.56 10.01 0 1 0 107.12 0a53.56 10.01 0 1 0 -107.12 0ZM-36.44 0a36.44 6.76 0 1 0 72.88 0a36.44 6.76 0 1 0 -72.88 0Z"/>
+<path d="M497.333 32.1821H496.666L497.459 28.4434H496L496.133 27.8403H499.719L499.586 28.4434H498.132L497.333 32.1821ZM499.954 32.1821H499.351L500.271 27.8403H501.021L501.763 31.2617H501.782L503.947 27.8403H504.778L503.852 32.1821H503.242L503.947 28.9067H503.915L501.839 32.1758H501.37L500.671 28.9067H500.652L499.954 32.1821Z" fill="white"/>
+</svg></div><h1 class="eyebrow">Cabin chip · sheet 3 of 4 · pin table</h1></div>
+      </div>
+      <p>Built and checked 12 Nov 2026: pressure, temperature, humidity, noise, light and vibration each gave 20 of 20 readings at the same time.</p>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>Part</th><th>Reads</th><th>Part pin</th><th>ESP32</th><th>Status</th></tr>
+      <tr><td>BMP280 (purple)</td><td>Cabin pressure</td><td class="pin">SDA · SCL · VCC · GND</td><td class="pin">D16 · D15 · 3.3 V · GND</td><td class="ok">real · I2C 0x76</td></tr>
+      <tr><td>MPU6050 (HW-123)</td><td>Vibration</td><td class="pin">SDA · SCL · VCC · GND</td><td class="pin">D4 · D5 · 3.3 V · GND</td><td class="ok">real · I2C 0x68</td></tr>
+      <tr><td>AHT21 (on the ENS160 board)</td><td>Temperature, humidity</td><td class="pin">SDA · SCL · VIN · GND</td><td class="pin">D23 · D22 · 3.3 V · GND</td><td class="ok">real · I2C 0x38</td></tr>
+      <tr><td>ENS160 (same board)</td><td>CO2 (est.), air quality</td><td class="pin">3V3 · ADD · CS · INT</td><td class="pin">not connected</td><td class="pin">I2C · see sheet 4</td></tr>
+      <tr><td>Microphone (3-pin)</td><td>Noise</td><td class="pin">OUT · VCC · GND</td><td class="pin">D34 · 3.3 V · GND</td><td class="ok">real · analog</td></tr>
+      <tr><td>LDR + resistor</td><td>Light</td><td class="pin">midpoint · LDR end · resistor end</td><td class="pin">D35 · 3.3 V · GND</td><td class="ok">real · analog</td></tr>
+      <tr><td>Buzzer</td><td>Room alarm</td><td class="pin">+ (long leg) · −</td><td class="pin">D25 · GND</td><td class="ok">real · beeps</td></tr>
+    </table></div>
+    <div class="notes">
+      <div class="note"><b>Analog pins</b><span>The mic and the LDR must sit on D32–D39. Other pins can only read on or off.</span></div>
+      <div class="note"><b>Loose pins</b><span>The BMP280 and ENS160 boards came unsoldered. Their wires go straight through the holes and hold by pressure. Don't knock them.</span></div>
+      <div class="note"><b>ENS160</b><span>I2C, shares the bus with the AHT21; estimates CO2 from other gases.</span></div>
+      <div class="note"><b>Buzzer</b><span>Long leg is +, to the signal pin. It sounds only at the Dangerous alert level.</span></div>
+      <div class="note"><b>Never</b><span>5 V into an ESP32 pin, or power into the ENS160 board's 3V3 hole (it's an output).</span></div>
+      <div class="note"><b>Cut</b><span>PIR (presence). DHT11 kept as a spare.</span></div>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Slots with no part fitted">
+    <div class="head">
+      <div class="id">
+        <div class="brand"><div class="logo" role="img" aria-label="Astrum"><svg width="505" height="104" viewBox="0 0 505 104" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M122.875 100L120.625 78.5H88.875L77.125 100H57L107.938 9.8125H130.188L141.812 100H122.875ZM115.312 28.125L96.125 63.9375H119.5L115.75 28.125H115.312ZM156.625 52.8125C156.625 40.0625 167.688 31.375 184.438 31.375C200.438 31.375 211.625 40.25 211.938 53.0625H195.688C195.25 47.9375 190.625 44.3125 184.188 44.3125C177.688 44.3125 173.688 47.125 173.688 51.1875C173.688 54.6875 176 56.4375 183.312 58.8125L190 61.0625C202.438 65.1875 207.375 70.3125 207.375 79.25C207.375 92.4375 195.625 101.438 178.438 101.438C160.688 101.438 149.188 92.4375 148.688 79.125H165.812C166.438 84.625 171.312 88.5 179 88.5C185.375 88.5 189.625 85.4375 189.625 81.125C189.625 77.9375 187.562 76.375 180.375 74.0625L174.438 72.0625C162.062 68 156.625 62.0625 156.625 52.8125ZM241.5 100.75C229.312 100.75 221.438 95.9375 221.438 86.25C221.438 84.5625 221.562 82.1875 222.125 79.5625L228.938 47.9375H218.938L221.875 33.9375H231.875L235.25 17.625H253.125L249.625 33.9375H263.375L260.5 47.9375H246.812L240.5 76.875C240.188 78.25 240 79.875 240 81C240 85.1875 242.812 86.875 248.188 86.875C250.5 86.875 251.625 86.8125 252.688 86.5625L249.875 100C247.812 100.438 244.562 100.75 241.5 100.75ZM259.062 100L273.375 32.8125H290.625L288.75 42.1875H289.125C292.688 36 298.75 31.8125 306.562 31.8125C310.125 31.8125 313 32.5 315.062 33.5L311.562 49.875C309.25 48.8125 305.938 47.875 302.312 47.875C292.75 47.875 287 53.25 284.688 63.625L276.938 100H259.062ZM385.312 32.8125L371.062 100H353.875L356.062 89.6875H355.688C352.062 96.375 343.875 101.438 334.125 101.438C321.312 101.438 313.312 93.5 313.312 82.125C313.312 79.375 313.625 75.8125 314.188 73.1875L322.688 32.8125H340.562L332.562 70.25C332.25 72 332 74.1875 332 75.625C332 82.5 335.812 86.0625 343.125 86.0625C351.188 86.0625 357.25 80.5 359.125 72L367.438 32.8125H385.312ZM383.188 100L397.438 32.8125H414.625L412.312 43.5H412.688C416.5 36.375 424.125 31.3125 432.625 31.3125C441.5 31.3125 447.938 36.5 449.875 43.3125H450.188C454.812 36.5625 462.312 31.3125 472.562 31.3125C483.375 31.3125 491.312 39.0625 491.312 50C491.312 52.4375 491 55.125 490.438 57.9375L481.562 100H463.812L472.062 60.6875C472.5 58.8125 472.688 57.125 472.688 55.5625C472.688 50.1875 469.188 46.25 463.312 46.25C457.062 46.25 451.375 51.0625 449.625 59.0625L441 100H423.812L432.062 60.6875C432.5 58.8125 432.688 57.125 432.688 55.5625C432.688 50.1875 429.188 46.25 423.312 46.25C417.062 46.25 411.312 51.3125 409.688 59.0625L401 100H383.188Z" fill="white"/>
+<path d="M34 11C34 7.13401 37.134 4 41 4H47C50.866 4 54 7.13401 54 11V57C54 60.866 50.866 64 47 64H41C37.134 64 34 60.866 34 57V11Z" fill="white"/>
+<path d="M67 24C70.866 24 74 27.134 74 31V37C74 40.866 70.866 44 67 44H21C17.134 44 14 40.866 14 37V31C14 27.134 17.134 24 21 24H67Z" fill="white"/>
+<path fill="white" fill-opacity="0.6" fill-rule="evenodd" transform="translate(43.33 33.80) rotate(142.38)" d="M-53.56 0a53.56 10.01 0 1 0 107.12 0a53.56 10.01 0 1 0 -107.12 0ZM-36.44 0a36.44 6.76 0 1 0 72.88 0a36.44 6.76 0 1 0 -72.88 0Z"/>
+<path d="M497.333 32.1821H496.666L497.459 28.4434H496L496.133 27.8403H499.719L499.586 28.4434H498.132L497.333 32.1821ZM499.954 32.1821H499.351L500.271 27.8403H501.021L501.763 31.2617H501.782L503.947 27.8403H504.778L503.852 32.1821H503.242L503.947 28.9067H503.915L501.839 32.1758H501.37L500.671 28.9067H500.652L499.954 32.1821Z" fill="white"/>
+</svg></div><h1 class="eyebrow">Cabin chip · sheet 4 of 4 · not fitted</h1></div>
+      </div>
+      <p>Readings the design carries that this board cannot make. Added 14 Nov 2026. Nothing on this sheet is wired: no part, no pin in use. The chip never makes a value up; it names each of these as missing once a second.</p>
+    </div>
+    <div class="tbl"><table>
+      <tr><th>Reading</th><th>Why this board lacks it</th><th>Part that would fill it</th><th>Chip sends</th><th>Hub in demo mode</th><th>Hub in production</th></tr>
+      <tr><td>CO2</td><td>The chip reports CO2 as missing today; the ENS160 only estimates CO2 from other gases</td><td>A true CO2 sensor (SCD41 or similar), I2C on D23 · D22</td><td class="sim">missing</td><td>Replays NASA's ISS cabin record · labelled Replayed</td><td class="sim">shows as missing</td></tr>
+      <tr><td>Air quality</td><td>Same: reported missing today</td><td>With ENS160 readings</td><td class="sim">missing</td><td>Simulated value · labelled Simulated</td><td class="sim">shows as missing</td></tr>
+      <tr><td>Oxygen</td><td>No part fitted</td><td>An electrochemical O2 sensor</td><td class="sim">missing</td><td>Simulated value · labelled Simulated</td><td class="sim">shows as missing</td></tr>
+      <tr><td>Radiation</td><td>No part fitted</td><td>A Geiger tube or solid-state dosimeter on a free pin</td><td class="sim">missing</td><td>Simulated value, centred on published dose rates · labelled Simulated</td><td class="sim">shows as missing</td></tr>
+    </table></div>
+    <div class="notes">
+      <div class="note"><b>The rule</b><span>The chip sends only what a part measured. Every value that did not come from this board's own sensors is made by the hub, in demo mode only, and carries its label on screen.</span></div>
+      <div class="note"><b>When a part is added</b><span>Its driver goes into the firmware and the reading leaves the missing list. The hub switches to the measured value by itself; nothing else changes.</span></div>
+      <div class="note"><b>What the chip sends</b><span>"missing":["co2","air_quality","oxygen","radiation"] in every line, beside the measured readings.</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var ns = "http://www.w3.org/2000/svg", svg = document.getElementById("sch");
+  var INK = "var(--ink)", SOFT = "var(--ink-soft)", FAINT = "var(--ink-faint)";
+  function el(tag, a, text) {
+    var e = document.createElementNS(ns, tag);
+    for (var k in a) e.setAttribute(k, a[k]);
+    if (text != null) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  function wire(pts, color, w) {
+    var d = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
+    el("path", { d: d, fill: "none", stroke: "var(--paper)", "stroke-width": (w || 3) + 4, "stroke-linejoin": "round", "stroke-linecap": "round" });
+    el("path", { d: d, fill: "none", stroke: "var(--" + color + ")", "stroke-width": w || 3, "stroke-linejoin": "round", "stroke-linecap": "round" });
+  }
+  function dot(x, y, color) { el("circle", { cx: x, cy: y, r: 5, fill: "var(--" + (color || "ink") + ")" }); }
+  function pinMark(x, y) { el("circle", { cx: x, cy: y, r: 4.5, fill: "var(--paper)", stroke: INK, "stroke-width": 2 }); }
+  function label(x, y, t, anchor, size, fill) { el("text", { x: x, y: y + 4, "font-size": size || 14, fill: fill || INK, "text-anchor": anchor || "start" }, t); }
+  function part(x, y, w, h, title, sub, deep) {
+    el("rect", { x: x, y: y, width: w, height: h, rx: 6, fill: deep ? "var(--paper-deep)" : "none", stroke: INK, "stroke-width": 2 });
+    label(x + w / 2, y + 22, title, "middle", 16);
+    if (sub) label(x + w / 2, y + 42, sub, "middle", 12, SOFT);
+  }
+
+  // rails
+  var TOP = 92, BOT = 930;
+  wire([[40, TOP], [1575, TOP]], "v33", 4);
+  wire([[40, BOT], [1575, BOT]], "gnd", 4);
+  label(44, TOP - 20, "3.3 V RAIL · any V pin (JUMP cap on 3.3V)", "start", 14, "var(--v33)");
+  label(44, BOT + 24, "GND RAIL · any G pin", "start", 14, "var(--gnd)");
+
+  // ESP32
+  var EX = 640, EW = 320, EY = 230, EH = 560;
+  part(EX, EY, EW, EH, "ESP32", "DevKit on RoboCore expansion", true);
+  el("rect", { x: EX + 95, y: EY + 230, width: 130, height: 110, rx: 4, fill: "none", stroke: FAINT, "stroke-dasharray": "6 5" });
+  label(EX + 160, EY + 285, "ESP32-D0WD-V3", "middle", 12, SOFT);
+  el("rect", { x: EX + 135, y: EY + EH - 34, width: 50, height: 22, rx: 3, fill: "none", stroke: FAINT });
+  label(EX + 160, EY + EH - 23, "USB", "middle", 10, SOFT);
+  // board power
+  wire([[EX + 270, EY], [EX + 270, TOP]], "v33"); dot(EX + 270, TOP, "v33"); pinMark(EX + 270, EY); label(EX + 270, EY + 20, "V", "middle", 13, SOFT);
+  wire([[EX + 270, EY + EH], [EX + 270, BOT]], "gnd"); dot(EX + 270, BOT, "gnd"); pinMark(EX + 270, EY + EH); label(EX + 270, EY + EH - 18, "G", "middle", 13, SOFT);
+
+  var L = { D34: 320, D35: 525, D25: 680 };
+  var R = { D16: 300, D15: 340, D4: 470, D5: 510, D23: 640, D22: 680 };
+  Object.keys(L).forEach(function (n) { pinMark(EX, L[n]); label(EX + 14, L[n], n); });
+  Object.keys(R).forEach(function (n) { pinMark(EX + EW, R[n]); label(EX + EW - 14, R[n], n, "end"); });
+
+  // right-hand parts
+  var PX = 1180, PW = 260;
+  function rightPart(top, h, title, sub, sda, scl, vccName, vy, gy, vx, gx, extra, deep) {
+    part(PX, top, PW, h, title, sub, deep);
+    pinMark(PX, sda[1]); label(PX + 14, sda[1], sda[0]);
+    pinMark(PX, scl[1]); label(PX + 14, scl[1], scl[0]);
+    pinMark(PX + PW, vy); label(PX + PW - 14, vy, vccName, "end");
+    pinMark(PX + PW, gy); label(PX + PW - 14, gy, "GND", "end");
+    wire([[EX + EW, sda[2]], [PX, sda[1]]], "sda");
+    wire([[EX + EW, scl[2]], [PX, scl[1]]], "scl");
+    wire([[PX + PW, vy], [vx, vy], [vx, TOP]], "v33"); dot(vx, TOP, "v33");
+    wire([[PX + PW, gy], [gx, gy], [gx, BOT]], "gnd"); dot(gx, BOT, "gnd");
+    if (extra) extra();
+  }
+  rightPart(240, 150, "BMP280", "pressure · 0x76", ["SDA", 300, 300], ["SCL", 340, 340], "VCC", 300, 340, 1470, 1560);
+  rightPart(420, 140, "MPU6050", "vibration · 0x68", ["SDA", 470, 470], ["SCL", 510, 510], "VCC", 470, 510, 1490, 1545);
+  rightPart(590, 200, "ENS160 + AHT21", "AHT21 temp/RH · 0x38", ["SDA", 640, 640], ["SCL", 680, 680], "VIN", 640, 680, 1510, 1530, function () {
+    label(PX + PW / 2, 724, "3V3 · ADD · CS · INT: empty", "middle", 12, SOFT);
+    label(PX + PW / 2, 752, "ENS160 air quality · CO2 (est.)", "middle", 12, SOFT);
+  });
+
+  // left-hand parts
+  var QX = 170, QW = 260;
+  // microphone
+  part(QX, 255, QW, 130, "Microphone", "noise · analog");
+  pinMark(QX + QW, 320); label(QX + QW - 14, 320, "OUT", "end");
+  pinMark(QX, 300); label(QX + 14, 300, "VCC");
+  pinMark(QX, 345); label(QX + 14, 345, "GND");
+  wire([[QX + QW, 320], [EX, 320]], "sig");
+  wire([[QX, 300], [120, 300], [120, TOP]], "v33"); dot(120, TOP, "v33");
+  wire([[QX, 345], [80, 345], [80, BOT]], "gnd"); dot(80, BOT, "gnd");
+
+  // LDR divider
+  part(QX, 420, QW, 165, "Light sensor", "LDR + resistor divider");
+  var nx = QX + 175, ny = 525;
+  // LDR: 3.3 V side
+  wire([[QX, 495], [100, 495], [100, TOP]], "v33"); dot(100, TOP, "v33");
+  pinMark(QX, 495); pinMark(QX, 555);
+  el("line", { x1: QX, y1: 495, x2: QX + 40, y2: 495, stroke: INK, "stroke-width": 2 });
+  el("rect", { x: QX + 40, y: 484, width: 56, height: 22, rx: 11, fill: "none", stroke: INK, "stroke-width": 2 });
+  el("path", { d: "M" + (QX + 50) + " 495 l6 -6 l6 12 l6 -12 l6 12 l6 -12 l6 6", fill: "none", stroke: INK, "stroke-width": 1.5 });
+  label(QX + 125, 495, "LDR", "start", 11, SOFT);
+  el("path", { d: "M" + (QX + 96) + " 495 H" + nx + " V" + ny, fill: "none", stroke: INK, "stroke-width": 2 });
+  // resistor: GND side
+  el("line", { x1: QX, y1: 555, x2: QX + 40, y2: 555, stroke: INK, "stroke-width": 2 });
+  el("rect", { x: QX + 40, y: 546, width: 56, height: 18, fill: "none", stroke: INK, "stroke-width": 2 });
+  label(QX + 105, 572, "resistor", "start", 11, SOFT);
+  el("path", { d: "M" + (QX + 96) + " 555 H" + nx + " V" + ny, fill: "none", stroke: INK, "stroke-width": 2 });
+  dot(nx, ny);
+  pinMark(QX + QW, ny); label(QX + QW - 14, ny - 16, "OUT", "end", 12, SOFT);
+  el("line", { x1: nx, y1: ny, x2: QX + QW, y2: ny, stroke: INK, "stroke-width": 2 });
+  wire([[QX + QW, ny], [EX, ny]], "sig");
+  wire([[QX, 555], [60, 555], [60, BOT]], "gnd"); dot(60, BOT, "gnd");
+
+  // buzzer
+  part(QX, 615, QW, 130, "Buzzer", "room alarm · long leg = +");
+  pinMark(QX + QW, 680); label(QX + QW - 14, 680, "+", "end", 16);
+  pinMark(QX, 710); label(QX + 14, 710, "−", "start", 16);
+  el("circle", { cx: QX + 130, cy: 700, r: 16, fill: "none", stroke: INK, "stroke-width": 2 });
+  el("circle", { cx: QX + 130, cy: 700, r: 4, fill: "none", stroke: INK });
+  wire([[QX + QW, 680], [EX, 680]], "sig");
+  wire([[QX, 710], [40, 710], [40, BOT]], "gnd"); dot(40, BOT, "gnd");
+
+  // wire labels on the left run
+  label(535, 307, "D34", "middle", 11, "var(--sig)");
+  label(535, 512, "D35", "middle", 11, "var(--sig)");
+  label(535, 667, "D25", "middle", 11, "var(--sig)");
+  label(1070, 287, "SDA", "middle", 11, "var(--sda)"); label(1070, 327, "SCL", "middle", 11, "var(--scl)");
+  label(1070, 457, "SDA", "middle", 11, "var(--sda)"); label(1070, 497, "SCL", "middle", 11, "var(--scl)");
+  label(1070, 627, "SDA", "middle", 11, "var(--sda)"); label(1070, 667, "SCL", "middle", 11, "var(--scl)");
+})();
+(function () {
+  var ns = "http://www.w3.org/2000/svg", svg = document.getElementById("real");
+  var INK = "var(--ink)", SOFT = "var(--ink-soft)", FAINT = "var(--ink-faint)";
+  function el(tag, a, text) { var e = document.createElementNS(ns, tag); for (var k in a) e.setAttribute(k, a[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; }
+  function t(x, y, s, o) { o = o || {}; return el("text", { x: x, y: y + 4, "font-size": (o.size || 12) * 1.35, fill: o.fill || INK, "text-anchor": o.anchor || "start" }, s); }
+
+  // ---------- ESP32 expansion board ----------
+  el("rect", { x: 60, y: 50, width: 500, height: 900, rx: 16, fill: "var(--paper-deep)", stroke: INK, "stroke-width": 2.5 });
+  t(310, 80, "ROBOCORE ESP32 EXPANSION", { anchor: "middle", fill: SOFT, size: 11 });
+  // devkit module
+  el("rect", { x: 195, y: 150, width: 230, height: 560, rx: 8, fill: "none", stroke: INK, "stroke-width": 2 });
+  el("rect", { x: 230, y: 175, width: 160, height: 190, rx: 4, fill: "none", stroke: INK, "stroke-width": 1.5 });
+  t(310, 255, "ESP-32", { anchor: "middle", size: 18 });
+  t(310, 280, "WROOM", { anchor: "middle", fill: SOFT, size: 11 });
+  el("rect", { x: 265, y: 450, width: 90, height: 90, rx: 4, fill: "none", stroke: FAINT, "stroke-dasharray": "5 4" });
+  t(310, 495, "CP2102", { anchor: "middle", fill: SOFT, size: 10 });
+  el("rect", { x: 285, y: 650, width: 50, height: 32, rx: 4, fill: "none", stroke: INK });
+  t(310, 666, "USB", { anchor: "middle", fill: SOFT, size: 9 });
+  el("rect", { x: 220, y: 650, width: 26, height: 26, rx: 3, fill: "none", stroke: INK }); t(233, 690, "EN", { anchor: "middle", fill: SOFT, size: 9 });
+  el("rect", { x: 374, y: 650, width: 26, height: 26, rx: 3, fill: "none", stroke: INK }); t(387, 690, "BOOT", { anchor: "middle", fill: SOFT, size: 9 });
+  // bottom of expansion: JUMP, USB-C, DC jack
+  el("rect", { x: 100, y: 760, width: 40, height: 60, rx: 3, fill: "none", stroke: INK }); t(120, 832, "JUMP", { anchor: "middle", fill: SOFT, size: 9 });
+  el("rect", { x: 112, y: 768, width: 16, height: 26, rx: 2, fill: "var(--v33)", opacity: .85 }); t(150, 778, "3.3V", { fill: "var(--v33)", size: 10 });
+  el("rect", { x: 160, y: 860, width: 70, height: 40, rx: 8, fill: "none", stroke: INK }); t(195, 912, "USB-C", { anchor: "middle", fill: SOFT, size: 9 });
+  el("rect", { x: 420, y: 850, width: 80, height: 60, rx: 6, fill: "none", stroke: INK }); t(460, 922, "DC 6.5–16V", { anchor: "middle", fill: SOFT, size: 9 });
+
+  // long pin rows: G V S
+  var LEFT = ["EN", "VP", "VN", "D34", "D35", "D32", "D33", "D25", "D26", "D27", "D14", "D12", "D13"];
+  var RIGHT = ["D23", "D22", "TX0", "RX0", "D21", "D19", "D18", "D5", "D17", "D16", "D4", "D2", "D15"];
+  var P = {};
+  function rowY(i) { return 150 + i * 40; }
+  [["G", 0], ["V", 1], ["S", 2]].forEach(function (c) { t(115 + c[1] * 25, 125, c[0], { anchor: "middle", fill: SOFT, size: 10 }); t(440 + c[1] * 25, 125, c[0], { anchor: "middle", fill: SOFT, size: 10 }); });
+  LEFT.forEach(function (n, i) {
+    var y = rowY(i); t(72, y, n, { size: 11 });
+    [115, 140, 165].forEach(function (x, k) { el("circle", { cx: x, cy: y, r: 5, fill: "none", stroke: INK, "stroke-width": 1.5 }); P[n + ["G", "V", "S"][k]] = [x, y]; });
+  });
+  RIGHT.forEach(function (n, i) {
+    var y = rowY(i); t(550, y, n, { size: 11, anchor: "end" });
+    [440, 465, 490].forEach(function (x, k) { el("circle", { cx: x, cy: y, r: 5, fill: "none", stroke: INK, "stroke-width": 1.5 }); P[n + ["G", "V", "S"][k]] = [x, y]; });
+  });
+  // small block (unused)
+  el("rect", { x: 445, y: 700, width: 100, height: 120, rx: 4, fill: "none", stroke: FAINT, "stroke-dasharray": "4 4" });
+  ["D22", "D21", "VCC", "GND"].forEach(function (n, i) { el("circle", { cx: 470, cy: 718 + i * 28, r: 4.5, fill: "none", stroke: FAINT }); t(486, 718 + i * 28, n, { fill: SOFT, size: 9 }); });
+  t(495, 832, "not used", { anchor: "middle", fill: SOFT, size: 9 });
+
+  // ---------- breadboard ----------
+  var BX = 610, BW = 500;
+  el("rect", { x: BX, y: 30, width: BW, height: 940, rx: 10, fill: "rgba(255,255,255,.05)", stroke: INK, "stroke-width": 2.5 });
+  var X = { Ln: 632, Lp: 656, c1: 700, c2: 726, c3: 752, c4: 778, c5: 804, c6: 916, c7: 942, c8: 968, c9: 994, c10: 1020, Rp: 1064, Rn: 1088 };
+  function Y(r) { return 940 - (r - 1) * 30.3; }
+  el("rect", { x: 842, y: 40, width: 36, height: 920, fill: "none", stroke: FAINT, "stroke-dasharray": "3 3" });
+  [[644, "gnd", "−"], [668, "v33", "+"], [1052, "v33", "+"], [1100, "gnd", "−"]].forEach(function (s) {
+    el("line", { x1: s[0], y1: 44, x2: s[0], y2: 956, stroke: "var(--" + s[1] + ")", "stroke-opacity": .6, "stroke-width": 1.5 });
+  });
+  t(632, 18, "−", { anchor: "middle", fill: "var(--gnd)", size: 14 }); t(656, 18, "+", { anchor: "middle", fill: "var(--v33)", size: 14 });
+  t(1064, 18, "+", { anchor: "middle", fill: "var(--v33)", size: 14 }); t(1088, 18, "−", { anchor: "middle", fill: "var(--gnd)", size: 14 });
+  for (var r = 1; r <= 30; r++) {
+    Object.keys(X).forEach(function (k) { el("rect", { x: X[k] - 3, y: Y(r) - 3, width: 6, height: 6, fill: "none", stroke: FAINT }); });
+    t(860, Y(r), r, { anchor: "middle", fill: SOFT, size: 9 });
+  }
+
+  // ---------- parts ----------
+  function module(name, sub, r0, pins, x0, w, fill) {
+    var top = Y(r0 + pins.length - 1) - 16, h = (pins.length - 1) * 30.3 + 32;
+    el("rect", { x: x0, y: top, width: w, height: h, rx: 6, fill: fill || "var(--paper-deep)", "fill-opacity": .92, stroke: INK, "stroke-width": 2 });
+    t(x0 + w / 2 + 30, top + h / 2 - 8, name, { anchor: "middle", size: 13 });
+    if (sub) sub.split("\n").forEach(function (s, i) {
+      var lines = sub.indexOf("\n") > -1; // several lines sit between the pin rows, clear of the pin labels
+      var e = t(x0 + w / 2 + 30, top + h / 2 + (lines ? 30.3 * (i + 1) : 10), s, { anchor: "middle", fill: SOFT, size: 10 });
+      var over = x0 + w / 2 + 30 + e.getComputedTextLength() / 2 - (x0 + w - 12); // keep the label inside the module
+      if (over > 0) e.setAttribute("x", x0 + w / 2 + 30 - over);
+    });
+    var out = {};
+    pins.forEach(function (p, i) { var y = Y(r0 + i); el("circle", { cx: X.c1, cy: y, r: 4, fill: INK }); t(X.c1 + 10, y, p, { size: 9.5, fill: SOFT }); out[p] = [X.c1, y]; });
+    return out;
+  }
+  var mic = module("Microphone", "noise", 1, ["GND", "VCC", "OUT"], 690, 200);
+  el("circle", { cx: 850, cy: Y(2), r: 22, fill: "none", stroke: INK, "stroke-width": 1.5 });
+  var ens = module("ENS160 + AHT21", "air quality · CO2 (est.)\ntemperature · humidity", 6, ["INT", "CS", "ADD", "SDA", "SCL", "GND", "3V3", "VIN"], 690, 230);
+  var bmp = module("BMP280", "pressure", 17, ["VCC", "GND", "SCL", "SDA", "CSB", "SDO"], 690, 200, "rgba(130,70,190,.75)");
+  var mpu = module("MPU6050", "vibration", 23, ["INT", "ADD", "XCL", "XDA", "SDA", "SCL", "GND", "VCC"], 690, 210);
+
+  // LDR + resistor (right half, rows 11-14)
+  el("line", { x1: X.c7, y1: Y(14), x2: X.c7, y2: Y(12), stroke: INK, "stroke-width": 2 });
+  el("ellipse", { cx: X.c7, cy: Y(13), rx: 12, ry: 16, fill: "var(--paper)", stroke: INK, "stroke-width": 1.8 });
+  el("path", { d: "M" + (X.c7 - 6) + " " + (Y(13) - 8) + " h12 l-12 8 h12 l-12 8 h12", fill: "none", stroke: INK, "stroke-width": 1.2 });
+  el("line", { x1: X.c8, y1: Y(12), x2: X.c8, y2: Y(10), stroke: INK, "stroke-width": 2 });
+  el("rect", { x: X.c8 - 7, y: Y(11) - 13, width: 14, height: 26, rx: 5, fill: "var(--paper)", stroke: INK, "stroke-width": 1.8 });
+  t(X.c7 - 18, Y(13), "LDR", { size: 10, fill: SOFT, anchor: "end" }); t(X.c8 - 14, Y(10.6), "resistor", { size: 10, fill: SOFT, anchor: "end" });
+  // buzzer (right half, rows 19-22)
+  el("circle", { cx: X.c8, cy: Y(20.5), r: 42, fill: "var(--paper-deep)", stroke: INK, "stroke-width": 2 });
+  el("circle", { cx: X.c8, cy: Y(20.5), r: 7, fill: "none", stroke: INK });
+  t(X.c8, Y(20.5) + 58, "buzzer", { anchor: "middle", fill: SOFT, size: 10 });
+  el("circle", { cx: X.c6, cy: Y(22), r: 4, fill: INK }); t(X.c6 - 10, Y(22), "+", { anchor: "end", size: 13 });
+  el("circle", { cx: X.c6, cy: Y(19), r: 4, fill: INK }); t(X.c6 - 10, Y(19), "−", { anchor: "end", size: 13 });
+
+  // ---------- wires ----------
+  function arc(a, b, color, lift) {
+    var mx = (a[0] + b[0]) / 2, top = Math.min(a[1], b[1]) - (lift || 120);
+    var d = "M" + a[0] + " " + a[1] + " C" + a[0] + " " + top + " " + b[0] + " " + top + " " + b[0] + " " + b[1];
+    el("path", { d: d, fill: "none", stroke: "var(--paper)", "stroke-width": 7, "stroke-linecap": "round", opacity: .9 });
+    el("path", { d: d, fill: "none", stroke: "var(--" + color + ")", "stroke-width": 3.2, "stroke-linecap": "round" });
+    el("circle", { cx: a[0], cy: a[1], r: 4, fill: "var(--" + color + ")" }); el("circle", { cx: b[0], cy: b[1], r: 4, fill: "var(--" + color + ")" });
+  }
+  function rail(side, r) { return [X[side], Y(r)]; }
+  // rails fed from the board
+  arc(P.D2V, rail("Lp", 4), "v33", 60); arc(P.D2G, rail("Ln", 3), "gnd", 50);
+  // power to each module from the left strips
+  [[mic.VCC, "Lp", 2, "v33"], [mic.GND, "Ln", 1, "gnd"], [ens.VIN, "Lp", 13, "v33"], [ens.GND, "Ln", 11, "gnd"],
+   [bmp.VCC, "Lp", 17, "v33"], [bmp.GND, "Ln", 18, "gnd"], [mpu.VCC, "Lp", 30, "v33"], [mpu.GND, "Ln", 29, "gnd"]].forEach(function (w) {
+    arc(rail(w[1], w[2]), w[0], w[3], 22);
+  });
+  // data lines
+  arc(ens.SDA, P.D23S, "sda", 160); arc(ens.SCL, P.D22S, "scl", 140);
+  arc(bmp.SDA, P.D16S, "sda", 120); arc(bmp.SCL, P.D15S, "scl", 100);
+  arc(mpu.SDA, P.D4S, "sda", 80); arc(mpu.SCL, P.D5S, "scl", 60);
+  // analog + buzzer to the board's left rows
+  arc(mic.OUT, P.D34S, "sig", 200);
+  arc([X.c9, Y(12)], P.D35S, "sig", 260);
+  arc([X.c6 - 26, Y(22)], P.D25S, "sig", 220);
+  arc([X.c6 - 26, Y(19)], P.D25G, "gnd", 200);
+  arc(rail("Lp", 14), [X.c9, Y(14)], "v33", 40);
+  arc(rail("Ln", 10), [X.c9, Y(10)], "gnd", 40);
+
+  // ---------- callouts ----------
+  var CX = 1150, cy = 70;
+  t(CX, 40, "CONNECTIONS", { fill: SOFT, size: 11 });
+  [["Microphone", [["OUT", "D34 · S", "sig"], ["VCC / GND", "+ / − strip", "v33"]]],
+   ["Light (LDR)", [["midpoint", "D35 · S", "sig"], ["ends", "+ / − strip", "v33"]]],
+   ["Buzzer", [["+ long leg", "D25 · S", "sig"], ["− short leg", "D25 · G", "gnd"]]],
+   ["ENS160 + AHT21", [["SDA", "D23 · S", "sda"], ["SCL", "D22 · S", "scl"], ["VIN / GND", "+ / − strip", "v33"]]],
+   ["BMP280", [["SDA", "D16 · S", "sda"], ["SCL", "D15 · S", "scl"], ["VCC / GND", "+ / − strip", "v33"]]],
+   ["MPU6050", [["SDA", "D4 · S", "sda"], ["SCL", "D5 · S", "scl"], ["VCC / GND", "+ / − strip", "v33"]]],
+   ["Strips", [["+", "D2 · V (3.3 V)", "v33"], ["−", "D2 · G", "gnd"]]]].forEach(function (g) {
+    t(CX, cy, g[0], { size: 13 }); cy += 22;
+    g[1].forEach(function (r) {
+      el("line", { x1: CX, y1: cy, x2: CX + 18, y2: cy, stroke: "var(--" + r[2] + ")", "stroke-width": 3 });
+      t(CX + 26, cy, r[0], { fill: SOFT, size: 11 }); t(CX + 150, cy, r[1], { size: 11 }); cy += 19;
+    });
+    cy += 14;
+  });
+  t(CX, cy + 4, "Strips fed from any V/G pin;", { fill: SOFT, size: 10 });
+  t(CX, cy + 20, "D2's V and G are drawn as an example.", { fill: SOFT, size: 10 });
+})();
+</script>
+
+</body></html>
