@@ -16,3 +16,9 @@ hub/data/
 xcuserdata/
 DerivedData/
 build/
+
+# The packaged Mac app (hub/scripts/package-mac.sh): binaries and the model, never committed.
+dist-mac/
+
+# The packaged Windows folder (hub/scripts/package-win.sh): binaries and the model, never committed.
+dist-win/
