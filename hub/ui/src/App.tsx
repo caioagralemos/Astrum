@@ -215,7 +215,7 @@ export function App() {
 
   return (
     <main className="hub">
-      <Station weather={weather} rooms={profile.rooms} crew={profile.crew} where={where} lastSeen={lastPlace} roomStatus={roomStatuses} personStatus={personStatuses}
+      <Station weather={weather} rooms={profile.rooms} crew={profile.crew} where={where} lastSeen={lastPlace} roomStatus={roomStatuses} readRooms={[...new Set(values.filter((r) => r.room && !r.person && r.value !== null).map((r) => r.room as string))]} personStatus={personStatuses}
         asleep={asleep} activity={world.activity && Object.fromEntries(Object.entries(world.activity).map(([id, a]) => [id, a.what]))}
         s={s} selected={zoomed ? zoomTarget : selected} onSelect={(next) => { if (zoomed) return; setSelected(next); if (next) setPanel(null); }} mission={stationMission} body={bodyPerson ? { person: bodyPerson.id, states: statesOf(body) } : null}
         alarmRoom={zoomed?.room ?? null} inset={zoomed ? { top: 84, bottom: zoomHeight + 32 } : undefined} roomZoom={zoomed ? 0.55 : undefined} />

@@ -131,6 +131,7 @@ const table = {
   'room.summary.watch': { en: "CO2 near NASA's limit", pt: 'CO2 perto do limite da NASA' },
   'room.summary.over': { en: "CO2 over NASA's limit", pt: 'CO2 acima do limite da NASA' },
   'room.summary.unknown': { en: 'No air reading', pt: 'Sem leitura do ar' },
+  'room.summary.noCo2': { en: 'No CO2 reading', pt: 'Sem leitura de CO2' },
   'room.dayRange': { en: '{low} to {high} in the last 24 hours', pt: 'de {low} a {high} nas últimas 24 horas' },
   'co2.zone.ok': { en: "below NASA's 2.8 mmHg level", pt: 'abaixo do nível de 2,8 mmHg da NASA' },
   'co2.zone.watch': { en: "between NASA's 2.8 and 3 mmHg levels", pt: 'entre os níveis de 2,8 e 3 mmHg da NASA' },

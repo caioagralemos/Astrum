@@ -49,6 +49,8 @@ export interface StationProps {
   /** Display only: the last room of each person whose place is unknown, drawn faint as "last seen", never as there now. */
   lastSeen?: Record<string, LastSeen>;
   roomStatus: Record<string, Status>;
+  /** Rooms with a fresh reading of anything: with no CO2 their tag says "No CO2 reading", not "No reading". */
+  readRooms?: string[];
   personStatus: Record<string, Status>;
   /** Crew ids asleep now: drawn still, in their sleeping bag (used only when `activity` is not given). */
   asleep: string[];
@@ -1372,7 +1374,7 @@ export function Station(raw: StationProps) {
             onClick={() => toggle({ kind: 'room', id: place.id })}>
             <span className="tag-pill">
               {roomName(place.id)}
-              {status !== 'ok' && !(status === 'unknown' && demoPlace) && <span className="tag-status"> · {s(`status.${status}`)}</span>}
+              {status !== 'ok' && !(status === 'unknown' && (demoPlace || props.readRooms?.includes(place.id))) && <span className="tag-status"> · {s(`status.${status}`)}</span>}
             </span>
           </button>
         );

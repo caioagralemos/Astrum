@@ -122,17 +122,23 @@ export function RoomView({ room, status, rows, people, now, s }: RoomViewProps) 
       </div>
     </article>
   );
+  // A pair with one reading missing (no oxygen sensor, say) is filled from the small readings on the right,
+  // first one first, so no card stands half empty; what was moved leaves the right-hand group.
+  const spare = [...strip];
   const pair = (signals: string[], key: string) => {
     const found = signals.map(row).filter((r): r is Row => Boolean(r));
+    while (found.length > 0 && found.length < signals.length && spare.length > 0) found.push(spare.shift() as Row);
     return found.length ? <section key={key} className="widget-card w-pair">{found.map(half)}</section> : null;
   };
+  const warmth = pair(['temperature', 'humidity'], 'warmth');
+  const air = pair(['oxygen', 'pressure'], 'air');
 
   return (
     <div className="dock dock-room" role="group" aria-labelledby="room-name">
       <section className="widget-card w-room" data-tone={co2Tone}>
         <div className="w-room-words">
           <h2 id="room-name">{s(room.name)}</h2>
-          <p className="room-status" data-status={status}>{s(`room.summary.${status}`)}</p>
+          <p className="room-status" data-status={status}>{s(status === 'unknown' && rows.some((r) => r.value !== null) ? 'room.summary.noCo2' : `room.summary.${status}`)}</p>
           <p className="room-people">{people.length ? people.map((p) => p.name).join(', ') : s('hub.nobody')}</p>
         </div>
         {co2 && co2.value !== null && (
@@ -145,14 +151,14 @@ export function RoomView({ room, status, rows, people, now, s }: RoomViewProps) 
         )}
       </section>
 
-      {pair(['temperature', 'humidity'], 'warmth')}
-      {pair(['oxygen', 'pressure'], 'air')}
+      {warmth}
+      {air}
 
-      {strip.length > 0 && (
+      {spare.length > 0 && (
         <section className="widget-card w-rest">
           <div className="w-rest-top"><KindKey kinds={kinds} s={s} /></div>
           <div className="w-rest-cols">
-            {strip.map((r) => (
+            {spare.map((r) => (
               <article key={r.signal} className="w-col-reading" data-signal={r.signal} aria-label={said(r)}>
                 <p className="w-col-head" aria-hidden="true"><SignalIcon signal={r.signal} /><KindMark kind={r.kind} s={s} /></p>
                 <Bars points={trace(r.signal)} now={now} />
