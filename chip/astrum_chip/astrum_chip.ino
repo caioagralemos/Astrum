@@ -1,7 +1,7 @@
 // Astrum cabin chip. ESP32 DevKit, sensors on the pins listed in chip/README.md.
 //
 // Once a second it sends one line of JSON over USB serial (115200 baud):
-//   {"chip":"cabin-1","fw":"0.1","r":[["pressure",1009.2,"hPa","m"],...],"missing":["co2"]}
+//   {"chip":"cabin-1","fw":"0.3","ble":"on","r":[["pressure",1009.2,"hPa","m"],...],"missing":["co2"]}
 // Each reading is [signal, value, unit, kind]; kind is "m" measured or "e" estimated.
 // The chip never invents a value. A part that does not answer is listed in
 // "missing" and probed again every cycle, so it is picked up the moment it answers.
@@ -14,11 +14,22 @@
 //   {"buzz":"alarm"}  repeating alarm tone, stops by itself after 60 s unless sent again
 //   {"buzz":"beep"}   one short beep
 //   {"buzz":"off"}
+//
+// It also advertises a Bluetooth Low Energy beacon, so a crewmate's phone can
+// tell it is near this board: the Astrum service UUID below and the board id as
+// the local name. Nothing can connect to it and it sends no readings over the
+// air. "ble" in each line is "on" when advertising started, "off" when the
+// Bluetooth stack refused to start.
 
 #include <Wire.h>
+#include <BLEDevice.h>
+#include <BLEAdvertising.h>
 
 const char *CHIP_ID = "cabin-1";
-const char *FW = "0.2";
+const char *FW = "0.3";
+
+// The same UUID is in the phone app (RoomLocator.swift) and chip/README.md.
+const char *ASTRUM_BLE_SERVICE = "A5A273B7-39C1-4BF4-B86C-5D4BB3B06B1F";
 
 const int PIN_MIC = 34, PIN_LDR = 35, PIN_BUZZER = 25;
 const int BMP_SDA = 16, BMP_SCL = 15;   // pressure
@@ -192,6 +203,30 @@ void readCommands() {
   }
 }
 
+// ---------- Bluetooth beacon ----------
+// The Bluetooth stack runs in its own tasks on the other core, so the sensor
+// loop and the serial lines below are not held up by it.
+
+bool bleOn = false;
+
+bool bleStart() {
+  if (!BLEDevice::init(CHIP_ID)) return false;
+  // A fixed transmit power, so the phone's signal thresholds mean the same thing every boot.
+  BLEDevice::setPower(ESP_PWR_LVL_P3);
+  BLEAdvertising *adv = BLEDevice::getAdvertising();
+  // Flags (3 bytes) + 128-bit service UUID (18) + "cabin-1" (9) = 30 of the 31 bytes.
+  BLEAdvertisementData data;
+  data.setFlags(0x06);  // general discoverable, no classic Bluetooth
+  data.setCompleteServices(BLEUUID(ASTRUM_BLE_SERVICE));
+  data.setName(CHIP_ID);
+  adv->setAdvertisementData(data);
+  adv->setScanResponse(false);
+  adv->setAdvertisementType(ADV_TYPE_NONCONN_IND);  // a beacon: nothing connects
+  adv->setMinInterval(160);  // 100 ms, in 0.625 ms steps
+  adv->setMaxInterval(240);  // 150 ms
+  return adv->start();
+}
+
 // ---------- Main loop ----------
 
 void setup() {
@@ -201,6 +236,7 @@ void setup() {
   Wire1.begin(MPU_SDA, MPU_SCL);
   Wire1.setTimeOut(20);
   delay(200);
+  bleOn = bleStart();
   tone(PIN_BUZZER, 2000, 80);  // one short beep: the chip started
 }
 
@@ -279,6 +315,8 @@ void loop() {
   Serial.print(CHIP_ID);
   Serial.print("\",\"fw\":\"");
   Serial.print(FW);
+  Serial.print("\",\"ble\":\"");
+  Serial.print(bleOn ? "on" : "off");
   Serial.print("\",\"r\":[");
   Serial.print(readings);
   Serial.print("],\"missing\":[");
