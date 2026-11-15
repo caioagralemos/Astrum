@@ -13,6 +13,9 @@ import { Sheet } from './Sheet.tsx';
 import { HubSaid, call, clock, delayText, timeOf, viewerOf } from './common.tsx';
 import type { S } from './common.tsx';
 
+/** A wait counted down in whole minutes, rounded up, so screens a few seconds apart agree: "14 min". */
+const minutesLeft = (seconds: number) => `${Math.max(0, Math.ceil(seconds / 60))} min`;
+
 export interface EarthProps {
   messages: EarthMessage[];
   delaySeconds: number;
@@ -120,8 +123,8 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
                   )}
                 <div className="xtrack" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, 100 - (reply / total) * 100))}%` }} /><i style={{ left: '50%' }} /></div>
                 <p className="xmessage-times">
-                  <span data-done={delivered ? '' : undefined}>{delivered ? s('earth.delivered') : s('earth.arrives', { time: clock(arrive) })}</span>
-                  <span>{m.reply ? s('earth.reply') : reply > 0 ? s('earth.replyCountdown', { time: clock(reply) }) : s('earth.replyNow')}</span>
+                  <span data-done={delivered ? '' : undefined}>{delivered ? s('earth.delivered') : s('earth.arrives', { time: minutesLeft(arrive) })}</span>
+                  <span>{m.reply ? s('earth.reply') : reply > 0 ? s('earth.replyCountdown', { time: minutesLeft(reply) }) : s('earth.replyNow')}</span>
                 </p>
                 {m.kind === 'alert' && m.resolvedAt !== null && !m.reply && <p className="quiet">{s('earth.alertEnded')}</p>}
                 {m.reply && (

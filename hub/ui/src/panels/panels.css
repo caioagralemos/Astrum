@@ -26,7 +26,7 @@
   margin: 0;
   padding: 6px;
   list-style: none;
-  border-radius: 18px;
+  border-radius: var(--w-radius);
 }
 .xmenu button {
   width: 100%;
@@ -36,7 +36,7 @@
   gap: 12px;
   padding: 0 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--w-ctl-radius);
   background: none;
   color: var(--text);
   font-size: 0.9375rem;
@@ -74,7 +74,7 @@
   min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: var(--w-ctl-radius);
   background: var(--fill);
   color: var(--text);
   font: inherit;
@@ -140,7 +140,7 @@
 .xquote blockquote { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--text); }
 .xquote figcaption { margin-top: 4px; font-size: 0.75rem; color: var(--text-muted); }
 .xquote a, .xmessage a { color: var(--text-muted); text-underline-offset: 3px; }
-.xcard { padding: 12px 14px; border-radius: 18px; background: rgb(255 255 255 / 0.055); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xcard { padding: 12px 14px; border-radius: 6px; background: var(--w-card); box-shadow: var(--w-card-edge); }
 .xcard h4 { font-size: 0.9375rem; font-weight: 500; margin-bottom: 6px; }
 .xcard ol { list-style: decimal; padding-left: 1.2em; font-size: 0.9375rem; }
 
@@ -160,7 +160,7 @@
 .xtrack { position: relative; height: 2px; margin-top: 10px; border-radius: 1px; background: var(--hairline); }
 .xtrack span { position: absolute; inset: 0 auto 0 0; border-radius: 1px; background: var(--text); transition: width 1s linear; }
 .xtrack i { position: absolute; top: -3px; width: 1px; height: 8px; background: var(--hairline-strong); }
-.xreply { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--fill); }
+.xreply { margin: 10px 0 0; padding: 10px 12px; border-radius: 6px; background: var(--fill); }
 .xreply p { font-size: 0.9375rem; line-height: 1.45; }
 .xreply footer { margin-top: 4px !important; }
 
@@ -190,7 +190,7 @@
 /* The section's title, its note and its buttons take their spacing from the column's gap alone. */
 .xcrew > legend { float: none; display: block; padding: 0; margin: 0 0 2px; }
 .xcrew > .quiet, .xcrew > .actions { margin-top: 0 !important; }
-.xperson { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-radius: 16px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xperson { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; border-radius: 6px; background: var(--w-card); box-shadow: var(--w-card-edge); }
 .xperson .quiet { margin-top: 0 !important; }
 /* Each person's card: which one it is, and removing it, on one line at the top. */
 .xperson-head { display: flex; align-items: center; justify-content: space-between; margin: -10px 0 -8px; font-size: 0.8125rem; font-weight: 600; color: rgb(235 235 245 / 0.6); }
@@ -204,6 +204,6 @@
 }
 
 /* Reset to default: the question and its two answers, under the Save button. */
-.xconfirm { margin-top: 12px; padding: 12px 14px; border-radius: 18px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08); }
+.xconfirm { margin-top: 12px; padding: 12px 14px; border-radius: 6px; background: var(--w-card); box-shadow: var(--w-card-edge); }
 .xconfirm p { margin-top: 0 !important; }
 .btn[data-danger] { color: var(--soft-over); }

@@ -16,3 +16,16 @@ export const MISSIONS: Record<MissionName, Mission> = {
   'base-mars': baseMars as unknown as Mission,
   'base-moon': baseMoon as unknown as Mission,
 };
+
+/**
+ * A built-in mission as the hub runs it. The bundled file says where the place
+ * was built to be; a ship moved in Settings (an override the hub keeps) is
+ * somewhere else, and the hub's facts say where: the planet below and the
+ * weightless poses follow them. Everything else (modules, view) is the file's.
+ */
+export function placedAt(mission: Mission, facts: { where: Mission['where']; gravity: number } | undefined): Mission {
+  if (!facts) return mission;
+  const { where, gravity } = facts;
+  if (where.body === mission.where.body && where.situation === mission.where.situation && gravity === mission.gravity) return mission;
+  return { ...mission, where: { body: where.body, situation: where.situation }, gravity };
+}

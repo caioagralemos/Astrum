@@ -2,13 +2,13 @@
 // Contact Earth and Settings buttons (one "More" menu on a phone), the panel
 // that is open, and the drawing of the running mission for the station view.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { World } from '../data.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Mission } from '../../../engine/mission.ts';
 import type { Profile } from '../../../engine/types.ts';
-import { MISSIONS } from '../scene/missions.ts';
+import { MISSIONS, placedAt } from '../scene/missions.ts';
 import type { MissionName } from '../scene/demo.ts';
 import { AskPanel } from './Ask.tsx';
 import { EarthPanel } from './Earth.tsx';
@@ -116,13 +116,21 @@ export function useStationMission(profile: Profile | null): Mission | undefined 
   const file = profile?.mission?.file ?? null;
   const demo = new URLSearchParams(location.search).has('demoMission');
   const [fetched, setFetched] = useState<{ file: string; mission: Mission } | null>(null);
-  const known = file && BUILT_IN[file] ? MISSIONS[BUILT_IN[file]] : null;
+  const facts = profile?.mission;
+  const body = facts?.where.body ?? null, situation = facts?.where.situation, gravity = facts?.gravity;
+  const bundled = file && BUILT_IN[file] ? MISSIONS[BUILT_IN[file]] : null;
+  // Drawn where the hub says the place is now: a ship moved in Settings is no longer where its file was
+  // built (a built-in one's bundled file), nor where it was when it was fetched (one the crew made).
+  const known = useMemo(() => {
+    const from = bundled ?? (fetched?.file === file ? fetched.mission : null);
+    return from && situation !== undefined && gravity !== undefined ? placedAt(from, { where: { body, situation }, gravity }) : from;
+  }, [file, bundled, fetched, body, situation, gravity]);
   useEffect(() => {
-    if (!file || known || demo) return;
+    if (!file || bundled || demo) return;
     let live = true;
     void call<{ mission: Mission }>(`/api/missions/${file}`).then((r) => { if (live && r.ok) setFetched({ file, mission: r.data.mission }); });
     return () => { live = false; };
   }, [file]);
   if (demo || !file) return undefined;
-  return known ?? (fetched?.file === file ? fetched.mission : undefined);
+  return known ?? undefined;
 }

@@ -7,13 +7,15 @@
 //   How big: one fills the row; two take halves; three are a quarter, a half
 //   and a quarter, the most important in the half; four are quarters.
 //
-// The row only changes when what matters changes, and then it morphs into
-// the new arrangement (a view transition on the cards; none under reduced
-// motion). A widget showing a problem is always there.
+// The row only changes when what matters changes, and then it moves into
+// the new arrangement: cards that stay glide and resize, a new one rises in,
+// one that goes fades down (flow.ts; at once under reduced motion). A widget
+// showing a problem is always there.
 
-import { useEffect, useMemo, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { WIDGETS } from './widgets.tsx';
+import { DockFlow } from './flow.ts';
+import type { Snapshot } from './flow.ts';
 import type { DockContext, Size, Widget } from './widgets.tsx';
 
 const SPAN: Record<Size, number> = { quarter: 3, third: 4, half: 6, full: 12 };
@@ -28,6 +30,9 @@ const SHAPES: Record<number, { size: Size; rank: number }[]> = {
 };
 
 interface Slot { size: Size; widget: Widget }
+/** A card on its way out, drawn where it was until it has faded. */
+interface Leaving { key: string; slot: Slot; left: number; width: number }
+let leavingCount = 0;
 
 /** Choose the row: the widgets that matter, as many as fit an arrangement where each has a size it can take. */
 function choose(ranked: { widget: Widget; score: number }[]): Slot[] {
@@ -60,26 +65,54 @@ export function SmartDock({ context }: { context: DockContext }) {
   const next = choose(ranked);
   const nextKey = next.map((s) => `${s.widget.id}:${s.size}`).join(',');
 
-  // Show the new row only when it is a different row, and morph into it.
+  // Show the new row only when it is a different row, and move into it: note where every card
+  // is drawn, change the row, then send each card from there to its new place before paint.
   const [row, setRow] = useState(next);
+  const [leaving, setLeaving] = useState<Leaving[]>([]);
   const rowKey = useMemo(() => row.map((s) => `${s.widget.id}:${s.size}`).join(','), [row]);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const flow = useRef<DockFlow | null>(null);
+  const shot = useRef<Snapshot | null>(null);
+  flow.current ??= new DockFlow((key) => setLeaving((all) => all.filter((l) => l.key !== key)));
+  useEffect(() => () => flow.current?.stop(), []);
+
   useEffect(() => {
     if (nextKey === rowKey) return;
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-    if (!doc.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) setRow(next);
-    else doc.startViewTransition(() => flushSync(() => setRow(next)));
+    const el = rowRef.current;
+    const taken = el && flow.current ? flow.current.capture(el) : null;
+    const staying = new Set(next.map((s) => s.widget.id));
+    const gone = row.filter((s) => !staying.has(s.widget.id)).flatMap((slot): Leaving[] => {
+      const box = taken?.boxes.get(slot.widget.id);
+      return box && box.presence > 0.01 ? [{ key: `gone-${slot.widget.id}-${++leavingCount}`, slot, left: box.left, width: box.right - box.left }] : [];
+    });
+    shot.current = taken;
+    // A widget that comes back while still fading out returns from where its fading copy is.
+    setLeaving((all) => [...all.filter((l) => !staying.has(l.slot.widget.id)), ...gone]);
+    setRow(next);
   }, [nextKey]);
+
+  useLayoutEffect(() => {
+    const taken = shot.current;
+    shot.current = null;
+    if (taken && rowRef.current) flow.current?.play(rowRef.current, taken);
+  }, [rowKey]);
+
+  const card = ({ size, widget }: Slot, gone?: Leaving) => (
+    <section key={gone?.key ?? widget.id} className="widget-card dw" data-size={size} data-widget={widget.id} data-key={gone?.key ?? widget.id}
+      data-problem={problems.has(widget.id) ? '' : undefined} data-leaving={gone ? '' : undefined}
+      aria-hidden={gone ? true : undefined} inert={gone ? true : undefined}
+      style={gone ? { left: gone.left, width: gone.width } : { gridColumn: `span ${SPAN[size]}` }}>
+      <div className="dw-frame" aria-hidden="true"><i /><i /><i /><i /></div>
+      <div className="dw-was" aria-hidden="true" inert />
+      <div className="dw-body">{widget.render(context)}</div>
+    </section>
+  );
 
   return (
     <div className="dock dock-smart" role="region" aria-label={context.s('dock.stack')}>
-      <div className="dock-row">
-        {row.map(({ size, widget }) => (
-          <section key={widget.id} className="widget-card dw" data-size={size} data-widget={widget.id}
-            data-problem={problems.has(widget.id) ? '' : undefined}
-            style={{ gridColumn: `span ${SPAN[size]}`, viewTransitionName: `dw-${widget.id}` }}>
-            {widget.render(context)}
-          </section>
-        ))}
+      <div className="dock-row" ref={rowRef}>
+        {leaving.map((l) => card(l.slot, l))}
+        {row.map((slot) => card(slot))}
       </div>
     </div>
   );

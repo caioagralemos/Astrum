@@ -11,6 +11,7 @@ import type { Alert, EarthMessage } from '../../engine/alerts.ts';
 import type { Evidence } from '../../engine/evidence.ts';
 import type { CrewWatch } from '../../engine/sensors.ts';
 import type { Activity } from '../../engine/activity.ts';
+import type { PersonDose } from '../../engine/dose.ts';
 
 export interface World {
   status: 'connecting' | 'live' | 'offline' | 'replay';
@@ -49,6 +50,12 @@ export interface World {
    * with how it is known (engine/activity.ts). Missing from older hubs and recordings.
    */
   activity?: Record<string, Activity>;
+  /**
+   * Each crewmate's radiation dose by crew id (engine/dose.ts): today, this mission, projected at
+   * the planned end, with its kind (estimated, replayed or simulated: never measured) and unknown time.
+   * Missing for a person with no dose at all, and from older hubs and recordings.
+   */
+  dose?: Record<string, PersonDose>;
   /** Set when the hub said it is restarting on another mission (a mission file); cleared by its next state. */
   restarting?: string | null;
 }
@@ -70,7 +77,7 @@ function applyOne(world: World, message: HubMessage): World {
       return {
         ...world, now: message.now, profile: message.profile, latest: message.latest, stays: message.stays, sources: message.sources, alarms: message.alarms ?? [], alerts: message.alerts ?? [],
         earthMessages: message.earthMessages ?? [], asleep: message.asleep ?? [], evidence: message.evidence ?? {}, crewWatch: message.crewWatch ?? [],
-        activity: message.activity, restarting: null,
+        activity: message.activity, dose: message.dose ?? {}, restarting: null,
       };
     case 'rows': {
       const latest = new Map(world.latest.map((r) => [`${scopeOf(r)}|${r.source}`, r]));
@@ -102,6 +109,8 @@ function applyOne(world: World, message: HubMessage): World {
       return { ...world, now: message.now };
     case 'evidence':
       return { ...world, evidence: { ...world.evidence, [message.person]: message.evidence } };
+    case 'dose':
+      return { ...world, dose: message.dose };
     case 'restarting':
       return { ...world, restarting: message.to };
     default:

@@ -14,6 +14,50 @@
   --fill-strong: color-mix(in srgb, var(--text) 12%, transparent);
   --sheet: color-mix(in srgb, var(--bg) 90%, transparent);
   --frame-line: color-mix(in srgb, var(--scene-line) 34%, transparent);
+  /* The inks and washes the cards draw with, as channels so each use keeps its own strength;
+     --ink-k lifts every secondary ink at once (more contrast lifts it further). */
+  --wash: 255 255 255;
+  --ink: 255 255 255;
+  --ink-hi: 255 255 255;
+  --ink-k: 1.5;
+  /* The projection: no glass. Each surface is a dark tint (so the station's brightest lines and
+     colours stay behind its words at 4.5:1) under a barely there grid of 21 px squares, drawn
+     with a faint full outline and brighter, heavier rounded corners a hair apart from it (one
+     9-slice image: 18 px corners, 10 px radius). Measured from the owner's reference. */
+  --w-bg:
+    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 21px 21px,
+    linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px) 0 0 / 21px 21px,
+    rgb(8 9 11 / 0.33);
+  --w-blur: blur(4px);
+  --w-radius: 11px;
+  --w-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='54' fill='none'%3E%3Cpath d='M18 0.5H36M53.5 18V36M36 53.5H18M0.5 36V18' stroke='%23fff' stroke-opacity='.72'/%3E%3Cpath d='M0.875 14V10.875A10 10 0 0 1 10.875 0.875H14M40 0.875H43.125A10 10 0 0 1 53.125 10.875V14M53.125 40V43.125A10 10 0 0 1 43.125 53.125H40M14 53.125H10.875A10 10 0 0 1 0.875 43.125V40' stroke='%23fff' stroke-width='1.75' stroke-linecap='round'/%3E%3C/svg%3E");
+  --w-card: transparent;
+  --w-card-edge: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  --w-hair: rgb(255 255 255 / 0.3);
+  --w-ctl-radius: 4px;
+  --w-tile-radius: 2px;
+  --w-chip-radius: 3px;
+  --w-chip-bg: rgb(8 9 11 / 0.66);
+  --w-chip-line: rgb(255 255 255 / 0.5);
+  /* A close dark halo keeps words clear of the station's lines. */
+  --w-shade: 0 0 3px rgb(0 0 0 / 0.9), 0 0 10px rgb(0 0 0 / 0.55);
+  /* Motion: one timing for everything that moves (the dock's cards in dock/flow.ts read these).
+     A move settles on a critically damped spring in --motion-move; fades follow --motion-ease. */
+  --motion-move: 380ms;
+  --motion-exit: 200ms;
+  --motion-enter: 320ms;
+  --motion-stagger: 30ms;
+  --motion-rise: 8px;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* The instruments (room/viz.tsx): white lines on one canvas height, one stroke and a shared base.
+     Every line keeps at least 3:1 against the surface; the value's line is the brightest. */
+  --w-inst-h: 36px;
+  --w-inst-stroke: 1.5px;
+  --w-inst-base: rgb(255 255 255 / 0.45);
+  --w-inst-band: rgb(255 255 255 / 0.42);
+  --w-inst-mix: 62%;          /* how much of its tint a softer data mark keeps (the day's range, past stems) */
+  --w-inst-tick: rgb(255 255 255 / 0.55);
+  --w-inst-line: rgb(255 255 255 / 0.92);
   /* A soft, washed-out tint per reading, so each is known by colour and icon before its name. */
   --tint-co2: #a9bccf;
   --tint-oxygen: #93c2dc;
@@ -169,10 +213,10 @@ button { font: inherit; }
 }
 .tag-pill {
   display: block;
-  border: 1px solid transparent;
-  border-radius: 2px;
+  border: 1px solid var(--w-chip-line);
+  border-radius: var(--w-chip-radius);
   padding: 2px 8px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: var(--w-chip-bg);
   font-size: 0.75rem;
   line-height: 1.35;
   transition: opacity 0.2s;
@@ -184,7 +228,7 @@ button { font: inherit; }
 .tag[data-status='over'] .tag-pill { border-color: var(--status-over); color: var(--status-over); font-weight: 700; border-width: 2px; }
 .tag-room[data-status='unknown'] .tag-pill { color: var(--status-unknown); }
 .tag[data-dim] .tag-pill { opacity: 0.45; }
-.tag[aria-pressed='true'] .tag-pill { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
+.tag[aria-pressed='true'] .tag-pill { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; text-shadow: none; }
 .tag:hover .tag-pill { border-color: var(--text); }
 .tag:focus-visible { outline: none; }
 .tag:focus-visible .tag-pill { outline: 2px solid var(--text); outline-offset: 2px; opacity: 1; }
@@ -208,7 +252,7 @@ button { font: inherit; }
   position: absolute;
   z-index: 2;
   left: max(16px, env(safe-area-inset-left));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--story-room, 0px));
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 8px 16px;
@@ -221,13 +265,13 @@ button { font: inherit; }
 /* Every line icon: drawn, never filled. */
 .icon { width: 1.375rem; height: 1.375rem; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ---- The person view: one composed sheet that never scrolls ---- */
+/* ---- The person view: one composed sheet; it scrolls only when the window is too short for it ---- */
 .person {
   --inset: 14px;
   position: absolute;
   z-index: 3;
   top: calc(max(20px, env(safe-area-inset-top)) + 64px);
-  bottom: max(24px, env(safe-area-inset-bottom));
+  bottom: calc(max(24px, env(safe-area-inset-bottom)) + var(--story-room, 0px));
   right: max(24px, env(safe-area-inset-right));
   width: min(500px, 42vw);
   box-sizing: border-box;
@@ -235,7 +279,10 @@ button { font: inherit; }
   flex-direction: column;
   gap: 8px;
   padding: var(--inset);
-  overflow: hidden;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--w-hair) transparent;
 }
 .person > * { flex-shrink: 0; }
 .person p { margin: 0; }
@@ -246,16 +293,20 @@ button { font: inherit; }
 .person-verdict[data-tone='over'] { color: var(--soft-over); }
 .person-level { font-weight: 700; }
 .person-meta { margin-top: 2px !important; font-size: 0.875rem; color: var(--text-muted); }
-.person .mod { border-radius: calc(30px - var(--inset)); }
+.person .mod { border-radius: max(3px, calc(var(--w-radius) - var(--inset))); }
 
-/* The headline card: the one chart, given the room that is left. */
-.hero { flex: 1 1 auto !important; min-height: 150px; display: flex; flex-direction: column; padding: 14px 16px 10px; }
-.hero[data-unusual] { box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--soft-watch) 35%, transparent); }
+/* The headline card: the one chart, given the room that is left. It grows into spare room but never
+   shrinks below its own content. Its rows are a grid, so the chart's slot (the last row) has a
+   definite height in every engine and the chart measures and draws exactly inside it. 88 px keeps
+   its three value labels apart when the words above take two lines. */
+.hero { flex: 1 0 auto !important; min-height: 150px; display: grid; grid-template-rows: auto auto minmax(88px, 1fr); padding: 14px 16px 10px; }
+.hero > .chart { min-height: 0; }
+.hero[data-unusual] { box-shadow: inset 0 0 0 0.5px rgb(var(--wash) / 0.08), inset 0 0 0 1px color-mix(in srgb, var(--soft-watch) 35%, transparent); }
 .hero-top { display: flex; align-items: center; justify-content: space-between; }
-.hero-when { font-size: 0.75rem; color: rgb(235 235 245 / 0.5); font-variant-numeric: tabular-nums; }
+.hero-when { font-size: 0.75rem; color: rgb(var(--ink) / calc(0.5 * var(--ink-k))); font-variant-numeric: tabular-nums; }
 .hero-line { display: flex; align-items: baseline; gap: 12px; margin: 8px 0 4px !important; }
 .hero .mod-value { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.04em; }
-.hero-words { font-size: 0.9375rem; font-weight: 500; color: rgb(235 235 245 / 0.75); line-height: 1.25; }
+.hero-words { font-size: 0.9375rem; font-weight: 500; color: rgb(var(--ink) / calc(0.75 * var(--ink-k))); line-height: 1.25; }
 .hero[data-unusual] .hero-words { color: var(--soft-watch); }
 .odd-mark { width: 6px; height: 6px; border-radius: 50%; background: var(--soft-watch); }
 
@@ -263,9 +314,9 @@ button { font: inherit; }
 .vitals {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-radius: calc(30px - var(--inset));
-  background: rgb(255 255 255 / 0.055);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  border-radius: max(3px, calc(var(--w-radius) - var(--inset)));
+  background: var(--w-card);
+  box-shadow: var(--w-card-edge);
   overflow: hidden;
 }
 .vitals > .vital {
@@ -282,17 +333,17 @@ button { font: inherit; }
   font: inherit;
   cursor: pointer;
 }
-.vitals > .vital:hover { background: rgb(255 255 255 / 0.03); }
+.vitals > .vital:hover { background: rgb(var(--wash) / 0.03); }
 /* An odd one out at the end takes the whole row, so the card never has a hole. */
 .vitals > .vital:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .vitals > .vital:focus-visible { outline: 2px solid var(--text); outline-offset: -4px; }
-.vitals > .vital:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
-.vitals > .vital:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.1); }
-.vitals > .vital:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1), 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.vitals > .vital:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(var(--wash) / 0.1); }
+.vitals > .vital:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(var(--wash) / 0.1); }
+.vitals > .vital:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(var(--wash) / 0.1), 0 -0.5px 0 rgb(var(--wash) / 0.1); }
 .vital .mod-body { margin-top: 8px; min-height: 44px; }
 .vital .mod-value { font-size: 1.625rem; }
 .vital .mod-pic { width: 56px; height: 40px; }
-.slash { margin: 0 1px; color: rgb(235 235 245 / 0.45); font-weight: 200; }
+.slash { margin: 0 1px; color: rgb(var(--ink) / calc(0.45 * var(--ink-k))); font-weight: 200; }
 
 /* Air: one line, the room view's NASA bar. */
 .air { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; }
@@ -305,25 +356,25 @@ button { font: inherit; }
 .person-strip .mod-mini { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .person-strip .mod-mini:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 4px; }
 .person-strip .mod-mini[data-unusual] .mod-mini-head { color: var(--soft-watch); }
-.scale { display: block; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.12); overflow: hidden; }
-.scale > span { display: block; height: 100%; background: rgb(255 255 255 / 0.75); border-radius: 2px; }
+.scale { display: block; height: 4px; border-radius: 2px; background: rgb(var(--wash) / 0.12); overflow: hidden; }
+.scale > span { display: block; height: 100%; background: rgb(var(--wash) / 0.75); border-radius: 2px; }
 .scale-empty { background: none; }
-.person-points { padding: 6px 10px 0; font-size: 0.8125rem; color: rgb(235 235 245 / 0.6); }
+.person-points { padding: 6px 10px 0; font-size: 0.8125rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
 .person-points span { color: var(--text); font-weight: 500; }
 .person .kind-key { margin: 2px 10px 4px !important; }
 
 /* Pictures used here. */
 .ring { width: 40px; height: 40px; }
-.ring-track { fill: none; stroke: rgb(255 255 255 / 0.12); stroke-width: 6; }
+.ring-track { fill: none; stroke: rgb(var(--wash) / 0.12); stroke-width: 6; }
 .ring-fill { fill: none; stroke: var(--viz-warm); stroke-width: 6; stroke-linecap: round; }
 .daybars { display: flex; align-items: flex-end; gap: 3px; width: 100%; height: 100%; }
-.daybars span { flex: 1; min-height: 3px; border-radius: 2px; background: rgb(255 255 255 / 0.2); }
-.daybars span[data-last] { background: rgb(255 255 255 / 0.85); }
+.daybars span { flex: 1; min-height: 3px; border-radius: 2px; background: rgb(var(--wash) / 0.2); }
+.daybars span[data-last] { background: rgb(var(--wash) / 0.85); }
 .minitrace { width: 100%; height: 100%; }
-.minitrace path { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 1.5; stroke-linejoin: round; }
+.minitrace path { fill: none; stroke: rgb(var(--wash) / 0.75); stroke-width: 1.5; stroke-linejoin: round; }
 
 @media (max-aspect-ratio: 4/5) {
-  .person { --inset: 10px; top: 38dvh; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; overflow: auto; }
+  .person { --inset: 10px; top: 38dvh; left: 10px; right: 10px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--story-room, 0px)); width: auto; overflow: auto; }
   .person h2 { font-size: 1.625rem; }
   .hero { min-height: 130px; }
   .hero .mod-value { font-size: 2.25rem; }
@@ -333,12 +384,12 @@ button { font: inherit; }
 
 /* Charts */
 .chart { flex: 1; min-height: 60px; position: relative; }
-.chart svg { position: absolute; inset: 0; overflow: visible; }
+.chart svg { position: absolute; inset: 0; overflow: hidden; }
 .chart-empty { display: grid; place-items: center; color: var(--text-muted); font-size: 0.8125rem; }
 .chart text { font: 0.6875rem/1 ui-sans-serif, system-ui, -apple-system, sans-serif; fill: var(--text-muted); }
 .chart .chart-band-label { fill: var(--text); opacity: 0.8; }
-.chart-grid { stroke: rgb(255 255 255 / 0.06); stroke-width: 1; }
-.chart-band { fill: rgb(255 255 255 / 0.07); }
+.chart-grid { stroke: rgb(var(--wash) / 0.06); stroke-width: 1; }
+.chart-band { fill: rgb(var(--wash) / 0.07); }
 .chart-level { stroke: var(--status-over); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.7; }
 .chart .chart-level-label { fill: var(--status-over); }
 .chart-line { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
@@ -351,13 +402,31 @@ button { font: inherit; }
 /* ---- The material: Apple-style rounded glass over the station ---- */
 .frame {
   border: 0;
-  border-radius: 30px;
-  background: rgb(28 28 30 / 0.62);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 40px 90px -30px rgb(0 0 0 / 0.8);
+  border-radius: var(--w-radius);
+  background: var(--w-bg);
+  backdrop-filter: var(--w-blur);
+  -webkit-backdrop-filter: var(--w-blur);
+  box-shadow: none;
 }
-.panel.frame { border-radius: 24px; }
+.panel.frame { border-radius: var(--w-radius); }
+/* Every surface draws the projection frame over its edge and speaks in its inks. */
+.frame, .widget-card { border: 0 solid; border-image: var(--w-frame) 18 / 18px stretch; color: var(--text); }
+.frame, .widget-card, .tag-pill {
+  --text: #fff;
+  --text-muted: rgb(255 255 255 / 0.86);
+  --hairline: var(--w-hair);
+  --hairline-strong: rgb(255 255 255 / 0.3);
+  --fill: rgb(255 255 255 / 0.06);
+  --fill-strong: rgb(255 255 255 / 0.12);
+  --surface: #0f1114;
+  --bg: #0f1114;
+  text-shadow: var(--w-shade);
+}
+/* More contrast: every word at full strength, stronger lines, a solid surface and no grid. */
+@media (prefers-contrast: more) {
+  :root { --ink-k: 3; --w-hair: rgb(255 255 255 / 0.5); --w-bg: #0f1114; --w-inst-stroke: 2px; --w-inst-base: rgb(255 255 255 / 0.75); --w-inst-band: rgb(255 255 255 / 0.7); --w-inst-tick: rgb(255 255 255 / 0.85); --w-inst-line: #fff; --w-inst-mix: 90%; }
+  .frame, .widget-card, .tag-pill { --text-muted: #fff; }
+}
 @media (prefers-reduced-transparency: reduce) {
   .frame { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
@@ -368,7 +437,7 @@ button { font: inherit; }
   top: calc(max(20px, env(safe-area-inset-top)) + 60px);
   right: max(16px, env(safe-area-inset-right));
   width: min(360px, calc(100vw - 32px));
-  max-height: calc(100dvh - 110px);
+  max-height: calc(100dvh - 110px - var(--story-room, 0px));
   box-sizing: border-box;
   overflow: auto;
   padding: 20px 22px 22px;
@@ -379,13 +448,13 @@ button { font: inherit; }
   top: calc(max(20px, env(safe-area-inset-top)) + 64px);
   right: max(24px, env(safe-area-inset-right));
   width: min(460px, 40vw);
-  max-height: calc(100dvh - 110px);
+  max-height: calc(100dvh - 110px - var(--story-room, 0px));
   box-sizing: border-box;
   overflow: hidden;
   padding: 24px 26px 22px;
 }
 @media (max-aspect-ratio: 4/5) {
-  .sheet { top: auto; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; max-height: 62dvh; padding: 18px; overflow: auto; }
+  .sheet { top: auto; left: 10px; right: 10px; bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--story-room, 0px)); width: auto; max-height: 62dvh; padding: 18px; overflow: auto; }
 }
 .panel p, .sheet p { margin: 0; }
 
@@ -416,7 +485,7 @@ button { font: inherit; }
   min-height: 44px;
   padding: 0 18px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--w-ctl-radius);
   background: var(--fill-strong);
   color: var(--text);
   font-size: 0.9375rem;
@@ -496,7 +565,30 @@ button { font: inherit; }
   margin: 0;
 }
 .banner { top: calc(max(20px, env(safe-area-inset-top)) + 60px); padding: 10px 18px; color: var(--status-over); }
-.story { bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 0.875rem; color: var(--text-muted); }
+.story {
+  /* A build watermark, as a game's beta carries: uppercase, a little heavy, see-through.
+     It has its own strip under the dock and the panels, which move up by --story-room to make it. */
+  bottom: max(9px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; line-height: 1.2; text-transform: uppercase;
+  color: rgb(255 255 255 / 0.5); pointer-events: none; text-align: center; white-space: nowrap;
+}
+.hub { --story-room: 0px; }
+.hub:has(> .story) { --story-room: 18px; }
+.story .btn { pointer-events: auto; letter-spacing: 0.08em; }
+/* Its controls speak in the watermark's voice: words, not buttons, so they fit its strip. The padding
+   (taken back by the margin) keeps each one a 44 px target without making the strip taller. */
+.story .btn {
+  min-height: 0; padding: 13px 6px; margin: -13px -6px; background: none;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: rgb(255 255 255 / 0.78);
+  text-decoration: underline; text-decoration-color: rgb(255 255 255 / 0.3); text-underline-offset: 3px;
+}
+.story .btn:hover { background: none; color: #fff; }
+/* Too narrow for one line: the sentence wraps, and its strip (measured in App.tsx) grows with it. */
+@media (max-width: 720px) {
+  .story { white-space: normal; width: calc(100vw - 32px); row-gap: 2px; }
+}
+@media (prefers-contrast: more) { .story { color: rgb(255 255 255 / 0.85); } }
 @media (max-width: 520px) {
   .readings { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
   .reading-value { font-size: 1.25rem; }
@@ -516,20 +608,21 @@ button { font: inherit; }
 .mod, .mod-co2 {
   min-width: 0;
   padding: 12px 14px;
-  border-radius: 18px;
-  background: rgb(255 255 255 / 0.055);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  border-radius: 6px;
+  background: var(--w-card);
+  box-shadow: var(--w-card-edge);
 }
 .mod p, .mod-mini p { margin: 0; }
 
 /* The module header: a grey glyph and small caps, the way Weather labels its modules. */
-.mod-head { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(235 235 245 / 0.55); }
-.mod-head .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2; }
+/* A card's header in the dock's anatomy, set smaller to keep the sheet's layout: its icon, then its name in sentence case. */
+.mod-head { display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 400; line-height: 1.2; color: rgb(var(--ink-hi)); }
+.mod-head .icon { width: 18px; height: 18px; stroke-width: 1.6; }
 .mod-head .kind-mark { margin-left: 3px; }
-.trend-mark { margin-left: auto; color: rgb(235 235 245 / 0.55); display: inline-flex; }
+.trend-mark { margin-left: auto; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); display: inline-flex; }
 .trend-mark .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2.2; }
-.mod-value { font-size: 1.875rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; color: #fff; }
-.unit { margin-left: 2px; font-size: 0.875rem; font-weight: 400; letter-spacing: 0; color: rgb(235 235 245 / 0.6); }
+.mod-value { font-size: 1.875rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; color: rgb(var(--ink-hi)); }
+.unit { margin-left: 2px; font-size: 0.875rem; font-weight: 400; letter-spacing: 0; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
 
 /* CO2: the breathing module, wide. */
 .mod-co2 { padding: 14px 16px 0; overflow: hidden; }
@@ -547,11 +640,11 @@ button { font: inherit; }
 /* The rest: five quiet readings straight on the sheet, no card. */
 .mods-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding: 12px 10px 2px; }
 .mod-mini { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.mod-mini-head { display: flex; align-items: center; gap: 5px; color: rgb(235 235 245 / 0.55); }
+.mod-mini-head { display: flex; align-items: center; gap: 5px; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 .mod-mini-head .icon { width: 0.95rem; height: 0.95rem; stroke-width: 2; }
-.mod-mini-value { font-size: 1.125rem; font-weight: 400; letter-spacing: -0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; color: #fff; }
+.mod-mini-value { font-size: 1.125rem; font-weight: 400; letter-spacing: -0.01em; white-space: nowrap; font-variant-numeric: tabular-nums; color: rgb(var(--ink-hi)); }
 .mod-mini-value .unit { margin-left: 1px; font-size: 0.625rem; }
-.mod-mini-name { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-mini-name { font-size: 0.6875rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Kind marks and their key. */
 .kind-mark { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; opacity: 0.85; }
@@ -562,48 +655,57 @@ button { font: inherit; }
 .kind-key { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 4px 0 !important; font-size: 0.6875rem; color: var(--text-muted); }
 .kind-key > span { display: inline-flex; align-items: center; gap: 5px; }
 
-/* Gauge: NASA's zones as one capsule, a dot at now, the levels as small numbers under it. */
-.gauge-track { position: relative; height: 6px; border-radius: 3px; }
+/* Gauge: NASA's levels on a straight scale, a dot at now, the levels as small numbers under it. */
+.gauge-track { position: relative; height: 12px; }
 .gauge-dot {
   position: absolute;
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  border: 3px solid color-mix(in srgb, var(--surface) 90%, var(--bg));
+  bottom: 1.5px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--bg);
   border-radius: 50%;
-  background: var(--text);
-  transform: translate(-50%, -50%);
+  background: var(--w-inst-line);
+  transform: translate(-50%, 50%);
   box-sizing: border-box;
 }
+.gauge-dot[data-tone='watch'] { background: var(--soft-watch); }
+.gauge-dot[data-tone='over'] { background: var(--soft-over); }
 .gauge-marks { position: relative; height: 16px; margin-top: 6px; }
 .gauge-marks span { position: absolute; font-size: 0.6875rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .gauge-marks span[data-side='before'] { transform: translateX(calc(-100% - 3px)); }
 .gauge-marks span[data-side='after'] { transform: translateX(5px); }
 
-/* Pictures. */
-.spark { display: block; width: 100%; height: 100%; }
-.spark-line { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 1.5; stroke-linejoin: round; }
-.spark-fill { fill: rgb(255 255 255 / 0.06); stroke: none; }
-.spark[data-tone='watch'] .spark-line { stroke: var(--soft-watch); }
-.spark[data-tone='over'] .spark-line { stroke: var(--soft-over); }
-.dial { width: 100%; height: 100%; }
-.dial-tick { stroke: rgb(255 255 255 / 0.18); stroke-width: 1.3; stroke-linecap: round; }
-.dial-day { stroke: rgb(255 255 255 / 0.7); stroke-width: 1.8; }
-.dial-needle { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; }
-.dial-hub { fill: #fff; }
-.thermo { width: 22px; height: 64px; }
-.thermo-glass { fill: rgb(255 255 255 / 0.08); stroke: rgb(255 255 255 / 0.2); stroke-width: 0.8; }
-.thermo-day { fill: rgb(255 255 255 / 0.16); }
-.thermo-cool { stop-color: var(--viz-cool); }
-.thermo-warm { stop-color: var(--viz-warm); }
-.thermo-bulb { fill: var(--viz-cool); }
-.drop { width: 48px; height: 64px; }
-.drop-glass { fill: rgb(255 255 255 / 0.05); stroke: rgb(255 255 255 / 0.3); stroke-width: 1.2; }
-.drop-top { stop-color: var(--viz-water-top); }
-.drop-bottom { stop-color: var(--viz-water-bottom); }
-.bars { display: flex; align-items: flex-end; gap: 2px; height: 22px; }
-.bars span { flex: 1; min-height: 2px; border-radius: 1px; background: rgb(255 255 255 / 0.18); }
-.bars span[data-last] { background: rgb(255 255 255 / 0.85); }
+/* Instruments: one family of line drawings sharing a canvas height, a base and a stroke. The scale
+   is white; the data takes its reading's tint (the value's mark in full, the stretch and the area
+   under a trace softer). NASA's zones take their status colours. */
+[data-signal='co2'] { --tint: var(--tint-co2); }
+[data-signal='oxygen'] { --tint: var(--tint-oxygen); }
+[data-signal='temperature'] { --tint: var(--tint-temperature); }
+[data-signal='humidity'] { --tint: var(--tint-humidity); }
+[data-signal='pressure'] { --tint: var(--tint-pressure); }
+[data-signal='air_quality'] { --tint: var(--tint-air_quality); }
+[data-signal='radiation'] { --tint: var(--tint-radiation); }
+[data-signal='noise'] { --tint: var(--tint-noise); }
+[data-signal='light'] { --tint: var(--tint-light); }
+[data-signal='vibration'] { --tint: var(--tint-vibration); }
+.inst { position: relative; width: 100%; height: var(--w-inst-h); }
+.inst-base { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--w-inst-base); }
+.inst-band { position: absolute; bottom: 0; height: 3px; border-radius: 1.5px; background: color-mix(in srgb, var(--tint, #fff) var(--w-inst-mix), transparent); }
+.inst-band[data-level] { background: var(--tint, var(--w-inst-line)); }
+.inst-band[data-tone='ok'] { background: var(--soft-ok); }
+.inst-band[data-tone='watch'] { background: var(--soft-watch); }
+.inst-band[data-tone='over'] { background: var(--soft-over); }
+.inst-tick { position: absolute; bottom: 0; width: 1px; height: 5px; margin-left: -0.5px; background: var(--w-inst-tick); }
+.inst-tick[data-major] { height: 9px; }
+.inst-needle { position: absolute; bottom: 0; width: var(--w-inst-stroke); height: 24px; margin-left: calc(var(--w-inst-stroke) / -2); border-radius: 1px; background: var(--tint, var(--w-inst-line)); }
+.inst-needle::before { content: ''; position: absolute; left: 50%; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: inherit; transform: translateX(-50%); }
+.inst-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--tint, var(--w-inst-line)); transform: translate(-50%, -50%); }
+.spark { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
+.spark-area { fill: color-mix(in srgb, var(--tint, #fff) 14%, transparent); stroke: none; }
+.spark-line { fill: none; stroke: var(--tint, var(--w-inst-line)); stroke-width: var(--w-inst-stroke); stroke-linejoin: round; stroke-linecap: round; }
+.bars { position: relative; display: flex; align-items: flex-end; justify-content: space-between; height: 22px; }
+.bars .bar { flex: none; width: 2px; border-radius: 1px 1px 0 0; background: color-mix(in srgb, var(--tint, #fff) var(--w-inst-mix), transparent); }
+.bars .bar[data-last] { background: var(--tint, var(--w-inst-line)); }
 
 @media (max-aspect-ratio: 4/5) {
   .room { width: auto; padding: 18px; }
@@ -624,19 +726,19 @@ button { font: inherit; }
 /* ---- One composed sheet: three cards (breathing, comfort, the rest), radii concentric with the panel ---- */
 .room { --inset: 14px; padding: var(--inset); gap: 8px; }
 .room-head { padding: 12px 10px 8px; margin: 0; }
-.room .mod, .room .mod-co2 { border-radius: calc(30px - var(--inset)); }
+.room .mod, .room .mod-co2 { border-radius: max(3px, calc(var(--w-radius) - var(--inset))); }
 /* Comfort: four readings in one card, quartered by hairlines. */
 .room .mods-comfort {
   gap: 0;
-  border-radius: calc(30px - var(--inset));
-  background: rgb(255 255 255 / 0.055);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.08);
+  border-radius: max(3px, calc(var(--w-radius) - var(--inset)));
+  background: var(--w-card);
+  box-shadow: var(--w-card-edge);
   overflow: hidden;
 }
 .room .mods-comfort > .mod { border-radius: 0; background: none; box-shadow: none; padding: 14px 16px; }
-.room .mods-comfort > .mod:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
-.room .mods-comfort > .mod:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.1); }
-.room .mods-comfort > .mod:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1), 0 -0.5px 0 rgb(255 255 255 / 0.1); }
+.room .mods-comfort > .mod:nth-child(2n) { box-shadow: -0.5px 0 0 rgb(var(--wash) / 0.1); }
+.room .mods-comfort > .mod:nth-child(n + 3) { box-shadow: 0 -0.5px 0 rgb(var(--wash) / 0.1); }
+.room .mods-comfort > .mod:nth-child(n + 3):nth-child(2n) { box-shadow: -0.5px 0 0 rgb(var(--wash) / 0.1), 0 -0.5px 0 rgb(var(--wash) / 0.1); }
 .room .kind-key { margin: 4px 10px 6px !important; }
 @media (max-aspect-ratio: 4/5) {
   .room { --inset: 10px; padding: var(--inset); }
@@ -650,8 +752,12 @@ button { font: inherit; }
   left: max(20px, env(safe-area-inset-left));
   right: max(20px, env(safe-area-inset-right));
   bottom: max(20px, env(safe-area-inset-bottom));
+  /* Lifted by --story-room while a story plays: a transform, so it glides on the motion timing. */
+  transform: translateY(calc(-1 * var(--story-room, 0px)));
+  transition: transform var(--motion-move) var(--motion-ease);
   display: grid;
-  gap: 12px;
+  /* Wide enough that two neighbouring frames' corner brackets read as two corners, not one squiggle. */
+  gap: 22px;
   height: var(--dock-h);
 }
 .dock-station { grid-template-columns: 1fr 2.2fr 1fr; }
@@ -661,16 +767,16 @@ button { font: inherit; }
   min-width: 0;
   box-sizing: border-box;
   padding: 16px 18px;
-  border-radius: 26px;
-  background: rgb(28 28 30 / 0.62);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.12), 0 30px 70px -30px rgb(0 0 0 / 0.8);
+  border-radius: var(--w-radius);
+  background: var(--w-bg);
+  backdrop-filter: var(--w-blur);
+  -webkit-backdrop-filter: var(--w-blur);
+  box-shadow: none;
   overflow: hidden;
 }
 .widget-card p, .widget-card h2, .widget-card ul { margin: 0; }
 @media (prefers-reduced-transparency: reduce) { .widget-card { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; } }
-.w-head { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(235 235 245 / 0.55); }
+.w-head { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 .w-head .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2; }
 
 /* Crew: names and where they are, a tap opens them. */
@@ -692,10 +798,10 @@ button { font: inherit; }
   text-align: left;
   cursor: pointer;
 }
-.w-crew-list li + li button { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.08); }
+.w-crew-list li + li button { box-shadow: 0 -0.5px 0 rgb(var(--wash) / 0.08); }
 .w-crew-list button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
 .w-crew-name { font-size: 0.9375rem; font-weight: 500; }
-.w-crew-where { font-size: 0.8125rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-crew-where { font-size: 0.8125rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .w-sleep { font-style: italic; }
 .w-flag { position: absolute; left: -10px; top: 50%; width: 5px; height: 5px; border-radius: 50%; transform: translateY(-50%); background: var(--soft-watch); }
 .w-flag[data-status='over'] { background: var(--soft-over); }
@@ -706,18 +812,18 @@ button { font: inherit; }
 .w-air-levels { position: absolute; left: 0; right: 0; top: 0; bottom: 34px; pointer-events: none; }
 .w-air-levels span { position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--soft-over) 55%, transparent); }
 .w-air-levels span[data-soft] { border-top-color: color-mix(in srgb, var(--soft-watch) 45%, transparent); }
-.w-air-levels em { position: absolute; right: 0; top: -15px; font-style: normal; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); font-variant-numeric: tabular-nums; }
+.w-air-levels em { position: absolute; right: 0; top: -15px; font-style: normal; font-size: 0.625rem; color: rgb(var(--ink) / calc(0.45 * var(--ink-k))); font-variant-numeric: tabular-nums; }
 .w-air-cols { list-style: none; padding: 0; height: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
 .w-air-cols button { width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto auto; gap: 3px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
 .w-air-cols button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
-.w-col { position: relative; display: block; width: min(26px, 70%); justify-self: center; border-radius: 6px; background: rgb(255 255 255 / 0.05); overflow: hidden; }
+.w-col { position: relative; display: block; width: min(26px, 70%); justify-self: center; border-radius: 6px; background: rgb(var(--wash) / 0.05); overflow: hidden; }
 .w-col-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: color-mix(in srgb, var(--soft-ok) 80%, transparent); }
 .w-col-fill[data-tone='watch'] { background: var(--soft-watch); }
 .w-col-fill[data-tone='over'] { background: var(--soft-over); }
-.w-air-cols button:hover .w-col { background: rgb(255 255 255 / 0.09); }
-.w-col-value { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.8125rem; font-variant-numeric: tabular-nums; color: #fff; }
-.w-col-value .kind-mark { width: 5px; height: 5px; border-width: 1px; color: rgb(235 235 245 / 0.55); }
-.w-col-name { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.w-air-cols button:hover .w-col { background: rgb(var(--wash) / 0.09); }
+.w-col-value { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.8125rem; font-variant-numeric: tabular-nums; color: rgb(var(--ink-hi)); }
+.w-col-value .kind-mark { width: 5px; height: 5px; border-width: 1px; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
+.w-col-name { font-size: 0.6875rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 
 /* Station: the state in words, the delay to Earth large. */
 .w-station { display: flex; flex-direction: column; gap: 8px; }
@@ -726,8 +832,8 @@ button { font: inherit; }
 .w-state[data-state='over'] { color: var(--soft-over); }
 .w-state:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 4px; }
 .w-earth { margin-top: auto; }
-.w-earth-value { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.04em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.w-earth-label { margin-top: 4px !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
+.w-earth-value { font-size: 2.75rem; font-weight: 200; letter-spacing: -0.04em; line-height: 1; color: rgb(var(--ink-hi)); font-variant-numeric: tabular-nums; }
+.w-earth-label { margin-top: 4px !important; font-size: 0.75rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 
 /* The room's widgets: built for a short, wide card. A header row, then a body that fills it:
    the number bottom-left, the picture the full height on the right. */
@@ -738,48 +844,46 @@ button { font: inherit; }
 .w-room .room-people { margin-top: auto !important; font-size: 0.8125rem; }
 .w-room-co2 { position: relative; width: clamp(130px, 11vw, 170px); align-self: center; text-align: center; }
 .arcgauge { display: block; width: 100%; overflow: visible; }
-.arc-zone { fill: none; stroke-width: 9; stroke-linecap: round; }
-.arc-zone[data-tone='ok'] { stroke: color-mix(in srgb, var(--soft-ok) 80%, transparent); }
-.arc-zone[data-tone='watch'] { stroke: var(--soft-watch); }
-.arc-zone[data-tone='over'] { stroke: var(--soft-over); }
-.arc-dot { fill: #fff; stroke: rgb(28 28 30); stroke-width: 3; }
-.arc-mark { font-size: 7px; fill: rgb(235 235 245 / 0.5); }
-.w-room-co2-value { position: absolute; left: 0; right: 0; bottom: 18px; font-size: 2rem; font-weight: 300; letter-spacing: -0.03em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.arc-base { fill: none; stroke: var(--w-inst-base); stroke-width: 1px; }
+.arc-band { fill: none; stroke: var(--w-inst-band); stroke-width: 3px; stroke-linecap: round; }
+.arc-band[data-tone='ok'] { stroke: var(--soft-ok); }
+.arc-band[data-tone='watch'] { stroke: var(--soft-watch); }
+.arc-band[data-tone='over'] { stroke: var(--soft-over); }
+.arc-tick { stroke: var(--w-inst-tick); stroke-width: 1px; }
+.arc-dot { fill: var(--w-inst-line); stroke: var(--bg); stroke-width: 2; }
+.arc-dot[data-tone='watch'] { fill: var(--soft-watch); }
+.arc-dot[data-tone='over'] { fill: var(--soft-over); }
+.arc-mark { font-size: 7px; fill: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.w-room-co2-value { position: absolute; left: 0; right: 0; bottom: 18px; font-size: 2rem; font-weight: 300; letter-spacing: -0.03em; line-height: 1; color: rgb(var(--ink-hi)); font-variant-numeric: tabular-nums; }
 .w-room[data-tone='watch'] .w-room-co2-value { color: var(--soft-watch); }
 .w-room[data-tone='over'] .w-room-co2-value { color: var(--soft-over); }
-.w-room-co2-unit { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
+.w-room-co2-unit { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px !important; font-size: 0.75rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 
 .w-pair { display: grid; grid-template-columns: 1fr 1fr; padding: 0; }
-.w-half { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; padding: 14px 14px 14px 16px; }
-.w-half + .w-half { box-shadow: -0.5px 0 0 rgb(255 255 255 / 0.1); }
-.w-half .mod-head { gap: 4px; font-size: 0.625rem; letter-spacing: 0.03em; color: rgb(235 235 245 / 0.55); }
+/* Each half: label row, instrument, number; a hairline between the halves, as between the dock's stats. */
+.w-half { position: relative; display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; padding: 14px 18px 16px; }
+.w-half + .w-half::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 16px; width: 1px; background: var(--w-hair); }
+.w-half .mod-head { gap: 7px; font-size: 0.9375rem; }
+/* The icon takes its reading's tint, quietly, tying the label to its mark. */
+.w-half .mod-head .icon, .w-col-head .icon { color: color-mix(in srgb, var(--tint, #fff) 85%, #fff); }
 .w-half .mod-head span:first-of-type { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-/* The picture takes the height above the number, set to the right; the number sits along the bottom. */
-.w-half-body { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-items: end; gap: 6px; min-height: 0; padding-top: 8px; }
-.w-half .mod-value { position: relative; z-index: 1; font-size: 2rem; font-weight: 300; letter-spacing: -0.03em; }
-.w-half-body > .mod-value { grid-row: 2; }
-.w-half-pic { grid-row: 1; align-self: stretch; justify-self: stretch; width: 100%; height: 100%; max-height: 112px; min-height: 0; display: flex; align-items: flex-end; justify-content: flex-end; }
-.w-half-pic > svg { height: 100%; width: auto; max-width: 100%; }
-.w-half:not([data-wide]) .w-half-pic { margin-bottom: -30px; }
-.w-half[data-signal='humidity'] .w-half-pic > svg { height: 88%; }
-.w-half[data-signal='pressure'] .w-half-pic > svg { height: 92%; }
-/* Oxygen's trace runs the width of its half, behind the number. */
-.w-half[data-wide] .w-half-pic { position: absolute; left: -16px; right: -14px; bottom: 34px; height: 52%; }
-.w-half[data-wide] .w-half-pic > svg { width: 100%; }
-.w-half[data-wide] .spark-line { stroke: rgb(255 255 255 / 0.45); stroke-width: 1.2; }
-.w-half[data-wide] .spark-fill { fill: rgb(255 255 255 / 0.04); }
-.w-half[data-wide] .w-half-pic { height: 40%; }
+.w-half-body { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; min-height: 0; }
+.w-half-pic { align-self: center; min-width: 0; }
+.w-half .mod-value { display: flex; align-items: baseline; font-size: 1.75rem; font-weight: 300; letter-spacing: -0.01em; line-height: 1.1; }
+.w-half .unit { margin-left: 4px; font-size: 0.75em; font-weight: 400; color: rgb(var(--ink) / calc(0.78 * var(--ink-k))); }
+.w-half .unit[data-degree] { margin-left: 0; font-size: 1em; font-weight: 300; color: inherit; }
+.w-half .trend-mark { margin-left: 8px; align-self: center; }
 
 .w-rest { display: grid; grid-template-rows: auto 1fr; gap: 8px; padding: 14px 16px; }
 .w-rest-top { display: flex; justify-content: flex-end; }
 .w-rest-top .kind-key { margin: 0 !important; gap: 10px; }
 .w-rest-cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 14px; min-height: 0; }
 .w-col-reading { display: grid; grid-template-rows: auto 1fr auto auto; gap: 6px; min-width: 0; min-height: 0; }
-.w-col-head { display: flex; align-items: center; gap: 5px; color: rgb(235 235 245 / 0.55); }
+.w-col-head { display: flex; align-items: center; gap: 5px; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 .w-col-head .icon { width: 1rem; height: 1rem; stroke-width: 2; }
 .w-col-reading .bars { height: 100%; min-height: 20px; }
-.w-col-big { font-size: 1.25rem; font-weight: 400; letter-spacing: -0.02em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.w-col-label { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-col-big { font-size: 1.25rem; font-weight: 400; letter-spacing: -0.02em; line-height: 1; color: rgb(var(--ink-hi)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.w-col-label { font-size: 0.6875rem; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* On a narrow screen the widgets become a row that scrolls sideways, one and a bit in view. */
 @media (max-width: 760px) {
@@ -800,119 +904,145 @@ button { font: inherit; }
 
 /* ---- The smart dock: one row on a 12-column grid, widgets changing in place ---- */
 .dock-smart { display: block; }
-.dock-row { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; }
-.dw { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; container-type: inline-size; }
-.dw[data-problem] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft-over) 55%, transparent), 0 30px 70px -30px rgb(0 0 0 / 0.8); }
+.dock-row { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 22px; }
+.dw { display: flex; flex-direction: column; gap: 8px; padding: 14px 20px 16px; container-type: inline-size; }
+.dw[data-problem] { --dw-problem: color-mix(in srgb, var(--soft-over) 55%, transparent); }
+
+/* A smart dock card draws its frame in pieces (dock/flow.ts) so it can change width by transforms
+   alone with crisp corners: the surface and the top and bottom edges stretch sideways (a flat tint
+   and level lines take that without a trace); the two bracket caps only slide. The content sits
+   over it, laid out once at the card's size; the previous layout fades out in .dw-was. */
+.dock-row > .dw { background: none; border-image: none; backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; }
+.dock-row > .dw[data-leaving] { position: absolute; top: 0; bottom: 0; pointer-events: none; }
+.dw-frame { position: absolute; inset: 0; pointer-events: none; }
+.dw-frame > i { position: absolute; top: 0; bottom: 0; box-sizing: border-box; transform-origin: 0 0; }
+.dw-frame > i:nth-child(1) {
+  left: 0; right: 0; border-radius: var(--w-radius);
+  background: var(--w-bg); backdrop-filter: var(--w-blur); -webkit-backdrop-filter: var(--w-blur);
+}
+.dw-frame > i:nth-child(2) { left: 0; width: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 0 18px 18px stretch; border-radius: var(--w-radius) 0 0 var(--w-radius); }
+.dw-frame > i:nth-child(3) { left: 18px; right: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 0 stretch; }
+.dw-frame > i:nth-child(4) { right: 0; width: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 18px 18px 0 stretch; border-radius: 0 var(--w-radius) var(--w-radius) 0; }
+.dw[data-problem] .dw-frame > i:nth-child(2) { box-shadow: inset 1px 0 0 var(--dw-problem), inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
+.dw[data-problem] .dw-frame > i:nth-child(3) { box-shadow: inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
+.dw[data-problem] .dw-frame > i:nth-child(4) { box-shadow: inset -1px 0 0 var(--dw-problem), inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
+@media (prefers-reduced-transparency: reduce) { .dw-frame > i:nth-child(1) { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+.dw-body, .dw-was > .dw-body {
+  position: absolute; inset: 0; box-sizing: border-box; padding: inherit; overflow: hidden; border-radius: var(--w-radius);
+  display: flex; flex-direction: column; gap: 8px;
+}
+/* The previous layout keeps its own width, so it is measured (container queries) as it was. */
+.dw-was { position: absolute; top: 0; bottom: 0; left: 0; box-sizing: border-box; padding: inherit; container-type: inline-size; pointer-events: none; }
+.dw-was:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .dock { transition: none; } }
+.dw :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
 .dw-word { font-size: 2.25rem !important; font-weight: 300 !important; letter-spacing: -0.02em !important; }
 
-/* The change: only the cards take part (the station keeps moving). A card that stays glides and
-   resizes into its new place; a card that comes or goes dissolves through a soft blur. */
-:root { view-transition-name: none; }
-::view-transition-group(*) { animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.25, 0.9, 0.25, 1); }
-::view-transition-old(*) { animation: dw-out 0.4s ease both; }
-::view-transition-new(*) { animation: dw-in 0.55s ease 0.12s both; }
-::view-transition-image-pair(*) { isolation: isolate; }
-@keyframes dw-out { to { opacity: 0; filter: blur(10px); transform: scale(0.985); } }
-@keyframes dw-in { from { opacity: 0; filter: blur(10px); transform: scale(1.015); } }
 
-/* Header: icon and name left, how the numbers came to exist (or a note) right. */
-.dw-head { margin: 0; }
+/* Header: a clear title with its icon; a note (and kind marks) on the right. */
+.dw-head { margin: 0; display: flex; align-items: center; gap: 10px; min-height: 24px; font-size: 1.3125rem; font-weight: 400; letter-spacing: 0.005em; line-height: 1.2; color: rgb(var(--ink-hi)); }
+.dw-icon { flex: none; width: 24px; height: 24px; fill: none; stroke: rgb(var(--ink-hi)); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .dw-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dw-right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-weight: 500; white-space: nowrap; }
-.dw-bad { color: var(--soft-over); }
+.dw-right { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9375rem; font-weight: 400; letter-spacing: 0; color: rgb(var(--ink) / calc(0.78 * var(--ink-k))); white-space: nowrap; }
+.dw-right .kind-mark { color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dw-stat-value .kind-mark { margin-left: 7px; vertical-align: 0.3em; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dw-bad { color: var(--soft-over) !important; }
 .dw p, .dw ul, .dw dl { margin: 0; }
 .dw ul { list-style: none; padding: 0; }
-.dw-big { font-size: 2.5rem; font-weight: 200; letter-spacing: -0.04em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.dw-label, .dw-sub { font-size: 0.75rem; color: rgb(235 235 245 / 0.55); }
-.dw-foot { margin-top: auto !important; font-size: 0.75rem; color: rgb(235 235 245 / 0.6); }
-.dw-muted { color: rgb(235 235 245 / 0.5); }
-.dw-empty { margin: auto 0 !important; font-size: 0.875rem; }
-.dw-track { position: relative; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 0.1); overflow: hidden; }
-.dw-track-fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: rgb(255 255 255 / 0.8); }
-.dw-track-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgb(255 255 255 / 0.35); }
+.dw .unit { margin-left: 4px; font-size: 0.75em; font-weight: 400; letter-spacing: 0; color: rgb(var(--ink) / calc(0.78 * var(--ink-k))); }
+.dw-label, .dw-sub { font-size: 0.8125rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dw-muted { color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dw-empty { margin: auto 0 !important; font-size: 0.9375rem; }
 
-/* Crew rows. */
-.dw-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-.dw-row { width: 100%; min-height: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; column-gap: 12px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.dw-rows li + li .dw-row { box-shadow: 0 -0.5px 0 rgb(255 255 255 / 0.08); }
-.dw-row:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
-.dw-name { font-size: 0.9375rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dw-where { font-size: 0.8125rem; color: rgb(235 235 245 / 0.55); white-space: nowrap; }
-.dw-state { font-size: 0.75rem; color: rgb(235 235 245 / 0.55); text-align: right; white-space: nowrap; }
-.dw-row[data-tone='watch'] .dw-state { color: var(--soft-watch); font-weight: 600; }
-.dw-row[data-tone='over'] .dw-state { color: var(--soft-over); font-weight: 600; }
+/* A value under its label row. In a row of them, hairlines between. */
+.dw-stat { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.dw-stat-label { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 0.8125rem; line-height: 1.2; color: rgb(var(--ink) / calc(0.78 * var(--ink-k))); }
+.dw-stat-label .icon { flex: none; width: 18px; height: 18px; stroke: rgb(var(--ink) / calc(0.78 * var(--ink-k))); stroke-width: 1.6; }
+.dw-stat-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-stat-value { font-size: 1.5rem; font-weight: 300; letter-spacing: -0.005em; line-height: 1.15; color: rgb(var(--ink-hi)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Columns sized by what they hold, the spare room shared out, so a long label never cuts a short value. */
+.dw-stats { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: auto; align-content: center; }
+.dw-stats > .dw-stat { padding: 2px 14px; }
+.dw-stats > .dw-stat:first-child { padding-left: 0; }
+.dw-stats > .dw-stat:last-child { padding-right: 0; }
+.dw-stats > .dw-stat + .dw-stat { border-left: 1px solid var(--w-hair); }
 
-/* CO2 columns. */
-.dw-co2 { position: relative; flex: 1; min-height: 0; }
-.dw-levels { position: absolute; inset: 0 0 34px; pointer-events: none; }
-.dw-levels span { position: absolute; left: 0; right: 0; border-top: 1px dashed color-mix(in srgb, var(--soft-over) 50%, transparent); }
-.dw-levels span[data-soft] { border-top-color: color-mix(in srgb, var(--soft-watch) 40%, transparent); }
-.dw-levels em { position: absolute; right: 0; top: -14px; font-style: normal; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); white-space: nowrap; }
-.dw-levels span[data-soft] em { top: 3px; }
-.dw-cols { height: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
-.dw-cols button { width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto auto; gap: 3px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
-.dw-cols button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 6px; }
-.dw-col { position: relative; display: block; width: min(24px, 70%); justify-self: center; border-radius: 5px; background: rgb(255 255 255 / 0.05); overflow: hidden; }
-.dw-col-fill { position: absolute; inset: auto 0 0; border-radius: 5px; background: rgb(255 255 255 / 0.75); }
-.dw-col-fill[data-tone='watch'] { background: var(--soft-watch); }
-.dw-col-fill[data-tone='over'] { background: var(--soft-over); }
-.dw-col-value { font-size: 0.8125rem; color: #fff; font-variant-numeric: tabular-nums; text-align: center; }
-.dw-col-name { font-size: 0.625rem; color: rgb(235 235 245 / 0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+/* Footer: under a hairline, a line or two with their glyphs. */
+.dw-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--w-hair); display: flex; align-items: center; min-width: 0; font-size: 0.8125rem; line-height: 1.25; color: rgb(var(--ink) / calc(0.78 * var(--ink-k))); }
+.dw-foot-item { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.dw-foot-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dw-foot-item + .dw-foot-item { margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--w-hair); }
+.dw-foot-item:last-child:not(:first-child) { margin-left: auto; }
+.dw-foot-icon { flex: none; width: 17px; height: 17px; fill: none; stroke: rgb(var(--ink) / calc(0.78 * var(--ink-k))); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.dw-track { position: relative; height: 4px; border-radius: 2px; background: rgb(var(--wash) / 0.08); overflow: hidden; }
+.dw-track-fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: rgb(var(--wash) / 0.75); }
+.dw-track-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dw-track-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+
+/* Crew: a tile each, picture over name; the row scrolls sideways when the crew is large. */
+.dw-tiles { flex: 1; min-height: 0; display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--w-hair) transparent; }
+.dw-tiles > li { flex: 1 1 0; min-width: 56px; max-width: 104px; scroll-snap-align: start; display: flex; }
+/* The tile centres in the height it has; its portrait (4:5) gives way first when the dock is short. */
+.dw-tile { width: 100%; height: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-shadow: inherit; cursor: pointer; }
+.dw-portrait { position: relative; display: block; flex: 0 1 auto; min-height: 0; width: 100%; aspect-ratio: 4 / 5; border-radius: var(--w-tile-radius); background: rgb(var(--wash) / 0.05); box-shadow: inset 0 0 0 1px var(--w-hair); overflow: hidden; }
+.dw-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dw-portrait svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgb(var(--wash) / 0.42); stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; }
+.dw-tile:hover .dw-portrait { box-shadow: inset 0 0 0 1px rgb(var(--wash) / 0.3); }
+.dw-tile-name { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; font-size: 0.9375rem; line-height: 1.2; color: rgb(var(--ink-hi)); }
+.dw-tile-name > span:last-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The dot beside a name: colour and shape (a circle to watch, a diamond for help), with words in the button's name. */
+.dw-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--soft-watch); }
+.dw-dot[data-tone='over'] { border-radius: 1px; transform: rotate(45deg) scale(0.9); background: var(--soft-over); }
+
 
 /* Alerts. */
-.dw-alerts { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.dw-alerts .dw-big { font-size: 3rem; }
-.dw-alerts[data-tone='ok'] .dw-sub { color: var(--soft-ok); font-size: 0.9375rem; font-weight: 600; }
-.dw-alerts[data-tone='watch'] .dw-big { color: var(--soft-watch); }
-.dw-alerts[data-tone='over'] .dw-big { color: var(--soft-over); }
-.dw-line { margin-top: auto; font-size: 0.8125rem; color: rgb(235 235 245 / 0.7); }
-.dw-alerts:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 6px; }
-
-/* Earth, mission. */
-.dw-earth, .dw-mission { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.dw-earth .dw-big, .dw-mission .dw-big { font-size: 2.75rem; }
-.dw-track-labels { display: flex; justify-content: space-between; font-size: 0.625rem; color: rgb(235 235 245 / 0.45); }
-.dw-facts { margin-top: auto !important; display: flex; justify-content: space-between; gap: 10px; font-size: 0.75rem; color: rgb(235 235 245 / 0.6); }
+.dw-alerts { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-shadow: inherit; text-align: left; cursor: pointer; }
+.dw-alerts[data-tone='ok'] .dw-sub { color: var(--soft-ok); font-size: 0.9375rem; font-weight: 500; }
+.dw-alerts[data-tone='watch'] .dw-stat-value { color: var(--soft-watch); }
+.dw-alerts[data-tone='over'] .dw-stat-value { color: var(--soft-over); }
 
 /* People bars: sleep, exercise, exposure. */
-.dw-bars { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 4px; }
-.dw-bars li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 3.2em; align-items: center; column-gap: 10px; }
-.dw-bars .dw-name { font-size: 0.8125rem; }
-.dw-bar { height: 6px; border-radius: 3px; background: rgb(255 255 255 / 0.08); overflow: hidden; }
-.dw-bar > span { display: block; height: 100%; border-radius: 3px; background: rgb(255 255 255 / 0.75); }
+.dw-bars { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-around; gap: 2px; line-height: 1.2; }
+.dw-bars li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 3.4em; align-items: center; column-gap: 12px; }
+.dw-name { font-size: 0.875rem; color: rgb(var(--ink-hi)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dw-bar { height: 5px; border-radius: 3px; background: rgb(var(--wash) / 0.08); overflow: hidden; }
+.dw-bar > span { display: block; height: 100%; border-radius: 3px; background: rgb(var(--wash) / 0.75); }
 .dw-bar > span[data-tone='watch'] { background: var(--soft-watch); }
-.dw-num { font-size: 0.8125rem; text-align: right; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dw-num { font-size: 0.875rem; text-align: right; color: rgb(var(--ink-hi)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dw-num .unit { margin-left: 2px; }
 
-/* Board: readings in a grid. */
-.dw-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px 14px; align-content: center; }
-.dw-grid dt { font-size: 0.6875rem; color: rgb(235 235 245 / 0.55); }
-.dw-grid dd { margin: 0; display: flex; align-items: center; gap: 2px; font-size: 1.125rem; font-weight: 300; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dw-grid .kind-mark { margin-left: 5px; color: rgb(235 235 245 / 0.55); }
+/* Board: readings in a grid of label rows and values. */
+.dw-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px 16px; align-content: center; }
+.dw-grid .dw-stat-value { font-size: 1.25rem; }
 
 /* Radiation. */
 .dw-minicols { flex: 1; min-height: 20px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; align-items: end; }
 .dw-minicols li { height: 100%; display: flex; align-items: flex-end; }
-.dw-minicols li span { width: 100%; border-radius: 3px; background: rgb(255 255 255 / 0.4); }
+.dw-minicols li span { width: 100%; border-radius: 3px; background: rgb(var(--wash) / 0.75); opacity: 0.55; }
 
 /* Sizes: a widget shows more as its slot grows. */
 @container (max-width: 300px) {
   .dw-not-quarter { display: none !important; }
-  .dw-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .dw-row .dw-where { display: none; }
-  .dw-big { font-size: 2.25rem; }
 }
-@container (max-width: 640px) {
-  .dw-only-full { display: none; }
+@container (max-width: 420px) {
+  .dw-stats > .dw-stat { padding: 2px 7px; }
+  .dw-stats .dw-stat-value { font-size: 1.375rem; letter-spacing: -0.015em; }
+  .dw-stats .unit { margin-left: 3px; font-size: 0.68em; }
+  .dw-stats .dw-stat-value .kind-mark { margin-left: 5px; }
+  .dw-stats .dw-stat-label { gap: 5px; }
+  .dw-stats .dw-stat-label .icon { width: 16px; height: 16px; }
+  .dw-foot .dw-not-quarter { display: none !important; }
+  .dw-foot .dw-not-quarter + .dw-foot-item { margin-left: 0; padding-left: 0; border-left: 0; }
 }
 @container (min-width: 520px) {
-  .dw-bars li { grid-template-columns: 6em minmax(0, 1fr) 3.6em; }
-  .dw-earth .dw-big, .dw-mission .dw-big { font-size: 3.25rem; }
+  .dw-bars li { grid-template-columns: 6em minmax(0, 1fr) 3.8em; }
 }
 
 /* On a phone a page shows its widgets one under the other would not fit: the page row scrolls sideways instead. */
 @media (max-width: 760px) {
   .dock-smart { display: block; overflow: visible; padding: 0; }
-  .dock-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 16px; scrollbar-width: none; }
+  .dock-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0 16px; scrollbar-width: none; }
   .dock-row::-webkit-scrollbar { display: none; }
   .dock-row > .dw { flex: 0 0 84%; scroll-snap-align: center; }
 }

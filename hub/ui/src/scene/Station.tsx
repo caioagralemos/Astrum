@@ -565,6 +565,25 @@ export function Station(raw: StationProps) {
       tag.box[2] = px + tag.pw + 3;
       tag.box[3] = cy + 17;
     };
+    // The interface laid over the view (the top bar's items, the dock, the open panel, the story
+    // line), in the station's own pixels, read with the insets. A label never sits under any of it:
+    // there it could neither be read nor pressed, and its words would cross the interface's.
+    const COVERS = '.topbar > *, .dock, .person, .panel, .sheet, .story, .banner';
+    let covers: [number, number, number, number][] = [];
+    const readCovers = () => {
+      const origin = el.getBoundingClientRect();
+      covers = [...document.querySelectorAll<HTMLElement>(COVERS)]
+        .map((c) => c.getBoundingClientRect())
+        .filter((r) => r.width > 0 && r.height > 0)
+        .map((r) => [r.left - origin.left, r.top - origin.top, r.right - origin.left, r.bottom - origin.top]);
+    };
+    const covered = (tag: Tag) => {
+      const x0 = tag.x + (tag.w - tag.pw) / 2 - 4;
+      const x1 = x0 + tag.pw + 8;
+      const y0 = tag.y + (tag.h - tag.ph) / 2 - 4;
+      const y1 = y0 + tag.ph + 8;
+      return covers.some((c) => x0 < c[2] && c[0] < x1 && y0 < c[3] && c[1] < y1);
+    };
     // Whether each room, and each person, can be seen from here. A label shows only for what can.
     // A room's walls open on whichever side faces the camera (even an end wall, end-on), so what
     // hides a room is another module standing in front of it: (a) seen nearly end-on, a room is
@@ -702,7 +721,8 @@ export function Station(raw: StationProps) {
         }
         tag.show = point.x > -60 && point.x < width + 60 && point.y > -60 && point.y < height + 60
           // Not under the interface laid over the view: a tag there could not be read or pressed.
-          && point.x >= free.left && point.x <= width - free.right && point.y >= free.top && point.y <= height - free.bottom;
+          && point.x >= free.left && point.x <= width - free.right && point.y >= free.top && point.y <= height - free.bottom
+          && !covered(tag);
       }
       // Several people in one room whose names would crowd (sleepers side by side, a meal) share
       // one tag above the highest of them, with a button for each, instead of pushing each other away.
@@ -771,6 +791,8 @@ export function Station(raw: StationProps) {
         // A label never wanders far from what it names: rather than more than about its own height
         // away, it gives way (the ones placed first, by rank, keep their place).
         if (tag.key !== selectedKey && Math.hypot(tag.x - tag.homeX, tag.y - tag.homeY) > tag.ph * 1.15) tag.show = false;
+        // Stepping aside must not carry it under the interface either.
+        if (tag.show && covered(tag)) tag.show = false;
       }
       // Fade over about 120 ms (at once with reduced motion); a faded-out tag leaves the tab order
       // and the accessibility tree too (visibility: hidden), since it names nothing on screen.
@@ -925,6 +947,7 @@ export function Station(raw: StationProps) {
 
       // The insets are read now and then (they can change from CSS alone); a change reframes,
       // keeping the viewer's own zoom and angle if they have one.
+      if (insetCheck % 20 === 0) readCovers();
       if (++insetCheck % 20 === 0 && readInsets()) {
         if (!state.moved) state.aim(latest.current.selected);
       }

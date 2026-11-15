@@ -1,7 +1,11 @@
 // The widgets the dock can show when nothing is selected, in the station's
-// language: neutral glass, a grey small-caps header (what it is on the left,
-// how its numbers came to exist on the right), white light numbers, and colour
-// only when something is wrong, always with words.
+// language: a clear title with its icon, values under small labelled rows set
+// apart by hairlines, an optional footer line, and colour only when something
+// is wrong, always with words. How each number came to exist (its kind mark)
+// sits right after the number, or at the header's right when the widget
+// shows many numbers as one picture (bars, columns).
+// The surface itself (tint, grid, outline, corners, ink) is the hub's one
+// projection look, from app.css; nothing here draws it.
 //
 // Each widget is written once and fits every size it lists (quarter, third,
 // half, full): it lays its content out for the space it is given (container
@@ -12,13 +16,16 @@
 // The dock is a shared screen: it never shows mood, check-in answers, blood
 // values or level 1 alerts (those are for the person alone).
 
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
 import type { Status } from '../../../engine/status.ts';
+import { dayOf } from '../../../engine/mission.ts';
 import type { Kind, Person, Profile, Room, Row } from '../../../engine/types.ts';
 import type { World } from '../data.ts';
 import type { Selection } from '../scene/Station.tsx';
 import { KindMark } from '../panels.tsx';
+import { SignalIcon } from '../person/icons.tsx';
 
 export type S = (key: string, vars?: Record<string, string | number>) => string;
 export type Size = 'quarter' | 'third' | 'half' | 'full';
@@ -57,19 +64,13 @@ const clock = (ms: number) => {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 };
 const kinds = (rows: (Row | undefined)[]) => [...new Set(rows.filter((r): r is Row => Boolean(r)).map((r) => r.kind))] as Kind[];
-
-function Head({ icon, title, kinds: ks, note, s }: { icon: string; title: string; kinds?: Kind[]; note?: ReactNode; s: S }) {
-  return (
-    <h2 className="w-head dw-head">
-      <svg className="icon" viewBox="0 0 24 24" aria-hidden="true"><path d={icon} /></svg>
-      <span className="dw-title">{title}</span>
-      <span className="dw-right">{note ?? (ks && ks.map((k) => <KindMark key={k} kind={k} s={s} />))}</span>
-    </h2>
-  );
-}
+/** A reading as the board shows it: two decimals under 10, one above; the unit as the hub names it. */
+const num = (v: number) => String(Number(v.toFixed(v < 10 ? 2 : 1)));
+const unitText = (unit: string) => (unit === 'raw' ? '' : unit === 'C' ? '°C' : unit);
 
 const ICON = {
   crew: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.3a3.5 3.5 0 0 1 0 6.4M18 14.5a6.5 6.5 0 0 1 3.5 5.5',
+  cabin: 'M3 9.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0M3 14.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0',
   co2: 'M5.2 12H9M15 12h3.8M5.2 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM23 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z',
   alerts: 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0',
   earth: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z',
@@ -79,7 +80,73 @@ const ICON = {
   exercise: 'M3.5 9.5v5M6.5 7v10M17.5 7v10M20.5 9.5v5M6.5 12h11',
   board: 'M5 5h14v14H5zM9 9h6v6H9zM9 2.5V5M15 2.5V5M9 19v2.5M15 19v2.5M2.5 9H5M2.5 15H5M19 9h2.5M19 15h2.5',
   radiation: 'M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM10.5 9.4 7.5 4.2A8.5 8.5 0 0 0 3.5 11.5h6M13.5 9.4l3-5.2a8.5 8.5 0 0 1 4 7.3h-6M10.5 14.6l-3 5.2a8.5 8.5 0 0 0 9 0l-3-5.2',
+  // Footer glyphs.
+  home: 'M4 10.5 12 4l8 6.5v9a.5.5 0 0 1-.5.5h-15a.5.5 0 0 1-.5-.5z',
+  clock: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2',
+  send: 'M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z',
+  down: 'M12 4v15M6.5 13.5 12 19l5.5-5.5',
+  warn: 'M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.1',
 };
+
+function Glyph({ d, className }: { d: string; className: string }) {
+  return <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={d} /></svg>;
+}
+
+function Head({ icon, title, kinds: ks, note, s }: { icon: string; title: string; kinds?: Kind[]; note?: ReactNode; s: S }) {
+  return (
+    <h2 className="dw-head">
+      <Glyph d={icon} className="dw-icon" />
+      <span className="dw-title">{title}</span>
+      {(note || ks?.length) ? <span className="dw-right">{note}{ks?.map((k) => <KindMark key={k} kind={k} s={s} />)}</span> : null}
+    </h2>
+  );
+}
+
+/** One value under its label row (icon, name); its kind mark follows the value. */
+function Stat({ icon, label, kind, s, children }: { icon?: ReactNode; label: string; kind?: Kind; s: S; children: ReactNode }) {
+  return (
+    <div className="dw-stat">
+      <p className="dw-stat-label">{icon}<span className="dw-stat-name">{label}</span></p>
+      <p className="dw-stat-value">{children}{kind && <KindMark kind={kind} s={s} />}</p>
+    </div>
+  );
+}
+
+interface FootItem { key: string; icon: string; text: ReactNode; className?: string }
+
+/** The footer under a hairline: one line per item, each with its glyph. */
+function Foot({ items, className }: { items: (FootItem | null | false | undefined)[]; className?: string }) {
+  const shown = items.filter((i): i is FootItem => Boolean(i));
+  if (!shown.length) return null;
+  return (
+    <div className={`dw-foot${className ? ` ${className}` : ''}`}>
+      {shown.map((i) => (
+        <p key={i.key} className={`dw-foot-item${i.className ? ` ${i.className}` : ''}`}><Glyph d={i.icon} className="dw-foot-icon" /><span>{i.text}</span></p>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A crewmate's picture: their photo when the mission gives one, otherwise the
+ * same head and shoulders for everyone, drawn in facets like the station's line
+ * figures, turned three quarters and cropped as a portrait. Decorative: the
+ * tile's button names them.
+ */
+export function Portrait({ src }: { src?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="dw-portrait" aria-hidden="true">
+      {src && !failed ? <img src={src} alt="" onError={() => setFailed(true)} /> : (
+        <svg viewBox="0 0 48 48" preserveAspectRatio="xMidYMax slice" focusable="false">
+          <path d="M23 7 30 9.5 33 15 35 20 33 25.5 28 29.5 21 29 16 25 14 17 16 10Z" />
+          <path d="M30 9.5 27 16 33 15M27 16 35 20M16 10 22 19 27 16M14 17 22 19 21 29M27 16 29 23 35 20M29 23 33 25.5M29 23 28 29.5M22 19 29 23" />
+          <path d="M19.5 29.2 18.5 34M27.5 29.8 28 34M1 48 4 40 14 35.5 18.5 34 23.5 39 28 34 35 36 44 40 47 48M14 35.5 16 48M35 36 33 48M23.5 39V48M4 40 9 48M44 40 40 48" />
+        </svg>
+      )}
+    </span>
+  );
+}
 
 // ---------------------------------------------------------------- Crew
 
@@ -98,18 +165,21 @@ const crew: Widget = {
     };
     return (
       <>
-        <Head icon={ICON.crew} title={c.s('hub.crew')} s={c.s} note={c.s('dock.onBoard', { count: c.profile.crew.length })} />
-        <ul className="dw-rows">
+        <Head icon={ICON.crew} title={c.s('hub.crew')} s={c.s} note={c.s('dock.aboard', { count: c.profile.crew.length })} />
+        <ul className="dw-tiles">
           {c.profile.crew.map((p) => {
             const d = doing(p);
             const room = c.where[p.id];
+            const label = [p.name, room ? roomName(c, room) : '', d.text].filter(Boolean).join(', ');
             return (
               <li key={p.id}>
-                <button type="button" className="dw-row" data-tone={d.tone || undefined} onClick={() => c.onSelect({ kind: 'person', id: p.id })}
-                  aria-label={[p.name, room ? roomName(c, room) : '', d.text].filter(Boolean).join(', ')}>
-                  <span className="dw-name">{p.name}</span>
-                  <span className="dw-where">{room ? roomName(c, room) : '–'}</span>
-                  <span className="dw-state">{d.text}</span>
+                <button type="button" className="dw-tile" data-tone={d.tone || undefined} onClick={() => c.onSelect({ kind: 'person', id: p.id })}
+                  aria-label={label} title={label}>
+                  <Portrait src={p.portrait} />
+                  <span className="dw-tile-name" aria-hidden="true">
+                    {d.tone && <span className="dw-dot" data-tone={d.tone} />}
+                    <span>{p.name}</span>
+                  </span>
                 </button>
               </li>
             );
@@ -120,46 +190,71 @@ const crew: Widget = {
   },
 };
 
-// ---------------------------------------------------------------- CO2 in every room
+// ---------------------------------------------------------------- CO2, for the Cabin widget
 
 const co2Of = (c: DockContext, room: string) => c.values.find((r) => r.room === room && !r.person && r.signal === 'co2' && r.value !== null);
 const tone = (v: number | null | undefined) => (v == null ? 'unknown' : v > LIMIT ? 'over' : v >= HEADACHE ? 'watch' : 'ok');
+const roomsOver = (c: DockContext) => c.profile.rooms.filter((r) => tone(co2Of(c, r.id)?.value) === 'over').length;
+const co2Problem = (c: DockContext) => c.world.alarms.length > 0 || c.profile.rooms.some((r) => tone(co2Of(c, r.id)?.value) !== 'ok' && tone(co2Of(c, r.id)?.value) !== 'unknown');
+/** The room with the most CO2 now, if any room has a reading. */
+const worstCo2 = (c: DockContext) => c.profile.rooms
+  .map((r) => ({ room: r, row: co2Of(c, r.id) }))
+  .filter((x): x is { room: Room; row: Row } => Boolean(x.row))
+  .sort((a, b) => (b.row.value as number) - (a.row.value as number))[0];
 
-const co2: Widget = {
-  id: 'co2',
+// ---------------------------------------------------------------- Cabin
+
+const CABIN_SIGNALS = ['co2', 'temperature', 'pressure'];
+
+/** The room the sensor board is in; without a board, the first room with readings. */
+function cabinRoom(c: DockContext): string | null {
+  const src = c.world.sources.find((x) => x.id.startsWith('chip:'));
+  const board = src ? src.room ?? c.profile.chips[src.id.replace(/^chip:/, '')] ?? null : null;
+  if (board) return board;
+  return c.profile.rooms.find((r) => c.values.some((v) => v.room === r.id && !v.person && v.value !== null))?.id ?? null;
+}
+
+/** A room's reading of one signal, the board's own when it has one. */
+function roomReading(c: DockContext, room: string, signal: string): Row | undefined {
+  const rows = c.values.filter((r) => r.room === room && !r.person && r.signal === signal && r.value !== null);
+  return rows.find((r) => r.source.startsWith('chip:')) ?? rows[0];
+}
+
+// In the old CO2 widget's place: its sizes, its problem and its rank, no more.
+const cabin: Widget = {
+  id: 'cabin',
   sizes: ['third', 'half', 'full'],
-  problem: (c) => c.world.alarms.length > 0 || c.profile.rooms.some((r) => tone(co2Of(c, r.id)?.value) !== 'ok' && tone(co2Of(c, r.id)?.value) !== 'unknown'),
+  problem: co2Problem,
   score: () => 70,
   render: (c) => {
-    const LOW = 1.5;
-    const HIGH = 3.6;
-    const y = (v: number) => `${((Math.min(HIGH, Math.max(LOW, v)) - LOW) / (HIGH - LOW)) * 100}%`;
-    const rows = c.profile.rooms.map((r) => ({ room: r, row: co2Of(c, r.id) }));
-    const worst = rows.filter((x) => x.row).sort((a, b) => (b.row!.value as number) - (a.row!.value as number))[0];
-    const over = rows.filter((x) => tone(x.row?.value) === 'over').length;
+    const room = cabinRoom(c);
+    const rows = CABIN_SIGNALS.map((k) => (room ? roomReading(c, room, k) : undefined));
+    const worst = worstCo2(c);
+    const over = roomsOver(c);
+    const newest = Math.max(0, ...rows.map((r) => r?.t ?? 0));
+    const age = c.now - newest;
+    const updated = age < 60_000 ? c.s('dock.updatedNow')
+      : age < HOUR ? c.s('dock.updatedMin', { min: Math.round(age / 60_000) })
+      : c.s('dock.updatedHours', { hours: Math.round(age / HOUR) });
     return (
       <>
-        <Head icon={ICON.co2} title={c.s('dock.airTitle')} s={c.s} kinds={kinds(rows.map((x) => x.row))}
-          note={over ? <span className="dw-bad">{c.s('dock.roomsOver', { count: over })}</span> : undefined} />
-        <div className="dw-co2">
-          <div className="dw-levels" aria-hidden="true">
-            <span style={{ bottom: y(LIMIT) }}><em>{c.s('dock.nasaLimit', { value: LIMIT })}</em></span>
-            <span style={{ bottom: y(HEADACHE) }} data-soft=""><em>{c.s('dock.headacheLevel', { value: HEADACHE })}</em></span>
-          </div>
-          <ul className="dw-cols">
-            {rows.map(({ room, row }) => (
-              <li key={room.id}>
-                <button type="button" onClick={() => c.onSelect({ kind: 'room', id: room.id })}
-                  aria-label={[roomName(c, room.id), row ? `${c.s('signal.co2')} ${Number((row.value as number).toFixed(2))} ${row.unit}` : c.s('status.unknown'), row ? c.s(`kind.${row.kind}`) : ''].filter(Boolean).join(', ')}>
-                  <span className="dw-col" aria-hidden="true">{row && <span className="dw-col-fill" data-tone={tone(row.value)} style={{ height: y(row.value as number) }} />}</span>
-                  <span className="dw-col-value" aria-hidden="true">{row ? (row.value as number).toFixed(1) : '–'}</span>
-                  <span className="dw-col-name" aria-hidden="true">{roomName(c, room.id)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+        <Head icon={ICON.cabin} title={c.s('dock.cabin')} s={c.s} note={room ? roomName(c, room) : undefined} />
+        <div className="dw-stats">
+          {CABIN_SIGNALS.map((k, i) => {
+            const r = rows[i];
+            return (
+              <Stat key={k} icon={<SignalIcon signal={k} />} label={c.s(`signal.${k}.short`)} kind={r?.kind} s={c.s}>
+                {r ? <>{num(r.value as number)}<span className="unit">{unitText(r.unit)}</span></> : '–'}
+              </Stat>
+            );
+          })}
         </div>
-        {worst?.row && <p className="dw-foot dw-only-full">{c.s('dock.highestNow', { room: roomName(c, worst.room.id), value: (worst.row.value as number).toFixed(2) })}</p>}
+        <Foot items={[
+          over > 0 && { key: 'over', icon: ICON.warn, text: c.s('dock.roomsOver', { count: over }), className: 'dw-bad dw-not-quarter' },
+          worst && { key: 'worst', icon: over > 0 ? ICON.warn : ICON.home, className: over > 0 ? 'dw-bad dw-worst' : undefined,
+            text: c.s('dock.highestCo2', { room: roomName(c, worst.room.id), value: `${num(worst.row.value as number)} ${worst.row.unit}` }) },
+          newest > 0 && { key: 'updated', icon: ICON.clock, text: updated, className: 'dw-not-quarter' },
+        ]} />
       </>
     );
   },
@@ -180,16 +275,18 @@ const alerts: Widget = {
     const first = shared(c)[0];
     const alarm = c.world.alarms[0];
     const name = (id: string) => c.profile.crew.find((p) => p.id === id)?.name ?? id;
+    const line = first ? `${name(first.person)}${first.room ? `, ${roomName(c, first.room)}` : ''}: ${c.s(`level.${first.level}`)}`
+      : alarm ? `${roomName(c, alarm.room)}: ${c.s('status.over')}`
+      : c.s('dock.noRoomOver');
     return (
       <>
         <Head icon={ICON.alerts} title={c.s('top.alerts')} s={c.s} />
         <button type="button" className="dw-alerts" data-tone={open ? (c.world.alarms.length || first?.level === 3 ? 'over' : 'watch') : 'ok'} onClick={c.onAlerts}>
-          <span className="dw-big">{open}</span>
-          <span className="dw-sub">{open ? c.s('dock.openNow') : c.s('dock.allQuiet')}</span>
-          {first ? <span className="dw-line">{name(first.person)}{first.room ? `, ${roomName(c, first.room)}` : ''}: {c.s(`level.${first.level}`)}</span>
-            : alarm ? <span className="dw-line">{roomName(c, alarm.room)}: {c.s('status.over')}</span>
-            : <span className="dw-line dw-muted">{c.s('dock.noRoomOver')}</span>}
+          <span className="dw-stat-label"><span className="dw-stat-name">{c.s('dock.openLabel')}</span></span>
+          <span className="dw-stat-value">{open}</span>
+          {!open && <span className="dw-sub">{c.s('dock.allQuiet')}</span>}
         </button>
+        <Foot items={[{ key: 'line', icon: open ? ICON.warn : ICON.home, text: line }]} />
       </>
     );
   },
@@ -213,27 +310,25 @@ const earth: Widget = {
       <>
         <Head icon={ICON.earth} title={c.s('dock.earth')} s={c.s} />
         {delay < 60_000 && !m ? (
-          <div className="dw-earth">
-            <p className="dw-big dw-word">{c.s('dock.live')}</p>
-            <p className="dw-label">{c.s('dock.liveNote')}</p>
-          </div>
+          <>
+            <Stat label={c.s('dock.oneWayLabel')} s={c.s}>{c.s('dock.live')}</Stat>
+            <Foot items={[{ key: 'note', icon: ICON.send, text: c.s('dock.liveNote') }]} />
+          </>
         ) : m ? (
-          <div className="dw-earth">
-            <p className="dw-label">{c.s('dock.replyIn')}</p>
-            <p className="dw-big">{clock(m.replyAt - c.now)}</p>
+          <>
+            <Stat label={c.s('dock.replyIn')} s={c.s}>{`${Math.max(0, Math.ceil((m.replyAt - c.now) / 60000))} min`}</Stat>
             <div className="dw-track" aria-hidden="true">
               <span className="dw-track-fill" style={{ width: `${progress * 100}%` }} />
               <span className="dw-track-mid" />
             </div>
             <p className="dw-track-labels dw-not-quarter" aria-hidden="true"><span>{c.s('dock.sent')}</span><span>{c.s('dock.reachesEarth')}</span><span>{c.s('dock.reply')}</span></p>
-            {from && <p className="dw-foot dw-not-quarter">{c.s('dock.lastMessage', { name: from })}</p>}
-          </div>
+            {from && <Foot className="dw-not-quarter" items={[{ key: 'from', icon: ICON.send, text: c.s('dock.lastMessage', { name: from }) }]} />}
+          </>
         ) : (
-          <div className="dw-earth">
-            <p className="dw-big">{Math.round(delay / 60_000)}<span className="unit">{c.s('dock.min')}</span></p>
-            <p className="dw-label">{c.s('dock.earthDelay')}</p>
-            <p className="dw-foot dw-not-quarter">{c.s('dock.replyAfter', { min: Math.round((2 * delay) / 60_000) })}</p>
-          </div>
+          <>
+            <Stat label={c.s('dock.oneWayLabel')} s={c.s}>{Math.round(delay / 60_000)}<span className="unit">{c.s('dock.min')}</span></Stat>
+            <Foot className="dw-not-quarter" items={[{ key: 'reply', icon: ICON.send, text: c.s('dock.replyAfter', { min: Math.round((2 * delay) / 60_000) }) }]} />
+          </>
         )}
       </>
     );
@@ -248,21 +343,23 @@ const mission: Widget = {
   problem: () => false,
   score: () => 30,
   render: (c) => {
-    const day = Math.floor((c.now - Date.parse(c.profile.missionStart)) / (24 * HOUR)) + 1;
+    const day = dayOf(c.profile, c.now);
     const m = c.profile.mission;
     const g = m?.gravity ?? 0;
     return (
       <>
         <Head icon={ICON.mission} title={m?.nameText ?? c.s(`${c.profile.place}.short`)} s={c.s} />
-        <div className="dw-mission">
-          <p className="dw-big">{day}</p>
-          <p className="dw-label">{m?.plannedDays ? c.s('dock.dayOf', { days: m.plannedDays }) : c.s('dock.day')}</p>
-          {m?.plannedDays ? <div className="dw-track" aria-hidden="true"><span className="dw-track-fill" style={{ width: `${Math.min(100, (day / m.plannedDays) * 100)}%` }} /></div> : null}
-          <p className="dw-facts">
-            <span>{g === 0 ? c.s('dock.weightless') : c.s('dock.gravity', { g })}</span>
-            <span className="dw-not-quarter">{c.profile.delayToEarthSeconds < 60 ? c.s('dock.live') : c.s('dock.delayShort', { min: Math.round(c.profile.delayToEarthSeconds / 60) })}</span>
-          </p>
-        </div>
+        <Stat label={c.s('dock.dayLabel')} s={c.s}>{day}</Stat>
+        {m?.plannedDays ? (
+          <>
+            <div className="dw-track" aria-hidden="true"><span className="dw-track-fill" style={{ width: `${Math.min(100, (day / m.plannedDays) * 100)}%` }} /></div>
+            <p className="dw-label">{c.s('dock.plannedDays', { days: m.plannedDays })}</p>
+          </>
+        ) : null}
+        <Foot items={[
+          { key: 'g', icon: ICON.down, text: g === 0 ? c.s('dock.weightless') : c.s('dock.gravity', { g }) },
+          { key: 'delay', icon: ICON.send, className: 'dw-not-quarter', text: c.profile.delayToEarthSeconds < 60 ? c.s('dock.live') : c.s('dock.delayShort', { min: Math.round(c.profile.delayToEarthSeconds / 60) }) },
+        ]} />
       </>
     );
   },
@@ -309,7 +406,7 @@ const exposure: Widget = {
             </li>
           ))}
         </ul>
-        {card?.pointsTo === 'room' && card.focusRoom && <p className="dw-foot">{c.s('evidence.pointsTo.room', { room: roomName(c, card.focusRoom) })}</p>}
+        {card?.pointsTo === 'room' && card.focusRoom && <Foot items={[{ key: 'room', icon: ICON.home, text: c.s('evidence.pointsTo.room', { room: roomName(c, card.focusRoom) }) }]} />}
       </>
     );
   },
@@ -373,15 +470,14 @@ const board: Widget = {
       <>
         <Head icon={ICON.board} title={`${c.s('dock.board')}${room ? `, ${roomName(c, room)}` : ''}`} s={c.s}
           note={<span className={src.connected ? '' : 'dw-bad'}>{c.s(src.connected ? 'source.connected' : 'source.disconnected')}</span>} />
-        <dl className="dw-grid">
+        <div className="dw-grid">
           {rows.map((r) => (
-            <div key={r.signal}>
-              <dt>{c.s(`signal.${r.signal}.short`)}</dt>
-              <dd>{Number((r.value as number).toFixed((r.value as number) < 10 ? 2 : 1))}<span className="unit">{r.unit === 'raw' ? '' : r.unit === 'C' ? '°C' : r.unit}</span><KindMark kind={r.kind} s={c.s} /></dd>
-            </div>
+            <Stat key={r.signal} icon={<SignalIcon signal={r.signal} />} label={c.s(`signal.${r.signal}.short`)} kind={r.kind} s={c.s}>
+              {num(r.value as number)}<span className="unit">{unitText(r.unit)}</span>
+            </Stat>
           ))}
-        </dl>
-        {src.missing.length > 0 && <p className="dw-foot dw-not-quarter">{c.s('dock.notAnswering', { list: src.missing.map((k) => c.s(`signal.${k}.short`)).join(', ') })}</p>}
+        </div>
+        {src.missing.length > 0 && <Foot className="dw-not-quarter" items={[{ key: 'missing', icon: ICON.warn, text: c.s('dock.notAnswering', { list: src.missing.map((k) => c.s(`signal.${k}.short`)).join(', ') }) }]} />}
       </>
     );
   },
@@ -404,8 +500,7 @@ const radiation: Widget = {
     return (
       <>
         <Head icon={ICON.radiation} title={c.s('signal.radiation')} s={c.s} kinds={kinds(known.map((x) => x.row))} />
-        <p className="dw-big">{Math.round(avg)}<span className="unit">{unit}</span></p>
-        <p className="dw-label">{c.s('dock.stationAverage')}</p>
+        <Stat label={c.s('dock.averageLabel')} s={c.s}>{num(avg)}<span className="unit">{unit}</span></Stat>
         <ul className="dw-minicols" aria-hidden="true">
           {rows.map(({ room, row }) => <li key={room.id} title={roomName(c, room.id)}><span style={{ height: row ? `${20 + ((row.value as number) / top) * 80}%` : '0%' }} /></li>)}
         </ul>
@@ -414,4 +509,4 @@ const radiation: Widget = {
   },
 };
 
-export const WIDGETS: Widget[] = [crew, co2, alerts, earth, mission, exposure, sleep, exercise, board, radiation];
+export const WIDGETS: Widget[] = [crew, cabin, alerts, earth, mission, exposure, sleep, exercise, board, radiation];

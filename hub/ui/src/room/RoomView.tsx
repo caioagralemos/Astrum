@@ -6,10 +6,12 @@
 //
 //   Breathing  CO2, the one reading with a verified NASA limit: a big number
 //              on a bar split into NASA's zones, the last hours beneath.
-//   Comfort    oxygen as its trace, pressure as a barometer dial, temperature
-//              as a thermometer, humidity as a drop filled to its percent.
+//   Comfort    two cards of two halves, each half its label, a line instrument
+//              and its number: oxygen as its trace, temperature and pressure
+//              as a needle on their last 24 hours, humidity as a needle on its
+//              own 0 to 100 scale.
 //   The rest   a quiet strip: air quality, radiation, noise, light, vibration,
-//              each a number over its last hours as bars.
+//              each a number over its last hours as stems.
 //
 // Only CO2 is judged. Everything else is shown against its own last 24 hours
 // (or, for humidity, its own 0 to 100 scale): no invented "good" range.
@@ -25,7 +27,7 @@ import { useHub } from '../hub.ts';
 import { formatValue } from '../person/PersonView.tsx';
 import { Glyph, SignalIcon } from '../person/icons.tsx';
 import { KindKey, KindMark } from '../panels.tsx';
-import { ArcGauge, Bars, Dial, Drop, Spark, Thermo, trend } from './viz.tsx';
+import { ArcGauge, Bars, Scale, Spark, trend } from './viz.tsx';
 import type { Zone } from './viz.tsx';
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
@@ -84,10 +86,18 @@ export function RoomView({ room, status, rows, people, now, s }: RoomViewProps) 
       <SignalIcon signal={r.signal} />
       <span>{s(`signal.${r.signal}.short`)}</span>
       <KindMark kind={r.kind} s={s} />
-      <TrendMark way={trend(trace(r.signal), now)} />
     </p>
   );
-  const big = (r: Row) => <p className="mod-value">{valueOnly(r, s)}<span className="unit">{unitOf(r)}</span></p>;
+  /** The number with its unit, and beside it which way the reading is going, if it is on the move. */
+  const big = (r: Row) => {
+    const unit = unitOf(r);
+    return (
+      <p className="mod-value">
+        {valueOnly(r, s)}{unit && <span className="unit" data-degree={unit === '°' ? '' : undefined}>{unit}</span>}
+        <TrendMark way={trend(trace(r.signal), now)} />
+      </p>
+    );
+  };
 
   const co2 = row('co2');
   const headache = CO2_LEVELS[0].level;
@@ -99,25 +109,19 @@ export function RoomView({ room, status, rows, people, now, s }: RoomViewProps) 
   const strip = [...STRIP, ...rows.map((r) => r.signal).filter((k) => k !== 'co2' && !COMFORT.includes(k) && !STRIP.includes(k))]
     .map(row).filter((r): r is Row => Boolean(r));
 
-  /** One reading filling half a card: its header on top, the number bottom-left, its picture full height on the right. */
-  const half = (r: Row) => {
-    const range = span(r.signal);
-    const wide = r.signal === 'oxygen';
-    return (
-      <article key={r.signal} className="w-half" data-signal={r.signal} data-wide={wide ? '' : undefined} aria-label={said(r)}>
-        {head(r)}
-        <div className="w-half-body" aria-hidden="true">
-          {big(r)}
-          <div className="w-half-pic">
-            {r.signal === 'pressure' && range ? <Dial low={range.low} high={range.high} now={r.value as number} />
-              : r.signal === 'temperature' && range ? <Thermo low={range.low} high={range.high} now={r.value as number} />
-              : r.signal === 'humidity' ? <Drop percent={r.value as number} id={`drop-${room.id}`} />
-              : <Spark points={trace(r.signal).filter((p) => p.t > now - 12 * HOUR)} />}
-          </div>
+  /** One reading filling half a card: its label row, its instrument, its number, the same in every half. */
+  const half = (r: Row) => (
+    <article key={r.signal} className="w-half" data-signal={r.signal} aria-label={said(r)}>
+      {head(r)}
+      <div className="w-half-body" aria-hidden="true">
+        <div className="w-half-pic">
+          {r.signal === 'oxygen' ? <Spark points={trace(r.signal).filter((p) => p.t > now - 12 * HOUR)} />
+            : <Scale now={r.value as number} range={span(r.signal)} scale={r.signal === 'humidity' ? [0, 100] : undefined} />}
         </div>
-      </article>
-    );
-  };
+        {big(r)}
+      </div>
+    </article>
+  );
   const pair = (signals: string[], key: string) => {
     const found = signals.map(row).filter((r): r is Row => Boolean(r));
     return found.length ? <section key={key} className="widget-card w-pair">{found.map(half)}</section> : null;

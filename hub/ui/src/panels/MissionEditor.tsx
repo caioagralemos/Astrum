@@ -6,7 +6,7 @@
 // runs restarts the hub with it.
 
 import { useEffect, useRef, useState } from 'react';
-import { roomsOf } from '../../../engine/mission.ts';
+import { placeNameOf, roomsOf } from '../../../engine/mission.ts';
 import type { Body, Mission, Situation } from '../../../engine/mission.ts';
 import { PRONOUNS, ROLE_KEYS, bodiesFor, changeProblems, changesOf, delayFor, gravityFor, situationsFor } from '../../../engine/custom.ts';
 import type { CrewChange, MissionChanges, Problem } from '../../../engine/custom.ts';
@@ -170,7 +170,8 @@ export function MissionEditor({ id, custom, placeName, basedOnName, running, pro
     const error = errorOf(field);
     return error ? <p id={`err-${field.replace(/\./g, '-')}`} className="xerror">{error}</p> : null;
   };
-  const builtInName = s(mission.name);
+  // A ship's name says where it is: it follows the form as the place is moved.
+  const builtInName = s(placeNameOf({ ...mission, where: form.where }));
 
   return (
     <form className="xeditor" noValidate onSubmit={(e) => { e.preventDefault(); if (!problems.length) void save(); }}>

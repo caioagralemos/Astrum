@@ -28,7 +28,9 @@
 // station, the grid keeps only its ceiling (a floor grid would fight the
 // ground), and below is the ground (ground.ts), not a planet: from the Moon,
 // Earth hangs small above the horizon instead; Mars has none. In low Earth
-// orbit Earth is far bigger below than Mars is from the ship's orbit.
+// orbit Earth is far bigger below than Mars is from the ship's orbit. In
+// transit there is no planet below: the Sun and a few planets hang far off
+// instead (system.ts).
 //
 // Tune it in app.css: --scene-grid, --scene-grid-strength, --scene-sky-style,
 // --scene-sky (the faint blue lift towards the middle of the sky),
@@ -39,6 +41,8 @@ import { createStars } from './stars.ts';
 import type { SkyStyle, Stars } from './stars.ts';
 import { createPlanet } from './planet.ts';
 import type { Planet } from './planet.ts';
+import { createDistantSystem } from './system.ts';
+import type { DistantSystem } from './system.ts';
 import type { Demo } from './demo.ts';
 import type { Body, Situation } from '../../../engine/mission.ts';
 
@@ -307,6 +311,10 @@ export function createBackdrop(
     ? createPlanet(style === 'soft' ? 'soft' : 'pixel', skyBody, bg)
     : null;
   if (planet) scene.add(planet.mesh);
+  // Between bodies: the solar system seen from its middle, as quiet as the planet would be.
+  const system: DistantSystem | null = planetBase > 0 && setting.situation === 'transit'
+    ? createDistantSystem(scene, style === 'soft' ? 'soft' : 'pixel', bg)
+    : null;
 
   // The sky's axes: along the station (the way the sky drifts), up from the floor, and ahead to the horizon.
   const along = new THREE.Vector3();
@@ -375,6 +383,13 @@ export function createBackdrop(
     planetAxisSky.set(1, 0, 0).cross(planetSky).normalize();
     sunSky.set(-0.45, 0.75 * upright, -0.5).normalize();
     skyTurn.setFromRotationMatrix(basis.makeBasis(along, up, ahead));
+    if (system) {
+      // The distant bodies are set against the default view, as the camera stands now.
+      const forward = origin.clone().negate().normalize();
+      // (Up from the world's, as for low Earth orbit: the camera's own turn is brought up to date on the next frame.)
+      const screenUp = new THREE.Vector3(0, 1, 0).addScaledVector(forward, -forward.y).normalize();
+      system.place(forward, screenUp, new THREE.Vector3().crossVectors(forward, screenUp), camera.aspect);
+    }
     if (planet) {
       planetWorld.copy(planetSky).applyQuaternion(skyTurn);
       if (leo) {
@@ -427,6 +442,9 @@ export function createBackdrop(
       planet.uniforms.near.value = PLANET_DISTANCE * (1 - Math.sin(planetSize) * 1.08);
       planet.uniforms.span.value = PLANET_DISTANCE * (Math.cos(planetSize) + Math.sin(planetSize) * 1.08) - planet.uniforms.near.value;
     }
+
+    // Small and far, the distant bodies take the planet's strength at a little more than its rest.
+    system?.update(camera, clock, Math.min(1, planetShown * 1.6), BLOCK * ratio, pixels);
 
     gridShown = ease(gridShown, gridGoal, dt, still);
     nebulaShown = ease(nebulaShown, nebulaGoal, dt, still);
@@ -488,6 +506,7 @@ export function createBackdrop(
       scene.remove(planet.mesh);
       planet.dispose();
     }
+    system?.dispose();
     plainStars.visible = true;
     plainStars.position.set(0, 0, 0);
     plainStars.quaternion.identity();

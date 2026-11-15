@@ -15,6 +15,9 @@ import type { Kind, Person, Room } from '../../engine/types.ts';
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
 
+/** A wait counted down in whole minutes, rounded up, so screens a few seconds apart agree: "14 min". */
+const minutesLeft = (seconds: number) => `${Math.max(0, Math.ceil(seconds / 60))} min`;
+
 /** A delay as it reads best: "1.3 s" under a minute, "20:00" from a minute up. */
 function clock(seconds: number): string {
   if (seconds < 60) return `${Number(seconds.toFixed(seconds < 10 ? 1 : 0))} s`;
@@ -162,7 +165,7 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
             </p>
             <p className="quiet"><KindChip kind={first.kind} s={s} /></p>
             {first.card && <p className="quiet">{s('alert.card', { card: first.card })}</p>}
-            {first.earth && <p className="quiet">{s('alert.earth', { time: clock(Math.max(0, Math.ceil((first.earth.replyAt - now) / 1000))) })}</p>}
+            {first.earth && <p className="quiet">{s('alert.earth', { time: minutesLeft((first.earth.replyAt - now) / 1000) })}</p>}
           </article>
         );
       })}
@@ -189,7 +192,7 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
             )}
             {alert.answer === 'ok' && <p className="quiet">{s('alert.answeredOk')}</p>}
             {alert.card && <p className="quiet">{s('alert.card', { card: alert.card })}</p>}
-            {alert.earth && <p className="quiet">{s('alert.earth', { time: clock(Math.max(0, Math.ceil((alert.earth.replyAt - now) / 1000))) })}</p>}
+            {alert.earth && <p className="quiet">{s('alert.earth', { time: minutesLeft((alert.earth.replyAt - now) / 1000) })}</p>}
           </article>
         );
       })}

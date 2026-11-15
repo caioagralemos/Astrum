@@ -35,13 +35,21 @@ const PAD = { top: 18, right: 10, bottom: 20, left: 34 };
 export function Chart({ points, from, to, unit, band, flag, bandLabel, levels = [], tick, dots, label }: ChartProps) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  // The box is measured before every paint (the card around it changes with what it holds: the
+  // words under a picked reading, the cards below arriving), and again whenever it resizes on its
+  // own (the window). The drawing never keeps a size its box no longer has.
+  const measure = () => {
+    const el = box.current;
+    if (!el) return;
+    const next = { w: el.clientWidth, h: el.clientHeight };
+    setSize((old) => (old.w === next.w && old.h === next.h ? old : next));
+  };
+  useLayoutEffect(measure);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    measure();
     return () => observer.disconnect();
   }, []);
 

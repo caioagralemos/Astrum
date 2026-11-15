@@ -6,12 +6,13 @@
 // in a card. Every word comes from the string table
 // and every reading shows how it came to exist.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { RecordedSource, chooseSource, useWorld } from './data.ts';
 import { current, occupants } from '../../engine/timeline.ts';
 import { t } from '../../engine/strings.ts';
 import { visibleTo } from '../../engine/alerts.ts';
 import { personStatus, roomStatus } from '../../engine/status.ts';
+import { dayOf } from '../../engine/mission.ts';
 import { Station } from './scene/Station.tsx';
 import { PersonView } from './person/PersonView.tsx';
 import { AlertsPanel, ConnectionPanel } from './panels.tsx';
@@ -24,8 +25,6 @@ import type { MainPanel } from './panels/MainPanels.tsx';
 import type { Selection } from './scene/Station.tsx';
 import './app.css';
 import type { Lang } from '../../engine/strings.ts';
-
-const DAY = 24 * 3600_000;
 
 function startLang(): Lang {
   try {
@@ -79,9 +78,24 @@ export function App() {
     return () => document.removeEventListener('keydown', close);
   }, [panel, selected]);
 
+  // The story's strip is as tall as its words need (one line on a wide window, more on a phone or in
+  // a longer language); the dock and the panels above it move up by exactly that much.
+  const story = useRef<HTMLParagraphElement>(null);
+  const storyShown = Boolean(world.scenario && world.profile && !world.restarting);
+  useLayoutEffect(() => {
+    const el = story.current;
+    const hub = el?.parentElement;
+    if (!el || !hub) return;
+    const fit = () => hub.style.setProperty('--story-room', `${Math.ceil(el.offsetHeight) + 5}px`);
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => { watch.disconnect(); hub.style.removeProperty('--story-room'); };
+  }, [storyShown]);
+
   const stationMission = useStationMission(world.profile);
   const { profile, now } = world;
-  if (world.restarting) return <main><Loading message={s('settings.restartingAny')} quiet={false} /></main>;
+  if (world.restarting) return <main><Loading message={s('settings.restartingAny')} quiet /></main>;
   if (!profile) return <main><Loading message={s(world.status === 'offline' ? 'hub.offline' : 'hub.connecting')} quiet={world.status !== 'offline'} /></main>;
 
   const values = current(world.latest, now);
@@ -95,7 +109,7 @@ export function App() {
   const asleep = profile.crew.map((p) => p.id).filter((id) => (hour < 6 || hour >= 22) && where[id]?.startsWith('quarters'));
   const urgent = world.alarms.some((a) => !a.acknowledged) || alerts.some((a) => !a.held && a.level >= 2);
   const toggle = (which: 'alerts' | 'link' | MainPanel) => setPanel((open) => (open === which ? null : which));
-  const day = Math.floor((now - Date.parse(profile.missionStart)) / DAY) + 1;
+  const day = dayOf(profile, now);
 
   return (
     <main className="hub">
@@ -162,7 +176,7 @@ export function App() {
       })()}
 
       {world.scenario && (
-        <p className="story">
+        <p ref={story} className="story">
           {s(world.scenario.label)}
           {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => source.restart()}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button></>}
         </p>
