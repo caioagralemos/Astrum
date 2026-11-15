@@ -119,5 +119,22 @@ test('the four on the ship: byte for byte the generator\'s output before anyone 
     const m = JSON.parse(readFileSync(new URL(`../profiles/missions/${f}.json`, import.meta.url), 'utf8'));
     out.push(crewPeriod(people, start, start + 2 * DAY, 60_000, 60, placesOf(m)));
   }
-  assert.equal(createHash('sha256').update(JSON.stringify(out)).digest('hex'), 'f1de9ab3b4518b3d69030b393ef3e991ed3ca886776244b0bf392a6a1a4a7599');
+  // Changed on 14 Nov 2026 for the ISS part only: Reyes works in Tranquility, the exercise room, and her heart
+  // rate there went thousands of bpm below zero outside her exercise block. The ship and both bases are unchanged.
+  assert.equal(createHash('sha256').update(JSON.stringify(out)).digest('hex'), '3927db3bcc3d06b4f1078336c06d4933ad291f08627006daa7cf1e0a1280da08');
+});
+
+test('on the ISS a crewmate who works in the exercise room keeps a plausible heart rate all day, and rises only in the exercise block', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { placesOf, partOfDay, stationHour } = await import('./crew.ts');
+  const iss = JSON.parse(readFileSync(new URL('../profiles/missions/iss.json', import.meta.url), 'utf8'));
+  const places = placesOf(iss);
+  assert.equal(places.reyes.work, places.reyes.exercise, 'the case this guards: work room and exercise room are the same');
+  const start = Date.UTC(2026, 10, 14, 3);
+  for (let t = start; t < start + 24 * 3600_000; t += 5 * 60_000) {
+    const hr = heartRateAt('reyes', t, -180, places);
+    assert.ok(hr > 35 && hr < 130, `heart rate ${hr} at ${new Date(t).toISOString()}`);
+    if (partOfDay('reyes', stationHour(t, -180)) === 'work') assert.ok(hr < USUAL.reyes.heartRate + 15, `work at ${hr} bpm`);
+  }
+  assert.ok(heartRateAt('reyes', start + 17.5 * 3600_000, -180, places) > USUAL.reyes.heartRate + 40, 'the exercise block still raises it');
 });

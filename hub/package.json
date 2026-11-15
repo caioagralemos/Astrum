@@ -20,7 +20,8 @@
     "scenario": "node core/scenario.ts",
     "compact": "node core/compact.ts",
     "cases": "node medical/run-cases.ts",
-    "medical:install": "node scripts/install-medical.ts"
+    "medical:install": "node scripts/install-medical.ts",
+    "medical:merge": "node scripts/merge-medical.ts"
   },
   "dependencies": {
     "@serialport/parser-readline": "^13.0.0",

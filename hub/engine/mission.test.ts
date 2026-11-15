@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { profileOf, roomsOf, validateMission } from './mission.ts';
+import { missionDayOf, profileOf, roomsOf, validateMission } from './mission.ts';
+import { pickStart, START_MARGIN_DAYS } from './names.ts';
 import type { Mission } from './mission.ts';
 import { hasString } from './strings.ts';
 
@@ -47,4 +48,36 @@ test('problems come back in words, never as a throw', () => {
   assert.ok(problems.some((p) => p.includes('length and radius above 0')));
   assert.ok(problems.some((p) => p.includes('ship, station or base')));
   assert.doesNotThrow(() => validateMission({ modules: [null, 3], crew: 'x', chips: [] }));
+});
+
+test('the mission day turns at midnight on the station clock, not at midnight UTC', () => {
+  const start = '2026-04-18T00:00:00Z';
+  const recife = -180;
+  // 14 November 2026, 23:05 in Recife is already the 15th in UTC.
+  const lateEvening = Date.parse('2026-11-15T02:05:00Z');
+  assert.equal(missionDayOf(start, lateEvening, recife), 211);
+  assert.equal(missionDayOf(start, lateEvening, 0), 212, 'on UTC it would turn three hours early');
+  // One minute either side of local midnight.
+  assert.equal(missionDayOf(start, Date.parse('2026-11-15T02:59:00Z'), recife), 211);
+  assert.equal(missionDayOf(start, Date.parse('2026-11-15T03:01:00Z'), recife), 212);
+  assert.equal(missionDayOf(start, Date.parse('2026-11-16T03:01:00Z'), recife), 213, 'and 213 the next night');
+  assert.equal(missionDayOf(start, Date.parse('2026-04-18T03:00:00Z'), recife), 1, 'the start date is day 1');
+});
+
+test('a random start for the example crew: repeatable, today inside the plan, never in the future', () => {
+  const now = Date.parse('2026-11-15T02:05:00Z');
+  for (const file of ['ship-mars-orbit', 'iss', 'base-mars', 'base-moon']) {
+    const m = JSON.parse(readFileSync(new URL(`../profiles/missions/${file}.json`, import.meta.url), 'utf8')) as Mission;
+    const days = new Set<number>();
+    for (let seed = 0; seed < 300; seed++) {
+      const start = pickStart(m.plannedDays, now, -180, `${file}:${seed}`);
+      assert.equal(start, pickStart(m.plannedDays, now, -180, `${file}:${seed}`), 'same seed, same date');
+      const day = missionDayOf(start, now, -180);
+      assert.ok(day >= START_MARGIN_DAYS && day <= m.plannedDays - START_MARGIN_DAYS, `${file}: day ${day} of ${m.plannedDays}`);
+      assert.ok(Date.parse(start) <= now);
+      days.add(day);
+    }
+    assert.ok(days.size > 50, 'spread over the plan');
+  }
+  assert.equal(missionDayOf(pickStart(10, now, 0, 1), now, 0) <= 10, true, 'a short plan: any day of it');
 });

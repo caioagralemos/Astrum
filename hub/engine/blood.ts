@@ -6,6 +6,8 @@
 // Pure functions, no I/O.
 
 import type { Row } from './types.ts';
+import { parseBloodFields } from './levels.ts';
+import type { BloodFields } from './levels.ts';
 
 export interface BloodSource {
   name: string;
@@ -14,8 +16,12 @@ export interface BloodSource {
   is_nasa: boolean;
 }
 
-/** One entry of her export, exactly as she writes it. */
-export interface BloodEntry {
+/**
+ * One entry of her export, exactly as she writes it. Her level fields
+ * (bands, symptom_questions, escalations: engine/levels.ts) are optional;
+ * absent, the entry raises what it did before.
+ */
+export interface BloodEntry extends BloodFields {
   /** Lowercase English, e.g. "glucose" or "ionized-calcium". The timeline signal is bloodSignal(id). */
   id: string;
   name: { en: string; pt: string };
@@ -128,6 +134,11 @@ export function parseBloodExport(json: unknown): BloodExport {
       status: text(r.status) || 'draft',
       notes: text(r.notes),
     };
+    const fields = parseBloodFields(r, id);
+    problems.push(...fields.problems);
+    if (fields.bands) entry.bands = fields.bands;
+    if (fields.symptom_questions) entry.symptom_questions = fields.symptom_questions;
+    if (fields.escalations) entry.escalations = fields.escalations;
     if (typeof r.name !== 'object' || r.name === null) problems.push(`${name} has no name { en, pt }; its id is shown instead.`);
 
     const clash = contradiction(entry);

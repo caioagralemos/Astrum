@@ -28,13 +28,18 @@ import { AlertWatcher, crewActivity } from './alerts.ts';
 import { SHIP_PLACES, placesOf } from '../engine/crew.ts';
 import { hubProfileOf, profileOf } from '../engine/mission.ts';
 import type { Mission } from '../engine/mission.ts';
-import { listMissionFiles, loadAnyMission, loadMission, missionsRoute, nameCrewOnce } from './missions.ts';
+import { listMissionFiles, loadAnyMission, loadMission, missionsRoute, nameCrewOnce, overrideFile, pickStartOnce } from './missions.ts';
 import { EarthMail, earthRoute } from './earth.ts';
 import { SIM_REPLY_KEY } from '../engine/earth.ts';
-import { appliesAt, displayLangs, cardView } from '../engine/cards.ts';
+import { answerSignal, appliesAt, displayLangs, cardView } from '../engine/cards.ts';
+import { FOLLOW_UP_FILE, askFirstFinding, decideFollowUp, givenFrom, parseFollowUps } from '../engine/followup.ts';
+import type { AskFirst, FollowUpRow } from '../engine/followup.ts';
+import type { Finding } from '../engine/alerts.ts';
 import { Baselines } from './baseline.ts';
 import { EvidenceCards, evidenceRoute } from './evidence.ts';
+import { CrewDose, doseRoute } from './dose.ts';
 import { ScenarioPlayer, listRecordings, loadRecording, scenarioRoute } from './scenario.ts';
+import { Drill, drillRoute } from './drill.ts';
 import { handleBlood, demoBloodRows, loadInspiration4, loadBloodFile, latestResults, INSPIRATION4_SOURCE } from './blood.ts';
 import { CARD_FINDING_KEEP_MS, crisisFinding, findingsNow, parseLevelOverrides } from '../engine/medical.ts';
 import type { LevelOverride } from '../engine/medical.ts';
@@ -75,8 +80,17 @@ if (missionFile === null) {
     } catch { /* a file that cannot run is not this place */ }
   }
 } else {
+  // A built-in place started for the first time (no override yet): in demo mode its example crew's mission start is
+  // picked at random, so each place is at its own day; production keeps the file's or the crew's own date.
+  const fresh = !existsSync(overrideFile(customDir, missionFile));
   // A built-in place other than the ship, started for the first time: its crew gets random first names, kept from then on.
   try { if (nameCrewOnce(missionsDir, customDir, missionFile)) console.log(`First start of "${missionFile}": its crew got new first names (Settings, Edit this place, to change them).`); } catch (err) { console.error((err as Error).message); }
+  if (process.env.ASTRUM_MODE !== 'production') {
+    try {
+      const picked = pickStartOnce(missionsDir, customDir, missionFile, { fresh });
+      if (picked) console.log(`First start of "${missionFile}": its example crew's mission start was picked at random, ${picked.slice(0, 10)} (Settings, Edit this place, to change it).`);
+    } catch (err) { console.error((err as Error).message); }
+  }
   try {
     mission = loadAnyMission(missionsDir, customDir, missionFile);
   } catch (err) {
@@ -89,6 +103,8 @@ if (missionFile === null) {
   }
   profile = hubProfileOf(mission, missionFile);
 }
+// The station clock: the hub's time zone, which the simulated crew keeps (core/crew.ts). The mission day turns at its midnight.
+if (profile.mission) profile.mission.clockOffsetMinutes = -new Date().getTimezoneOffset();
 /** Which room plays each part of the simulated crew's day. An old profile with no mission file keeps the ship's, as before. */
 const places = mission ? placesOf(mission) : SHIP_PLACES;
 const gravity = mission?.gravity ?? null;
@@ -123,10 +139,21 @@ const cards = new EvidenceCards({ store, profile, baselines, alarms });
 cards.onChange = (person, card) => hub.setEvidence(person, card);
 alerts.onEvent = (event) => cards.refreshSoon(event.alert.person);
 hub.routes.push(evidenceRoute(profile, cards));
+// Each crewmate's radiation dose from the rooms they were in, worked out in the background once a minute.
+const dose = new CrewDose(store, profile);
+dose.onChange = (all) => hub.setDose(all);
+hub.routes.push(doseRoute(profile, dose));
 // The recorded story ("npm run scenario"), played to every screen for filming. Production refuses it.
 const scenarioDir = join(hubDir, 'ui', 'public', 'scenario');
 const scenarios = new ScenarioPlayer({ hub, load: (id) => loadRecording(scenarioDir, id), list: () => listRecordings(scenarioDir) });
 hub.routes.push(scenarioRoute(scenarios, production, missionFile));
+// A drill: the real alert engine on a simulated reading, for one person (core/drill.ts). Demo mode only.
+const drill = new Drill({
+  profile, alarms, alerts, production,
+  storyPlaying: () => scenarios.status().playing !== null,
+  roomOf: (person, now) => store.stays(now, now, person).find((s) => s.until === null)?.room ?? null,
+});
+hub.routes.push(drillRoute(drill));
 // Choosing the place on screen restarts the hub; that needs the supervisor (core/run.ts) to start it again.
 const supervised = process.env[SUPERVISED_ENV] === '1';
 hub.routes.push(missionsRoute(missionsDir, missionFile, missionFile === null ? process.env.ASTRUM_PROFILE ?? null : null, {
@@ -188,6 +215,53 @@ const loadLevelOverrides = (): LevelOverride[] => {
   } catch { return []; }
 };
 
+// Her ask-first questions (medical/follow-up.json, engine/followup.ts), read again when the file or her cards change.
+const followUpsFile = join(hubDir, 'medical', FOLLOW_UP_FILE);
+let followUpsCache: { key: string; rows: FollowUpRow[] } | null = null;
+const loadFollowUps = (): FollowUpRow[] => {
+  try {
+    const parsed = loadCards();
+    const key = `${statSync(followUpsFile).mtimeMs}:${cardsCache?.mtimeMs ?? ''}`;
+    if (followUpsCache?.key !== key) {
+      const { rows, problems } = parseFollowUps(JSON.parse(readFileSync(followUpsFile, 'utf8')), parsed.cards);
+      for (const p of problems) console.warn(p);
+      followUpsCache = { key, rows };
+    }
+    return followUpsCache.rows;
+  } catch { return []; }
+};
+/** One person's check-in answers of the last hour, newest per signal. */
+const recentCheckins = (person: string, now = Date.now()) => store.rows({ person, signalPrefix: 'checkin.', from: now - CARD_FINDING_KEEP_MS, to: now });
+/**
+ * Her card questions a person has answered in the last hour, as facts for the card picker: a screen
+ * posts the answer to /api/checkin under answerSignal(question), 1 yes, 0 no.
+ */
+const checkinAnswers = (person: string): { question: string; answer: string }[] => {
+  const bySignal = new Map<string, string>();
+  for (const c of loadCards().cards) for (const a of c.signs.answers) bySignal.set(answerSignal(a.question), a.question);
+  const latest = new Map<string, { t: number; value: number | null }>();
+  for (const r of recentCheckins(person)) {
+    if (!bySignal.has(r.signal)) continue;
+    const held = latest.get(r.signal);
+    if (!held || r.t > held.t) latest.set(r.signal, { t: r.t, value: r.value });
+  }
+  const out: { question: string; answer: string }[] = [];
+  for (const [signal, { value }] of latest) if (value === 1 || value === 0) out.push({ question: bySignal.get(signal)!, answer: value === 1 ? 'yes' : 'no' });
+  return out;
+};
+// A card waiting for her questions, per person: once the answers meet a rule of hers, its level is raised (engine/followup.ts).
+const askingFirst = new Map<string, { askFirst: AskFirst; t: number }>();
+const askFirstFindings = (now: number): Finding[] => {
+  const out: Finding[] = [];
+  for (const [person, held] of askingFirst) {
+    if (now - held.t > CARD_FINDING_KEEP_MS) { askingFirst.delete(person); continue; }
+    const rows = loadFollowUps().filter((r) => held.askFirst.rows.includes(r.id));
+    const finding = askFirstFinding({ ...held.askFirst, rule: decideFollowUp(rows, givenFrom(recentCheckins(person, now))) }, person);
+    if (finding) out.push(finding);
+  }
+  return out;
+};
+
 // The steps cards, for the screens that show them. Only approved cards are sent as
 // steps; drafts are listed by name so a screen can say "not approved yet". Re-read on
 // every request, so a new export from the medical lead needs no restart.
@@ -231,6 +305,7 @@ alerts.findings = (now) => {
     rowsOf: (person, signal, from) => store.rows({ person, signal, from, to: now }),
     latestBlood: Object.values(latestResults(store, entries)).flat().map((r) => r.row),
   });
+  findings.push(...askFirstFindings(now));
   findingsCache = { at: now, findings };
   return findings;
 };
@@ -276,12 +351,15 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   },
   detectorLineFor: (person) => { const s = summaryOf(person); return s ? detectorLine(s, Object.fromEntries(s.signals.map((x) => [x.signal, nameOf(x.signal)]))) : null; },
   // Only NASA's limits are "nasa_limit" facts: a level the crew set never matches her NASA-limit signs.
-  facts: (person) => { const room = roomOf(person); return { readings: alarms.list().filter((a) => a.room === room && a.limitSource !== 'crew').map((a) => ({ signal: CARD_SIGNAL[a.signal] ?? a.signal, direction: 'high' as const, basis: 'nasa_limit' as const, value: a.value, unit: a.unit })), answers: [] }; },
+  facts: (person) => { const room = roomOf(person); return { readings: alarms.list().filter((a) => a.room === room && a.limitSource !== 'crew').map((a) => ({ signal: CARD_SIGNAL[a.signal] ?? a.signal, direction: 'high' as const, basis: 'nasa_limit' as const, value: a.value, unit: a.unit })), answers: checkinAnswers(person) }; },
   // A crisis: the medical officer (or the commander in her place) is told "<name> needs someone with them", never the words.
   onCrisis: (person) => { alerts.raise(crisisFinding(person), CARD_FINDING_KEEP_MS); return true; },
   // A card her signs picked raises the alert her level gives; a private card's name stays with the person (engine/alerts.ts alertFor).
   onFinding: (finding, keepMs) => alerts.raise(finding, keepMs),
   levelOverrides: loadLevelOverrides,
+  followUps: loadFollowUps,
+  followUpAnswers: (person) => givenFrom(recentCheckins(person)),
+  onAskFirst: (person, askFirst) => { askingFirst.set(person, { askFirst, t: Date.now() }); findingsCache = null; },
   evidenceFor: (person) => cards.get(person),
   roomName: (id) => { const r = profile.rooms.find((x) => x.id === id); return r ? t(r.name, 'en') : id; },
   personName: (id) => profile.crew.find((p) => p.id === id)?.name ?? id,
@@ -295,8 +373,10 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
 // device can give are refused on arrival. Levels the crew sets are kept apart from NASA's.
 const sensors = new SensorRegistry(sensorsFile(dataDir, missionFile), profile);
 alarms.crewSensors = () => sensors.list();
+let shuttingDown = false;
 const ingestRows = hub.ingest.bind(hub);
-hub.ingest = (rows) => ingestRows(sensors.checkRows(rows));
+// A board can still deliver a buffered line after it is told to stop; once the hub is closing, nothing is stored.
+hub.ingest = (rows) => (shuttingDown ? [] : ingestRows(sensors.checkRows(rows)));
 hub.routes.push((req, res, url) => handleSensors(req, res, url, { store, registry: sensors, profile }));
 const serialSensors = (process.env.ASTRUM_SENSOR_PORTS ?? '').split(',').filter(Boolean)
   .map((path) => new SerialJsonAdapter({ rows: (rows) => void hub.ingest(rows), status: (status) => hub.setSource(status) }, sensors, path));
@@ -328,6 +408,7 @@ hub.http.listen(port, '0.0.0.0', () => {
   alerts.start();
   hub.startClock();
   cards.start();
+  dose.start();
   // Give real sources a few seconds to answer before filling any gap.
   setTimeout(() => standIn?.start(), 5000);
 });
@@ -338,13 +419,13 @@ if (process.env.ASTRUM_NO_MDNS !== '1') {
   bonjour.publish({ name: 'Astrum hub', type: 'astrum', port });
 }
 
-let shuttingDown = false;
 
 /** Stops everything, the model server included, then exits with `code` (RESTART_CODE asks core/run.ts to start the hub again). */
 function shutdown(code = 0): void {
   if (shuttingDown) return;
   shuttingDown = true;
   scenarios.stop();
+  drill.stop();
   mail.stop();
   hub.stopClock();
   hub.buzz('off');
@@ -355,6 +436,7 @@ function shutdown(code = 0): void {
   alarms.stop();
   alerts.stop();
   cards.stop();
+  dose.stop();
   standIn?.stop();
   bonjour?.unpublishAll(() => bonjour?.destroy());
   hub.http.close();

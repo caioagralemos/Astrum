@@ -66,3 +66,22 @@ export function pickNames(count: number, seed: number | string, taken: readonly 
   }
   return out;
 }
+
+const DAY_MS = 24 * 3600_000;
+/** A picked start leaves at least this many days before today and after it, inside the plan. */
+export const START_MARGIN_DAYS = 15;
+
+/**
+ * A mission start for the simulated example crew (demo mode only): a date that
+ * makes today day 15 to plannedDays - 15 of the plan (any day of it, when the
+ * plan is shorter than that), counted on the station clock `offsetMinutes` from
+ * UTC (engine/mission.ts missionDayOf). Never after today, never past the
+ * planned end. The same seed always gives the same day. An example, not a real date.
+ */
+export function pickStart(plannedDays: number, now: number, offsetMinutes: number, seed: number | string): string {
+  const days = Math.max(1, Math.floor(plannedDays));
+  const [lo, hi] = days > 2 * START_MARGIN_DAYS ? [START_MARGIN_DAYS, days - START_MARGIN_DAYS] : [1, days];
+  const day = lo + Math.floor(stream(seed)() * (hi - lo + 1));
+  const today = Math.floor((now + offsetMinutes * 60_000) / DAY_MS);
+  return `${new Date((today - (day - 1)) * DAY_MS).toISOString().slice(0, 10)}T00:00:00Z`;
+}

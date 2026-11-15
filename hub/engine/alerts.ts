@@ -127,7 +127,7 @@ export interface Alert {
   actWithinSeconds?: number | null;
   /** Level 3 only: can Earth's reply be back before the card's time runs out? Null when unknown. */
   earthInTime?: boolean | null;
-  /** Level 3: her urgent card (xABCDE), shown beside `card`. Null below level 3 or when `card` is the urgent card itself. */
+  /** Level 3: her urgent card (xABCDE), shown beside `card`. Below level 3: the card a situation of hers names (Finding.alsoCard), else null. */
   alsoCard?: string | null;
   /** Level 2 and 3: the person is not left alone (her rule for "concerning"). A fact for the screens; the hub only tells. */
   notAlone?: boolean;
@@ -148,6 +148,8 @@ export interface Alert {
    * sources and what is unverified. Never kept in the alert itself.
    */
   cardViews?: CardView[];
+  /** Raised by a drill (core/drill.ts): the real engine on a simulated reading. It can be answered like any alert. */
+  drill?: true;
 }
 
 /**
@@ -169,6 +171,8 @@ export interface Finding {
   /** A private finding: card null for one with no card (a crisis), which says only that the person needs someone. */
   private: { card: string | null; medicalOfficerSeesCard: boolean } | null;
   nextQuestion: string | null;
+  /** A card her situation names beside `card` (a card's situations[].also_card). Level 3 shows her urgent card instead. */
+  alsoCard?: string | null;
 }
 
 /** The signal a private alert carries, and the string key it is worded with: "<name> needs someone with them". */
@@ -208,6 +212,8 @@ export interface EarthMessage {
   reply: { text: string; at: number; simulated: true; key?: string } | null;
   /** When the last alert it was about ended. Null while one lasts, and always for a crew message. */
   resolvedAt: number | null;
+  /** Listed by a drill's alert (core/drill.ts). Stays marked after the drill ends. */
+  drill?: true;
 }
 
 export interface AlertEvent {
@@ -441,7 +447,7 @@ function findingAlert(was: Alert | null, f: Finding, id: string, inputs: AlertIn
     since: was?.since ?? now, levelSince: levelChanged ? now : was!.levelSince,
     askedAt: null, answerBy: null, answer: null, askKey: null, held: false, toldTo: [f.person], card,
     stationWide: false, lowestRoom: null, earth: null, earthId: null, seenBy: was?.seenBy ?? null, seenAt: was?.seenAt ?? null,
-    alsoCard: null, notAlone: false, private: priv, nextQuestion: f.private ? null : f.nextQuestion,
+    alsoCard: f.private ? null : f.alsoCard ?? null, notAlone: false, private: priv, nextQuestion: f.private ? null : f.nextQuestion,
   };
   if (f.private) next.textKey = NEEDS_SOMEONE_KEY;
   // The person's own private card, kept for alertFor; never in the alert others get.

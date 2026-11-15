@@ -8,8 +8,11 @@
 // (engine/sensors.ts judgeCrewRooms): past an "alarm" level is a room alarm of
 // its own, labelled as the crew's (limitSource 'crew'), beside NASA's and never
 // mixed with it; past a "warn" level marks the room "watch" (crewWatch).
+//
+// A drill (core/drill.ts) can stand in for one room's readings of one signal,
+// in memory only; the alarm it raises is marked drill.
 
-import { LIMITS, QUIET_MS, judgeRooms } from '../engine/cabin.ts';
+import { LIMITS, QUIET_MS, judgeRooms, overLimit } from '../engine/cabin.ts';
 import type { RoomAlarm, Unjudged } from '../engine/cabin.ts';
 import { STUCK_RULES, stuckSensors } from '../engine/quality.ts';
 import type { Stuck } from '../engine/quality.ts';
@@ -18,6 +21,7 @@ import { judgeCrewRooms, sourceOf } from '../engine/sensors.ts';
 import type { CrewLevelInput, CrewWatch, SensorSpec } from '../engine/sensors.ts';
 import type { Store } from './db.ts';
 import type { Hub } from './server.ts';
+import { DRILL_SOURCE } from './drill.ts';
 
 export class RoomAlarms {
   private active = new Map<string, RoomAlarm>();
@@ -51,6 +55,14 @@ export class RoomAlarms {
   crewWatch: CrewWatch[] = [];
   /** The sensors the crew registered (core/sensors.ts). Their levels are judged on every check. */
   crewSensors: () => SensorSpec[] = () => [];
+  /**
+   * A drill's simulated readings for one room and signal (core/drill.ts), or null. While it gives
+   * rows, the room's signal is judged on them in place of the stored ones. They are never stored,
+   * and the stored rows still count for "may be stuck".
+   */
+  override: (room: string, signal: string, from: number, to: number) => Row[] | null = () => null;
+  /** Rooms whose stored readings were over a limit under a drill's readings, at the last check: a real alarm hidden by the drill. */
+  masked: string[] = [];
 
   list(): RoomAlarm[] {
     return [...this.active.values()];
@@ -60,6 +72,7 @@ export class RoomAlarms {
     const window = Math.max(...LIMITS.map((l) => l.windowMs), ...STUCK_RULES.map((r) => r.afterMs));
     const byRoom = new Map<string, Row[]>();
     const inWindow: Row[] = [];
+    const masked: string[] = [];
     // The newest row of each source, if the store did not write it (core/persist.ts): it repeats or
     // nearly repeats the last row written, so it changes no average, and it keeps "last reading" exact.
     // Only the signals with a limit or a stuck rule are judged here; the rest of the room is not read.
@@ -77,11 +90,23 @@ export class RoomAlarms {
       for (const limit of LIMITS) {
         if (!rows.some((r) => r.signal === limit.signal && !r.person)) rows.push(...this.store.rows({ room, signal: limit.signal, to: now, limit: 1 }).filter((r) => !r.person));
       }
-      byRoom.set(room, rows);
+      // A drill's readings stand in for the stored ones of its signal; whether the stored ones are over the limit is still known.
+      let judged = rows;
+      for (const limit of LIMITS) {
+        const drill = this.override(room, limit.signal, now - window - QUIET_MS, now);
+        if (!drill) continue;
+        if (overLimit(rows, room, now).some((o) => o.signal === limit.signal)) masked.push(room);
+        judged = [...judged.filter((r) => r.signal !== limit.signal), ...drill];
+      }
+      byRoom.set(room, judged);
     }
+    this.masked = masked;
     this.stuck = stuckSensors(inWindow, now);
     const before = this.fingerprint();
-    const out = judgeRooms(this.rooms, (room) => byRoom.get(room) ?? [], now, this.list(), this.unjudged, this.stuck);
+    // A drill's alarm whose readings are gone ends here, whatever the stored readings say.
+    const held = this.list().filter((a) => !a.drill || this.override(a.room, a.signal, now, now) !== null);
+    const out = judgeRooms(this.rooms, (room) => byRoom.get(room) ?? [], now, held, this.unjudged, this.stuck);
+    for (const a of out.alarms) if (a.source === DRILL_SOURCE) a.drill = true;
     const crew = judgeCrewRooms(this.crewInputs(now), now, this.list(), this.stuck);
     this.active = new Map([
       ...out.alarms.map((a): [string, RoomAlarm] => [`${a.room}|${a.signal}`, a]),

@@ -111,6 +111,17 @@ test('/api/blood takes typed results, refuses the wrong unit, and reports the ne
     ]);
     assert.equal((await post({ person: 'reyes', t: 2000, values: { sodium: 1.5 } })).status, 200);
 
+    // Values read from a photo of the analyser's screen are stored as such; the rest of the post stays typed.
+    assert.equal((await post({ person: 'reyes', t: 1500, values: { sodium: 1.5 }, from_photo: ['glucose'] })).status, 400, 'from_photo names only ids in values');
+    assert.equal((await post({ person: 'reyes', t: 1500, values: { sodium: 1.5 }, from_photo: 'sodium' })).status, 400);
+    const photo = await post({ person: 'reyes', t: 500, values: { glucose: 91, sodium: 1.4 }, from_photo: ['sodium'] });
+    assert.equal(photo.status, 200);
+    const fromPhoto = ((await photo.json()) as { saved: { row: { signal: string; kind: string; source: string } }[] }).saved;
+    assert.deepEqual(fromPhoto.map((s) => [s.row.signal, s.row.kind, s.row.source]), [
+      ['blood.glucose', 'measured', 'istat:typed'],
+      ['blood.sodium', 'measured', 'istat:photo'],
+    ]);
+
     // A replayed demo row in a unit her entry does not use is shown, not judged.
     store.addRows(demoBloodRows(data, 'C002', 'leo', [{ timepoint: 'L-3', t: 500 }]));
     const state = await get();

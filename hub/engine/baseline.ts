@@ -38,6 +38,13 @@ export interface BaselineOptions {
   minDaily?: number;
   /** A daily value older than this is not "the latest" any more. */
   dailyFreshMs?: number;
+  /**
+   * Vital signs: a reading of one of these is current only this long, however
+   * sparse the signal (a watch's blood oxygen every few hours is not a daily value).
+   * Older, it is a gap, and is never judged or handed on as a current reading.
+   */
+  liveSignals?: readonly string[];
+  liveFreshMs?: number;
   /** |z| at or above this counts as unusual. */
   threshold?: number;
   /**
@@ -55,6 +62,9 @@ export const DEFAULTS = {
   minDense: 30,
   minDaily: 3,
   dailyFreshMs: 36 * HOUR,
+  /** The phone's rule: a reading counts as current for one hour; only daily values (sleep, totals) for a day and a half. */
+  liveSignals: ['heart_rate', 'hrv', 'respiratory_rate', 'breathing_rate', 'blood_oxygen', 'blood_pressure_systolic', 'blood_pressure_diastolic', 'body_temperature'] as readonly string[],
+  liveFreshMs: 60 * MINUTE,
   threshold: 3,
   /** Her rule: a heart rate rise counts only above 20 % or 20 bpm over the person's usual. */
   riseCounts: (signal: string, usual: number, recent: number): boolean => !HEART_RATE_SIGNALS.includes(signal) || heartRateRiseCounts(usual, recent),
@@ -85,6 +95,8 @@ interface Common {
   state: string;
   baselineCount: number;
   kinds: KindMix;
+  /** When the newest reading behind `recent` was taken. */
+  latestAt?: number;
 }
 
 export interface Judged extends Common {

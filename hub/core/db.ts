@@ -4,6 +4,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { StatementSync } from 'node:sqlite';
 import type { Kind, Row, Stay } from '../engine/types.ts';
+import { KIND_RANK } from '../engine/types.ts';
 import { Persistence } from './persist.ts';
 
 /** How far back "current values" reach: a newest row older than this is not current. */
@@ -223,8 +224,9 @@ export class Store {
 
   /** Records that someone is now in a room: closes their open stay and opens a new one. */
   moveTo(person: string, room: string, t: number, kind: Kind, source: string): Stay[] {
-    const open = this.db.prepare('SELECT id, room FROM stays WHERE person = ? AND t_until IS NULL').get(person) as { id: number; room: string } | undefined;
-    if (open?.room === room) return [];
+    const open = this.db.prepare('SELECT id, room, kind FROM stays WHERE person = ? AND t_until IS NULL').get(person) as { id: number; room: string; kind: Kind } | undefined;
+    // Same room: nothing changes, unless the new word is better labelled (a measured stay replaces a simulated one).
+    if (open?.room === room && KIND_RANK[kind] >= KIND_RANK[open.kind]) return [];
     const changed: Stay[] = [];
     if (open) {
       this.db.prepare('UPDATE stays SET t_until = ? WHERE id = ?').run(t, open.id);
@@ -233,6 +235,22 @@ export class Store {
     const done = this.db.prepare('INSERT INTO stays (person, room, t_from, t_until, kind, source) VALUES (?,?,?,NULL,?,?)').run(person, room, t, kind, source);
     changed.push(this.stay(Number(done.lastInsertRowid)));
     return changed;
+  }
+
+  /**
+   * Ends a person's open stay without saying where they went: their place is
+   * then unknown. Only the source that opened the stay can end it this way.
+   */
+  leave(person: string, t: number, source: string): Stay[] {
+    const open = this.db.prepare('SELECT id, t_from AS "from", source FROM stays WHERE person = ? AND t_until IS NULL').get(person) as { id: number; from: number; source: string } | undefined;
+    if (!open || open.source !== source || t < open.from) return [];
+    this.db.prepare('UPDATE stays SET t_until = ? WHERE id = ?').run(t, open.id);
+    return [this.stay(open.id)];
+  }
+
+  /** A person's most recent stay, open or ended. */
+  lastStay(person: string): Stay | undefined {
+    return this.db.prepare('SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM stays WHERE person = ? ORDER BY t_from DESC, id DESC LIMIT 1').get(person) as unknown as Stay | undefined;
   }
 
   private stay(id: number): Stay {

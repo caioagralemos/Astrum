@@ -7,7 +7,10 @@
 // in GET /api/missions) rather than stopping the hub. "Reset to default"
 // removes it. A built-in place other than the ship is given random crew first
 // names the first time it starts (engine/names.ts); they are kept in its
-// override and survive a reset, so each place keeps its own crew.
+// override and survive a reset, so each place keeps its own crew. In demo mode
+// a built-in place started for the first time also gets a random mission start
+// for its example crew (engine/names.ts pickStart), kept the same way: today is
+// somewhere inside its planned days, and each place is at its own day.
 //
 // Missions the crew made (engine/custom.ts) are copies of one of them, kept as
 // JSON in the data folder (core/paths.ts customMissionsDir), each with its own
@@ -22,11 +25,11 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { roomsOf, validateMission } from '../engine/mission.ts';
+import { placeNameOf, roomsOf, validateMission } from '../engine/mission.ts';
 import type { Body, CrewSpec, Mission, Situation } from '../engine/mission.ts';
 import { applyChanges, changeProblems, changesOf, gravityFor } from '../engine/custom.ts';
 import type { MissionChanges, Problem } from '../engine/custom.ts';
-import { pickNames } from '../engine/names.ts';
+import { pickNames, pickStart } from '../engine/names.ts';
 import { t } from '../engine/strings.ts';
 import { SHIP_MISSION, chosenMissionFile } from './paths.ts';
 
@@ -61,6 +64,12 @@ export interface MissionEntry {
  */
 export interface MissionOverride {
   firstNames?: Record<string, string>;
+  /**
+   * The example crew's mission start picked on the first start in demo mode (ISO date). Like the
+   * first names it is not an edit: it survives "Reset to default", and a start typed in the editor
+   * (missionStart) is used over it.
+   */
+  pickedStart?: string;
   nameText?: string;
   where?: { body: Body | null; situation: Situation };
   delayToEarthSeconds?: number;
@@ -85,15 +94,16 @@ export function hasEdits(o: MissionOverride | null): boolean {
   return o !== null && EDIT_KEYS.some((k) => o[k] !== undefined);
 }
 
-/** The built-in crew with the names given on the first start; a renamed person's pronouns become "they". */
-function named(base: Mission, firstNames: Record<string, string> | undefined): Mission {
-  if (!firstNames) return base;
-  return { ...base, crew: base.crew.map((p) => (typeof firstNames[p.id] === 'string' ? { ...p, name: firstNames[p.id], pronouns: 'they' } : p)) };
+/** The built-in crew with the names given on the first start (a renamed person's pronouns become "they"), and the start picked then. */
+function named(base: Mission, firstNames: Record<string, string> | undefined, pickedStart?: string): Mission {
+  const m = pickedStart ? { ...base, missionStart: pickedStart } : base;
+  if (!firstNames) return m;
+  return { ...m, crew: m.crew.map((p) => (typeof firstNames[p.id] === 'string' ? { ...p, name: firstNames[p.id], pronouns: 'they' } : p)) };
 }
 
 /** The built-in mission with an override merged over it. Check the result with overrideProblems. */
 export function withOverride(base: Mission, o: MissionOverride): Mission {
-  const m: Mission = { ...named(base, o.firstNames) };
+  const m: Mission = { ...named(base, o.firstNames, o.pickedStart) };
   if (typeof o.nameText === 'string' && o.nameText.trim()) m.nameText = o.nameText.trim();
   if (o.where) { m.where = { body: o.where.body, situation: o.where.situation }; m.gravity = gravityFor(o.where.body, o.where.situation); }
   if (o.delayToEarthSeconds !== undefined) m.delayToEarthSeconds = o.delayToEarthSeconds;
@@ -112,6 +122,7 @@ export function overrideProblems(base: Mission, raw: unknown): string[] {
   if (o.firstNames !== undefined && (typeof o.firstNames !== 'object' || o.firstNames === null || Object.values(o.firstNames).some((n) => typeof n !== 'string' || !n.trim()))) return ['The first names must be a list of names by crew id.'];
   if (o.crew !== undefined && !Array.isArray(o.crew)) return ['The crew, when given, must be a list.'];
   if (o.where !== undefined && (typeof o.where !== 'object' || o.where === null)) return ['"where", when given, must say the body and situation.'];
+  if (o.pickedStart !== undefined && (typeof o.pickedStart !== 'string' || Number.isNaN(Date.parse(o.pickedStart)))) return ['The picked mission start must be a date.'];
   if (o.pronounsChosen !== undefined && (!Array.isArray(o.pronounsChosen) || o.pronounsChosen.some((x) => typeof x !== 'string'))) return ['The chosen pronouns must be a list of crew ids.'];
   const merged = withOverride(base, o);
   const hub = validateMission(merged);
@@ -144,10 +155,11 @@ function writeOverride(customDir: string, id: string, o: MissionOverride): void 
  * What `edited` changes from the built-in `base` (with its first names), as an
  * override: only the fields that differ. The first names and chosen pronouns are carried as given.
  */
-export function overrideOf(base: Mission, edited: Mission, firstNames: Record<string, string> | undefined, pronounsChosen: string[]): MissionOverride {
-  const from = named(base, firstNames);
+export function overrideOf(base: Mission, edited: Mission, firstNames: Record<string, string> | undefined, pronounsChosen: string[], pickedStart?: string): MissionOverride {
+  const from = named(base, firstNames, pickedStart);
   const o: MissionOverride = {};
   if (firstNames && Object.keys(firstNames).length) o.firstNames = firstNames;
+  if (pickedStart) o.pickedStart = pickedStart;
   if (edited.nameText && edited.nameText !== from.nameText) o.nameText = edited.nameText;
   if (edited.where.body !== from.where.body || edited.where.situation !== from.where.situation) o.where = { ...edited.where };
   if (edited.delayToEarthSeconds !== from.delayToEarthSeconds) o.delayToEarthSeconds = edited.delayToEarthSeconds;
@@ -191,6 +203,23 @@ export function pronounsChosenOf(builtIn: string, customDir: string | null, id: 
   }).map((p) => p.id);
 }
 
+/**
+ * Demo mode only: a built-in place's first start (`fresh`: it had no override before this start)
+ * gets a random mission start for its example crew, kept in its override as `pickedStart`.
+ * Ids, rooms and crew are untouched. Does nothing when the place already has a start of its own
+ * in its override. Returns the date it picked, or null.
+ */
+export function pickStartOnce(builtIn: string, customDir: string | null, id: string, opts: { fresh: boolean; now?: number; offsetMinutes?: number; seed?: number | string }): string | null {
+  if (!opts.fresh || !customDir || !NAME.test(id) || !existsSync(join(builtIn, `${id}.json`))) return null;
+  const over = readOverride(builtIn, customDir, id);
+  if (over?.problems.length || over?.override.pickedStart || over?.override.missionStart) return null;
+  const base = loadMission(builtIn, id);
+  const now = opts.now ?? Date.now();
+  const picked = pickStart(base.plannedDays, now, opts.offsetMinutes ?? -new Date(now).getTimezoneOffset(), opts.seed ?? `${id}:${now}`);
+  writeOverride(customDir, id, { ...over?.override, pickedStart: picked });
+  return picked;
+}
+
 const NAME = /^[a-z0-9-]{1,64}$/;
 
 /** Reads one mission file by its name (without ".json"). Throws with the file's problems in plain words. */
@@ -221,7 +250,8 @@ export function listMissions(dir: string, custom = false): MissionEntry[] {
     }
     const m = (problems.length ? raw ?? {} : raw) as Partial<Mission>;
     const entry: MissionEntry = {
-      id, missionId: typeof m.id === 'string' ? m.id : null, kind: m.kind ?? null, name: typeof m.name === 'string' ? m.name : null,
+      id, missionId: typeof m.id === 'string' ? m.id : null, kind: m.kind ?? null,
+      name: problems.length ? (typeof m.name === 'string' ? m.name : null) : placeNameOf(m as Mission),
       where: m.where ?? null, gravity: typeof m.gravity === 'number' ? m.gravity : null,
       delayToEarthSeconds: typeof m.delayToEarthSeconds === 'number' ? m.delayToEarthSeconds : null,
       rooms: problems.length ? 0 : roomsOf(m as Mission).length, problems,
@@ -308,7 +338,8 @@ export function missionsRoute(dir: string, running: string | null, profile: stri
       if (!over || e.problems.length) return e;
       if (over.problems.length) return { ...e, edited: hasEdits(over.override), overrideProblems: over.problems };
       const m = loadAnyMission(dir, customDir, e.id);
-      const out: MissionEntry = { ...e, where: m.where, gravity: m.gravity, delayToEarthSeconds: m.delayToEarthSeconds, edited: hasEdits(over.override) };
+      // A moved ship's name follows where it is now (engine/mission.ts placeNameOf).
+      const out: MissionEntry = { ...e, name: placeNameOf(m), where: m.where, gravity: m.gravity, delayToEarthSeconds: m.delayToEarthSeconds, edited: hasEdits(over.override) };
       if (m.nameText) out.nameText = m.nameText;
       return out;
     }), ...(customDir ? listMissions(customDir, true) : [])];
@@ -379,8 +410,9 @@ export function missionsRoute(dir: string, running: string | null, profile: stri
       if (opts.storyPlaying?.()) return json(409, { error: storyRefusal });
       const over = readOverride(dir, customDir, id);
       const firstNames = over?.override.firstNames;
+      const pickedStart = over?.override.pickedStart;
       if (over?.problems.length) rmSync(overrideFile(customDir, id), { force: true });
-      else writeOverride(customDir, id, { firstNames });
+      else writeOverride(customDir, id, { firstNames, pickedStart });
       return json(200, { id, reset: true, mission: loadAnyMission(dir, customDir, id), ...restartFor(id) });
     }
 
@@ -421,7 +453,7 @@ export function missionsRoute(dir: string, running: string | null, profile: stri
       const chosen = Array.isArray(b?.pronounsChosen) ? b.pronounsChosen.filter((x): x is string => typeof x === 'string') : [...over?.override.pronounsChosen ?? []];
       // Someone new starts as "they" with a random name: other pronouns were chosen by hand.
       changes.crew.forEach((p, i) => { if (!p.id && p.pronouns !== 'they' && made.crew[i]) chosen.push(made.crew[i].id); });
-      writeOverride(customDir, id, overrideOf(base, edited, over?.override.firstNames, chosen));
+      writeOverride(customDir, id, overrideOf(base, edited, over?.override.firstNames, chosen, over?.override.pickedStart));
       // The running hub took its rooms and crew when it started: it restarts to use them.
       return json(200, { id, mission: loadAnyMission(dir, customDir, id), edited: hasEdits(readOverride(dir, customDir, id)?.override ?? null), ...restartFor(id) });
     }

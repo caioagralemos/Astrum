@@ -20,11 +20,15 @@
 //     named cardiac arrest), so a card for another gravity is never shown, not
 //     even when its signs match: her "no card fits" card is, and the pick says why.
 
+import { parseSituations } from './levels.ts';
+import type { Situation } from './levels.ts';
+
 export type CardLevel = 'unusual' | 'concerning' | 'dangerous';
 export type CardNotify = 'self' | 'medical_officer' | 'everyone';
 export type SignDirection = 'high' | 'low' | 'rising' | 'falling' | 'changed';
 export type SignBasis = 'personal_normal' | 'nasa_limit' | 'reference_range';
 export type CardLang = 'en' | 'pt';
+
 /** Where a card applies, by the place's gravity (gravityClass). */
 export type GravityClass = 'weightless' | 'partial_gravity' | 'earth_gravity';
 
@@ -122,6 +126,8 @@ export interface Card {
   applies_in?: GravityClass[];
   /** Set when applies_in came from the hub's GRAVITY_TABLE, not from her file. */
   applies_in_from?: 'hub-table';
+  /** Her levels per situation, as fields (engine/levels.ts). Absent: the card's own level, and medical/level-overrides.json. */
+  situations?: Situation[];
   notes: string;
 }
 
@@ -175,6 +181,7 @@ export function parseCards(json: unknown): ParsedCards {
     return out;
   }
   const seen = new Set<string>();
+  const allIds = json.filter(isObj).map((c) => str(c.id)).filter(Boolean);
   json.forEach((raw, i) => {
     const where = `Card ${i + 1}`;
     if (!isObj(raw)) {
@@ -258,6 +265,10 @@ export function parseCards(json: unknown): ParsedCards {
       sources, unverified: words(raw.unverified), status, en_checked: raw.en_checked === true, notes: str(raw.notes),
     };
     if (typeof raw.pt_reviewed === 'boolean') card.pt_reviewed = raw.pt_reviewed;
+    // Her levels per situation. Malformed: left out and named, so the card keeps its own level.
+    const sit = parseSituations(raw.situations, card, allIds);
+    out.problems.push(...sit.problems.map((p) => `${p} Its situations are not used.`));
+    if (sit.situations) card.situations = sit.situations;
     if (appliesIn) card.applies_in = appliesIn;
     else if (GRAVITY_TABLE[id]) {
       card.applies_in = [...GRAVITY_TABLE[id]];
@@ -333,6 +344,20 @@ export interface Facts {
   answers: AnswerSign[];
   /** What the crewmate typed, if anything. Matched only against her words. */
   text?: string;
+}
+
+/**
+ * The check-in signal that carries the answer to one of her card questions
+ * (signs.answers[].question): "checkin.q_" and the question's words, joined by
+ * "_", cut to fit the timeline's 64 characters, with a short checksum so two
+ * long questions never share one. 1 is "yes", 0 is "no". This is how a
+ * screen's answer to her question reaches the card picker (core/main.ts facts).
+ */
+export function answerSignal(question: string): string {
+  const words = norm(question).trim().replace(/ /g, '_');
+  let h = 5381;
+  for (const ch of question) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+  return `checkin.q_${words.slice(0, 44).replace(/_+$/, '')}_${h.toString(16).padStart(8, '0').slice(0, 6)}`;
 }
 
 /** Her signs of one card that the facts matched, as she wrote them. */

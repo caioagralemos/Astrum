@@ -27,6 +27,8 @@ export interface ChipLine {
   rows: Row[];
   chip?: string;
   missing?: string[];
+  /** The board's Bluetooth beacon, from firmware 0.3 on. Left out by older firmware. */
+  ble?: 'on' | 'off';
 }
 
 /**
@@ -52,7 +54,8 @@ export function parseChipLine(line: string, now: number, roomOf: (chip: string) 
       rows.push({ t: now, signal, value, unit, kind, source: `chip:${chip}`, room });
     }
   }
-  return { rows, chip, missing };
+  const ble = msg.ble === 'on' || msg.ble === 'off' ? msg.ble : undefined;
+  return ble ? { rows, chip, missing, ble } : { rows, chip, missing };
 }
 
 export class ChipAdapter implements Adapter {
@@ -63,6 +66,7 @@ export class ChipAdapter implements Adapter {
   private lastSeen: number | null = null;
   private live: string[] = [];
   private missing: string[] = [];
+  private ble: 'on' | 'off' | undefined;
   private sink: Sink;
   private roomOf: (chip: string) => string | null;
   private fixedPath: string | undefined;
@@ -121,6 +125,7 @@ export class ChipAdapter implements Adapter {
     this.chip = parsed.chip ?? this.chip;
     this.lastSeen = now;
     this.missing = parsed.missing ?? this.missing;
+    this.ble = parsed.ble ?? this.ble;
     if (parsed.rows.length) {
       this.live = parsed.rows.map((r) => r.signal);
       this.sink.rows(parsed.rows);
@@ -137,6 +142,7 @@ export class ChipAdapter implements Adapter {
       live: connected ? this.live : [],
       missing: this.missing,
       lastSeen: this.lastSeen,
+      ...(this.ble ? { ble: this.ble } : {}),
     });
   }
 }

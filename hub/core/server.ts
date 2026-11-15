@@ -21,6 +21,7 @@ import type { Stuck } from '../engine/quality.ts';
 import { checkinRows } from '../engine/checkin.ts';
 import { occupants } from '../engine/timeline.ts';
 import type { Evidence } from '../engine/evidence.ts';
+import type { PersonDose } from '../engine/dose.ts';
 import type { CrewWatch } from '../engine/sensors.ts';
 import { sleepersOf } from '../engine/activity.ts';
 import type { Activity } from '../engine/activity.ts';
@@ -41,6 +42,10 @@ export const STAND_IN = 'sim:hub';
 const STATE_WINDOW_MS = 24 * 3600_000;
 /** How often the hub tells screens its clock, so they can follow it. */
 export const CLOCK_EVERY_MS = 10_000;
+/** After a measured stay ends, how long the person's place stays unknown before a demo source may fill it again. */
+export const MEASURED_HOLD_MS = 30 * 60_000;
+/** How far ahead of the hub's clock a posted stay's time may be (two clocks never agree exactly). */
+const STAY_CLOCK_SKEW_MS = 10_000;
 
 export class Hub {
   readonly http: Server;
@@ -147,6 +152,14 @@ export class Hub {
     this.broadcastFor((viewer) => ({ type: 'evidence', person, evidence: evidenceFor(evidence, viewer) }));
   }
 
+  private dose: Record<string, PersonDose> = {};
+
+  /** Every crewmate's radiation dose changed (core/dose.ts decides when). It carries no typed text: every screen gets it, as with evidence. */
+  setDose(dose: Record<string, PersonDose>): void {
+    this.dose = dose;
+    this.broadcast({ type: 'dose', dose });
+  }
+
   private alarms: RoomAlarm[] = [];
   private unjudged: Unjudged[] = [];
   private stuck: Stuck[] = [];
@@ -244,7 +257,16 @@ export class Hub {
 
   move(person: string, room: string, t: number, kind: Kind, source: string): void {
     if (this.production && isDemoOnly(kind)) return;
+    // A measured place wins: no simulated or replayed move for that person while it holds.
+    const last = isDemoOnly(kind) ? this.store.lastStay(person) : undefined;
+    if (last?.kind === 'measured' && (last.until === null || t - last.until < MEASURED_HOLD_MS)) return;
     const changed = this.store.moveTo(person, room, t, kind, source);
+    if (changed.length) this.broadcast({ type: 'stay', stays: changed });
+  }
+
+  /** Ends the stay `source` opened for this person: they are no longer where it said, and nowhere known. */
+  leave(person: string, t: number, source: string): void {
+    const changed = this.store.leave(person, t, source);
     if (changed.length) this.broadcast({ type: 'stay', stays: changed });
   }
 
@@ -273,6 +295,7 @@ export class Hub {
       earthMessages: this.earthMessages,
       evidence: Object.fromEntries(Object.entries(this.evidence).map(([p, e]) => [p, evidenceFor(e, viewer)])),
       crewWatch: this.crewWatch,
+      dose: this.dose,
     };
   }
 
@@ -418,14 +441,18 @@ export class Hub {
     if (url.pathname === '/api/alerts/answer' && req.method === 'POST') {
       const b = (await readJson(req)) as { id?: string; answer?: string } | undefined;
       if (typeof b?.id !== 'string' || (b.answer !== 'ok' && b.answer !== 'help')) return send(res, 400, { error: 'needs an alert id and an answer of ok or help' });
-      return this.answerAlert(b.id, b.answer) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no question waiting on that alert' });
+      // While a recorded story plays, every alert on screen is the recording's: none of them is in the alert engine.
+      if (this.scenarioState) return send(res, 409, { error: 'a recorded story is playing: its alerts cannot be answered', code: 'recorded' });
+      // not-waiting: answered already, escalated or ended. A screen refreshes from the hub's state rather than show this.
+      return this.answerAlert(b.id, b.answer) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no question waiting on that alert', code: 'not-waiting' });
     }
 
     if (url.pathname === '/api/alerts/acknowledge' && req.method === 'POST') {
       const b = (await readJson(req)) as { id?: string; by?: string } | undefined;
       if (typeof b?.id !== 'string') return send(res, 400, { error: 'needs an alert id' });
       if (b.by !== undefined && !this.profile.crew.some((p) => p.id === b.by)) return send(res, 400, { error: 'by must be a crew id, or left out on a shared screen' });
-      return this.seeAlert(b.id, b.by ?? null) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no level 3 alert waiting to be seen with that id' });
+      if (this.scenarioState) return send(res, 409, { error: 'a recorded story is playing: its alerts cannot be acknowledged', code: 'recorded' });
+      return this.seeAlert(b.id, b.by ?? null) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no level 3 alert waiting to be seen with that id', code: 'not-waiting' });
     }
 
     if (url.pathname === '/api/alarms/acknowledge' && req.method === 'POST') {
@@ -441,12 +468,18 @@ export class Hub {
     }
 
     if (url.pathname === '/api/stays' && req.method === 'POST') {
-      const b = (await readJson(req)) as { person?: string; room?: string; t?: number; kind?: Kind; source?: string } | undefined;
-      const known = b && this.profile.crew.some((p) => p.id === b.person) && this.profile.rooms.some((r) => r.id === b.room);
+      // room null: the person left the room `source` put them in, for nowhere known.
+      const b = (await readJson(req)) as { person?: string; room?: string | null; t?: number; kind?: Kind; source?: string } | undefined;
+      const known = b && this.profile.crew.some((p) => p.id === b.person) && (b.room === null || this.profile.rooms.some((r) => r.id === b.room));
       if (!b || !known || typeof b.t !== 'number' || !KINDS.includes(b.kind as Kind) || typeof b.source !== 'string') {
-        return send(res, 400, { error: 'needs a known person and room, t, kind and source' });
+        return send(res, 400, { error: 'needs a known person and room (or null), t, kind and source' });
       }
-      this.move(b.person!, b.room!, b.t, b.kind!, b.source);
+      const now = Date.now();
+      if (!Number.isFinite(b.t) || b.t > now + STAY_CLOCK_SKEW_MS) return send(res, 400, { error: 't must be a time in milliseconds, not in the future' });
+      const open = this.store.stays(now, now, b.person).find((s) => s.until === null);
+      if (open && b.t < open.from) return send(res, 409, { error: 'older than where the hub already has this person' });
+      if (b.room === null) this.leave(b.person!, b.t, b.source);
+      else this.move(b.person!, b.room!, b.t, b.kind!, b.source);
       return send(res, 200, { ok: true });
     }
 

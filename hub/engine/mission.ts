@@ -224,11 +224,47 @@ export function roomsOf(mission: Mission): Room[] {
   return rooms;
 }
 
+/**
+ * The place's name key. A station or a base stays where it is, so its file's
+ * name is its name. A ship can be moved (Settings, Edit this place), and the
+ * ship's name says where it is ("Station in Mars orbit"), so a ship's name
+ * follows its location: Mars orbit keeps the file's own key, Earth or Moon
+ * orbit and transit take their own. The id never changes.
+ */
+export function placeNameOf(mission: Pick<Mission, 'kind' | 'name' | 'where'>): string {
+  if (mission.kind !== 'ship') return mission.name;
+  const { body, situation } = mission.where;
+  if (situation === 'transit') return 'place.transit';
+  if (situation === 'orbit' && body === 'earth') return 'place.earth-orbit';
+  if (situation === 'orbit' && body === 'moon') return 'place.moon-orbit';
+  if (situation === 'orbit' && body === 'mars') return 'place.mars-orbit';
+  return mission.name;
+}
+
+const DAY_MS = 24 * 3600_000;
+
+/**
+ * The mission day at `now`, counted on the station's clock: the start date is
+ * day 1, and the day turns at midnight on a clock `offsetMinutes` from UTC.
+ * The hub keeps the simulated crew's day on its own time zone (core/crew.ts),
+ * so it gives its offset (MissionFacts.clockOffsetMinutes) and the day turns
+ * while the crew sleeps, not at midnight UTC. Before the start it is 0 or less.
+ */
+export function missionDayOf(missionStart: string, now: number, offsetMinutes: number): number {
+  const start = Date.parse(`${missionStart.slice(0, 10)}T00:00:00Z`);
+  return Math.floor((now + offsetMinutes * 60_000) / DAY_MS) - Math.floor(start / DAY_MS) + 1;
+}
+
+/** The mission day screens show: on the hub's station clock, or, from an older hub that does not say it, the screen's own time zone. */
+export function dayOf(profile: Pick<Profile, 'missionStart' | 'mission'>, now: number): number {
+  return missionDayOf(profile.missionStart, now, profile.mission?.clockOffsetMinutes ?? -new Date(now).getTimezoneOffset());
+}
+
 /** The hub's settings for this place, in the shape it has always read. */
 export function profileOf(mission: Mission): Profile {
   return {
     id: mission.id,
-    place: mission.name,
+    place: placeNameOf(mission),
     missionStart: mission.missionStart,
     delayToEarthSeconds: mission.delayToEarthSeconds,
     rooms: roomsOf(mission),

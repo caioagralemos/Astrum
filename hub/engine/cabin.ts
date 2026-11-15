@@ -173,6 +173,8 @@ export interface RoomAlarm {
   lastReading?: { value: number; t: number } | null;
   /** The source behind the alarm may be stuck (quality.ts). An over-limit value still alarms. */
   stuck?: boolean;
+  /** Raised by a drill's simulated reading (core/drill.ts), never by the room's air. */
+  drill?: true;
 }
 
 /** A room and signal with a limit that could not be judged: no reading, or only a reading that may be stuck. */

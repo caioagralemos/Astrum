@@ -415,6 +415,7 @@ function fold(state: StateMessage, message: HubMessage, at: number): StateMessag
   if (message.type === 'activity') next.activity = message.activity;
   if (message.type === 'sources') next.sources = message.sources;
   if (message.type === 'evidence') next.evidence = { ...state.evidence, [message.person]: message.evidence };
+  if (message.type === 'dose') next.dose = message.dose;
   return next;
 }
 
@@ -460,6 +461,19 @@ export interface PlayerOptions {
  * buzzer follows the scenario's alarms and alerts, decided by the same
  * Hub.soundBoard the live hub uses. At the end, every screen gets a fresh live state.
  */
+/** The first "Are you OK?" in a recording: when it was asked and when the answer was due. */
+function firstCountdown(messages: unknown[]): { askedAt: number; answerBy: number } | null {
+  const seen = (value: unknown): { askedAt: number; answerBy: number } | null => {
+    if (Array.isArray(value)) { for (const v of value) { const hit = seen(v); if (hit) return hit; } return null; }
+    if (value === null || typeof value !== 'object') return null;
+    const o = value as Record<string, unknown>;
+    if (typeof o.askedAt === 'number' && typeof o.answerBy === 'number' && o.answerBy > o.askedAt) return { askedAt: o.askedAt, answerBy: o.answerBy };
+    for (const v of Object.values(o)) { const hit = seen(v); if (hit) return hit; }
+    return null;
+  };
+  return seen(messages);
+}
+
 export class ScenarioPlayer {
   private run: Run | null = null;
   private hub: Hub;
@@ -475,13 +489,23 @@ export class ScenarioPlayer {
   }
 
   /** Starts a recording from its beginning, replacing any that is playing. False if there is no such recording. */
-  start(id: string): boolean {
+  start(id: string, realCountdown = false): boolean {
     const recording = this.load(id);
     const first = recording?.messages[0];
     if (!recording || first?.message.type !== 'state') return false;
     this.end(false);
     const startsAt = recording.meta?.startsAt ?? first.at;
-    const speed = speedProfile(recording.meta?.speed, startsAt);
+    let speed = speedProfile(recording.meta?.speed, startsAt);
+    // For trying the alert on a real phone: the "Are you OK?" countdown plays at its true length,
+    // so the person has the same time to answer as on a hub that is not playing a recording.
+    if (realCountdown) {
+      const asked = firstCountdown(recording.messages.map((m) => m.message));
+      if (asked) {
+        const after = speedAt(speed, asked.answerBy);
+        speed = [...speed.filter(([t]) => t < asked.askedAt || t > asked.answerBy), [asked.askedAt, 1], [asked.answerBy, after]];
+        speed.sort((a, b) => a[0] - b[0]);
+      }
+    }
     this.run = {
       id, messages: recording.messages, offsets: recording.messages.map((m) => realOffset(speed, startsAt, m.at)), speed, startsAt,
       startedAt: this.clock(), next: 0, state: first.message, timer: null,
@@ -559,9 +583,9 @@ export function scenarioRoute(player: ScenarioPlayer, production: boolean, missi
     if (mission !== null && mission !== STORY_MISSION) {
       return json(409, { error: `The recorded story happens on the ship. This hub runs the mission "${mission}". Restart it with ASTRUM_MISSION=${STORY_MISSION} to play the story.` });
     }
-    const body = (await readBody(req)) as { id?: unknown } | undefined;
+    const body = (await readBody(req)) as { id?: unknown; realCountdown?: unknown } | undefined;
     if (typeof body?.id !== 'string') return json(400, { error: 'needs the id of a recording, e.g. {"id":"reyes-night"}' });
-    if (!player.start(body.id)) return json(404, { error: `no recording "${body.id}"; run "npm run scenario" in hub/` });
+    if (!player.start(body.id, body.realCountdown === true)) return json(404, { error: `no recording "${body.id}"; run "npm run scenario" in hub/` });
     return json(200, { playing: body.id });
   };
 }

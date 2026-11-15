@@ -13,7 +13,7 @@ const index = buildIndex(passages);
 const TABLE: { q: string; want: string[]; readings?: string[] }[] = [
   { q: 'I have a headache, could it be the CO2?', want: ['co2-limit', 'co2-headaches-1'] },
   { q: "what's the max co2 we're allowed in the cabin", want: ['co2-limit', 'co2-headaches-1', 'co2-monitoring-1'] },
-  { q: 'CO2 is fine under 7.5, right?', want: ['co2-limit'] },
+  { q: "co2 under 7.5 mmHg is still ok, isn't it", want: ['co2-limit'] },
   { q: "cant sleep, is that normal up here", want: ['risk-sleep-1', 'risk-sleep-2', 'risk-sleep-3'] },
   { q: 'why does the sun keep rising and setting so often', want: ['risk-sleep-3'] },
   { q: 'how much exercise am I supposed to do every day', want: ['risk-reduced-fitness-2'] },
@@ -57,7 +57,7 @@ const HELD_OUT: typeof TABLE = [
   { q: 'do germs grow differently up here', want: ['risk-microbes-1', 'hazard-hostile-environments-1'] },
   { q: 'what happened on apollo 13 with the co2', want: ['co2-apollo13-1', 'co2-apollo13-2'] },
   { q: 'does the heart change shape in microgravity', want: ['risk-cardiovascular-adaptations-3'] },
-  { q: 'what dose of melatonin should I take to sleep', want: [] },
+  { q: 'how much melatonin should I take before bed', want: [] },
   { q: 'how many calories should I eat today', want: [] },
   { q: 'when is the next resupply ship arriving', want: [] },
   { q: 'can you play some music', want: [] },
@@ -182,7 +182,7 @@ test('fresh full sentences: hit rate on sentences written after the fix', (t) =>
 });
 
 test('framing words never let a question the library cannot answer through', () => {
-  for (const q of ['what dose of melatonin should I take to sleep', 'Why do I keep waking up wanting pizza?', 'What does it mean that the toilet in my room keeps clogging?']) {
+  for (const q of ['how much melatonin should I take before bed', 'Why do I keep waking up wanting pizza?', 'What does it mean that the toilet in my room keeps clogging?']) {
     assert.equal(search(index, q, { readings: ['CO2', 'sleep'] }).found, false, q);
   }
 });

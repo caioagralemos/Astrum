@@ -75,6 +75,8 @@ export interface Person {
   role: string;
   /** How the hub and the model refer to this person. Unset means they/them. */
   pronouns?: 'she' | 'he' | 'they';
+  /** A photo of them (an image address), if the mission gives one. Screens draw a plain outline without it. */
+  portrait?: string;
 }
 
 /**
@@ -98,6 +100,8 @@ export interface MissionFacts {
   nameText?: string;
   /** True for a mission the crew made from another (engine/custom.ts). */
   custom?: boolean;
+  /** The station clock against UTC, in minutes: the hub's time zone, which the simulated crew keeps. The mission day turns at its midnight. */
+  clockOffsetMinutes?: number;
 }
 
 /** The environment this hub is installed in. One settings file per place. */
@@ -127,6 +131,8 @@ export interface SourceStatus {
   /** Signals it has a driver for but whose part is not answering. */
   missing: string[];
   lastSeen: number | null;
+  /** A sensor board's Bluetooth room beacon (chip/README.md): "on" while it advertises. Absent when the board does not say. */
+  ble?: 'on' | 'off';
 }
 
 import type { RoomAlarm, Unjudged } from './cabin.ts';
@@ -135,6 +141,7 @@ import type { Alert, EarthMessage } from './alerts.ts';
 import type { Stuck } from './quality.ts';
 import type { Evidence } from './evidence.ts';
 import type { Activity } from './activity.ts';
+import type { PersonDose } from './dose.ts';
 
 /** Readings refused at ingest because no working sensor could give them (quality.ts BOUNDS). */
 export interface Rejected {
@@ -187,12 +194,16 @@ export interface ScenarioFlag {
  * - crewWatch: rooms past a "warn" level the crew set on one of their own
  *   sensors (engine/sensors.ts). Not an alarm: the room is marked "watch".
  *   Sent with every alarms message; absent from older hubs and recordings.
+ * - dose: every crewmate's radiation dose by crew id (engine/dose.ts), an
+ *   estimate from room rates and stays, or simulated; never measured. Sent when
+ *   it changes; state.dose holds the latest. Absent from older hubs and
+ *   recordings, and empty with no radiation source.
  */
 export type HubMessage = (
   | {
     type: 'state'; now: number; profile: Profile; latest: Row[]; stays: Stay[]; sources: SourceStatus[]; alarms: RoomAlarm[]; alerts: Alert[]; quality?: Quality;
     asleep?: string[]; earthMessages?: EarthMessage[]; evidence?: Record<string, Evidence & { computedAt?: number }>; crewWatch?: CrewWatch[];
-    activity?: Record<string, Activity>;
+    activity?: Record<string, Activity>; dose?: Record<string, PersonDose>;
   }
   | { type: 'alarms'; alarms: RoomAlarm[]; unjudged?: Unjudged[]; stuck?: Stuck[]; crewWatch?: CrewWatch[] }
   | { type: 'alerts'; alerts: Alert[] }
@@ -204,6 +215,7 @@ export type HubMessage = (
   | { type: 'stay'; stays: Stay[] }
   | { type: 'sources'; sources: SourceStatus[] }
   | { type: 'evidence'; person: string; evidence: Evidence & { computedAt?: number } }
+  | { type: 'dose'; dose: Record<string, PersonDose> }
   /** The hub is about to restart on another mission (`to`, a mission file): screens wait for its new state. */
   | { type: 'restarting'; to: string }
 ) & { scenario?: ScenarioFlag };

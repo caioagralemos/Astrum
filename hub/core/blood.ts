@@ -19,6 +19,8 @@ import type { Store } from './db.ts';
 
 export const INSPIRATION4_SOURCE = 'nasa:osdr-inspiration4';
 export const TYPED_SOURCE = 'istat:typed';
+/** A result read from a photo of the analyser's screen on the phone and confirmed by the person before sending. */
+export const PHOTO_SOURCE = 'istat:photo';
 
 /** The sampling days, in order: days before launch (L-) and after return (R+). */
 export const TIMEPOINTS = ['L-92', 'L-44', 'L-3', 'R+1', 'R+45', 'R+82', 'R+194'] as const;
@@ -219,8 +221,11 @@ export function latestResults(store: Store, entries: BloodEntry[]): Record<strin
 /**
  * GET /api/blood: her entries, the problems in her file, and each person's
  * newest results.
- * POST /api/blood: { person, t?, values: { id: number }, units?: { id: unit }, fasting?: boolean }.
- * All or nothing: if any value is refused, none is stored. `fasting` is the
+ * POST /api/blood: { person, t?, values: { id: number }, units?: { id: unit }, fasting?: boolean, from_photo?: [id] }.
+ * All or nothing: if any value is refused, none is stored. `from_photo` names
+ * the values the phone read from a photo of the analyser's screen (each one
+ * checked by the person); they are stored with PHOTO_SOURCE, the rest with
+ * TYPED_SOURCE. `fasting` is the
  * person's answer to her fasting question, stored beside the results as a
  * reported check-in answer (engine/medical.ts FASTING_SIGNAL) for glucose.
  * Returns false for any other path.
@@ -238,7 +243,7 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
     return true;
   }
 
-  const b = (await readJson(req)) as { person?: unknown; t?: unknown; values?: unknown; units?: unknown; fasting?: unknown } | undefined;
+  const b = (await readJson(req)) as { person?: unknown; t?: unknown; values?: unknown; units?: unknown; fasting?: unknown; from_photo?: unknown } | undefined;
   if (!b || typeof b !== 'object') return fail(res, 'body must be JSON');
   if (typeof b.person !== 'string' || !ctx.crew.includes(b.person)) return fail(res, 'needs a known person');
   const t = b.t ?? Date.now();
@@ -247,6 +252,10 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
     return fail(res, 'values must be { id: number }, with at least one result');
   }
   if (b.fasting !== undefined && typeof b.fasting !== 'boolean') return fail(res, 'fasting must be true or false, or left out');
+  const fromPhoto = b.from_photo ?? [];
+  if (!Array.isArray(fromPhoto) || fromPhoto.some((id) => typeof id !== 'string' || !Object.hasOwn(b.values as object, id))) {
+    return fail(res, 'from_photo must be a list of ids that are in values, or left out');
+  }
   const units = (typeof b.units === 'object' && b.units !== null ? b.units : {}) as Record<string, unknown>;
 
   const byId = new Map(blood.entries.map((e) => [e.id, e]));
@@ -259,6 +268,9 @@ export async function handleBlood(req: IncomingMessage, res: ServerResponse, url
     typed.push({ entry, value: value as number, unit: typeof unit === 'string' ? unit : undefined });
   }
   const made = toRows(b.person, typed, t, TYPED_SOURCE);
+  for (const row of made.rows) {
+    if (fromPhoto.some((id) => bloodSignal(id) === row.signal)) row.source = PHOTO_SOURCE;
+  }
   refused.push(...made.refused);
   if (refused.length) {
     send(res, 400, { error: 'nothing was stored', refused });

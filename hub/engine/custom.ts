@@ -24,6 +24,9 @@ export const MAX_DESTINATION = 80;
 export const MAX_PERSON_NAME = 40;
 export const MAX_CREW = 8;
 export const MAX_DAYS = 3650;
+const DAY_MS = 24 * 3600_000;
+/** How far ahead of UTC the furthest time zone is: a start "today" there is still today. */
+const START_AHEAD_MS = 14 * 3600_000;
 
 /** The project's stated one-way delays: Earth orbit about 1 s, the Moon 1.3 s, Mars between 180 and 1320 s. */
 export const MARS_DELAY = { min: 180, max: 1320 } as const;
@@ -105,7 +108,7 @@ const text = (v: unknown): v is string => typeof v === 'string' && v.trim().leng
  * Everything wrong with these changes to a mission copied from `base`. Empty means it can be saved. Never throws.
  * `nameOptional`: a built-in place keeps its own name when none is typed.
  */
-export function changeProblems(base: Mission, input: unknown, opts: { nameOptional?: boolean } = {}): Problem[] {
+export function changeProblems(base: Mission, input: unknown, opts: { nameOptional?: boolean; now?: number } = {}): Problem[] {
   const out: Problem[] = [];
   const say = (field: string, key: string, vars?: Problem['vars']) => out.push(vars ? { field, key, vars } : { field, key });
   if (typeof input !== 'object' || input === null) return [{ field: '', key: 'custom.problem.notObject' }];
@@ -131,7 +134,12 @@ export function changeProblems(base: Mission, input: unknown, opts: { nameOption
     }
   }
 
-  if (typeof c.missionStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(c.missionStart) || Number.isNaN(Date.parse(`${c.missionStart}T00:00:00Z`))) say('missionStart', 'custom.problem.start');
+  const startsAt = typeof c.missionStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(c.missionStart) ? Date.parse(`${c.missionStart}T00:00:00Z`) : Number.NaN;
+  const now = opts.now ?? Date.now();
+  if (Number.isNaN(startsAt)) say('missionStart', 'custom.problem.start');
+  // Not after today anywhere on Earth (a date is midnight UTC; the furthest zone is 14 hours ahead), and not so long ago that the day count stops meaning anything.
+  else if (startsAt > now + START_AHEAD_MS) say('missionStart', 'custom.problem.startFuture');
+  else if (startsAt < now - MAX_DAYS * DAY_MS) say('missionStart', 'custom.problem.startOld', { max: MAX_DAYS });
   if (typeof c.plannedDays !== 'number' || !Number.isInteger(c.plannedDays) || c.plannedDays < 1 || c.plannedDays > MAX_DAYS) say('plannedDays', 'custom.problem.days', { max: MAX_DAYS });
   if (c.destination !== undefined && (typeof c.destination !== 'string' || c.destination.trim().length > MAX_DESTINATION)) say('destination', 'custom.problem.destination', { max: MAX_DESTINATION });
 

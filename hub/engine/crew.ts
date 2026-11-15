@@ -212,10 +212,12 @@ export function heartRateAt(person: string, t: number, offsetMinutes: number, pl
   const u = usualOf(person, places);
   const p = places[person];
   const hour = stationHour(t, offsetMinutes);
-  const room = roomAt(person, hour, places);
+  // By the part of the day, not the room: someone whose work room is also the exercise room (on the
+  // ISS, Tranquility) only exercises in their exercise block.
+  const part = partOfDay(person, hour);
   let centre = u.heartRate;
-  if (room === p.quarters && (hour < 6 || hour >= 22)) centre -= 6;
-  else if (p.exercise !== null && room === p.exercise) {
+  if (part === 'sleep') centre -= 6;
+  else if (p.exercise !== null && part === 'exercise') {
     // Rises over five minutes, holds, comes back over five.
     const into = (hour - u.gymHour) * 60;
     const left = (u.gymHour + EXERCISE_HOURS - hour) * 60;

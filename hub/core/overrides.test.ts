@@ -10,13 +10,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
-import { hasEdits, loadAnyMission, loadMission, missionsRoute, nameCrewOnce, overrideFile, overrideOf, overrideProblems, readOverride, withOverride } from './missions.ts';
+import { hasEdits, loadAnyMission, loadMission, missionsRoute, nameCrewOnce, overrideFile, overrideOf, overrideProblems, pickStartOnce, readOverride, withOverride } from './missions.ts';
 import type { MissionOverride, MissionsOptions } from './missions.ts';
 import { overridesDir } from './paths.ts';
-import { changesOf } from '../engine/custom.ts';
+import { changeProblems, changesOf } from '../engine/custom.ts';
 import type { MissionChanges } from '../engine/custom.ts';
-import { validateMission } from '../engine/mission.ts';
-import { ASTRONAUT_FIRST_NAMES } from '../engine/names.ts';
+import { hubProfileOf, validateMission } from '../engine/mission.ts';
+import { t } from '../engine/strings.ts';
+import { radiationOf } from './standin.ts';
+import { ASTRONAUT_FIRST_NAMES, pickStart } from '../engine/names.ts';
 
 const hubDir = new URL('..', import.meta.url).pathname;
 const builtIn = join(hubDir, 'profiles', 'missions');
@@ -296,4 +298,86 @@ test('someone added to a running crew gets the same three days of simulated hist
     hub.http.close();
     store.close();
   }
+});
+
+test('moving the ship: the override keeps the id, and its name, gravity, delay and radiation follow where it is', async () => {
+  const s = await serve({ running: 'ship-mars-orbit' });
+  try {
+    const ship = loadMission(builtIn, 'ship-mars-orbit');
+    const before = hubProfileOf(ship, 'ship-mars-orbit');
+    assert.equal(before.place, 'place.mars-orbit', 'in Mars orbit the ship keeps its own name');
+    const base = changesOf(ship);
+    const moves: [MissionChanges['where'], number, string, string][] = [
+      [{ body: 'earth', situation: 'orbit' }, 1, 'place.earth-orbit', 'Earth orbit'],
+      [{ body: null, situation: 'transit' }, 600, 'place.transit', 'In transit'],
+      [{ body: 'moon', situation: 'orbit' }, 1.3, 'place.moon-orbit', 'Moon orbit'],
+      [{ body: 'mars', situation: 'orbit' }, 1200, 'place.mars-orbit', 'Mars orbit'],
+    ];
+    for (const [where, delay, key, short] of moves) {
+      const put = await call(`${s.url}/api/missions/ship-mars-orbit`, 'PUT', { changes: { ...base, nameText: '', where, delayToEarthSeconds: delay } });
+      assert.equal(put.status, 200, JSON.stringify(put.body));
+      assert.equal(put.body.restarting, true, 'saving the running place restarts the hub');
+      // What the restarted hub runs: the built-in file with the override over it.
+      const running = loadAnyMission(builtIn, s.customDir, 'ship-mars-orbit');
+      const profile = hubProfileOf(running, 'ship-mars-orbit');
+      assert.equal(profile.id, 'mars-orbit', 'the id never changes');
+      assert.equal(profile.place, key);
+      assert.equal(t(`${profile.place}.short`, 'en'), short);
+      assert.deepEqual(profile.mission?.where, where);
+      assert.equal(profile.mission?.gravity, 0);
+      assert.equal(profile.delayToEarthSeconds, delay);
+      const rad = radiationOf(running);
+      if (where.body === 'earth') assert.deepEqual(rad, { unit: 'uGy/day', base: null }, 'inside Earth\'s field: Mir\'s per-room rates');
+      else assert.equal(rad?.unit, 'mSv/day', 'beyond Earth\'s field: RAD\'s transit rate');
+      const listed = ((await call(`${s.url}/api/missions`)).body.missions as { id: string; name: string; where: unknown }[]).find((m) => m.id === 'ship-mars-orbit');
+      assert.equal(listed?.name, key, 'Settings lists the name of where it is now');
+      assert.deepEqual(listed?.where, where);
+    }
+    await settle();
+    assert.deepEqual(s.restarts, moves.map(() => 'ship-mars-orbit'));
+    assert.equal(builtInHash(), BEFORE, 'the built-in files never change');
+  } finally {
+    await s.close();
+  }
+});
+
+test('demo mode: a place\'s first start picks its example start once; it survives restarts and reset; an edit wins; other overrides are left alone', async () => {
+  const s = await serve({ running: 'ship-mars-orbit' });
+  try {
+    const now = Date.now();
+    assert.equal(pickStartOnce(builtIn, s.customDir, 'iss', { fresh: false, now, seed: 1 }), null, 'a place that already had an override keeps its day');
+    const picked = pickStartOnce(builtIn, s.customDir, 'iss', { fresh: true, now, offsetMinutes: 0, seed: 'iss:1' });
+    assert.ok(picked);
+    assert.equal(picked, pickStart(180, now, 0, 'iss:1'), 'seeded');
+    const iss = loadAnyMission(builtIn, s.customDir, 'iss');
+    assert.equal(iss.missionStart, picked);
+    assert.equal(hasEdits(readOverride(builtIn, s.customDir, 'iss')!.override), false, 'not an edit');
+    assert.equal(pickStartOnce(builtIn, s.customDir, 'iss', { fresh: true, now, seed: 'iss:2' }), null, 'only once: a restart does not reshuffle');
+    assert.equal(loadAnyMission(builtIn, s.customDir, 'iss').missionStart, picked);
+    // The editor's own field wins over it, and Reset to default goes back to the picked one.
+    const changes = { ...changesOf(iss), nameText: '', missionStart: '2026-09-01' };
+    assert.equal((await call(`${s.url}/api/missions/iss`, 'PUT', { changes })).status, 200);
+    assert.equal(loadAnyMission(builtIn, s.customDir, 'iss').missionStart, '2026-09-01T00:00:00Z');
+    assert.equal((await call(`${s.url}/api/missions/iss/override`, 'DELETE')).status, 200);
+    assert.equal(loadAnyMission(builtIn, s.customDir, 'iss').missionStart, picked);
+    // Each place its own; the ship too, when it starts fresh.
+    const ship = pickStartOnce(builtIn, s.customDir, 'ship-mars-orbit', { fresh: true, now, offsetMinutes: 0, seed: 'ship-mars-orbit:1' });
+    assert.ok(ship && ship !== picked);
+    assert.equal(loadAnyMission(builtIn, s.customDir, 'ship-mars-orbit').crew[0].name, loadMission(builtIn, 'ship-mars-orbit').crew[0].name, 'the ship keeps its crew');
+    assert.equal(pickStartOnce(builtIn, s.customDir, 'custom-x', { fresh: true, now }), null, 'not for crew-made places');
+    assert.equal(builtInHash(), BEFORE);
+  } finally {
+    await s.close();
+  }
+});
+
+test('the mission start is refused after today or more than ten years back, in plain words', () => {
+  const iss = loadMission(builtIn, 'iss');
+  const now = Date.parse('2026-11-15T02:05:00Z');
+  const at = (missionStart: string) => changeProblems(iss, { ...changesOf(iss), missionStart }, { nameOptional: true, now }).filter((p) => p.field === 'missionStart').map((p) => p.key);
+  assert.deepEqual(at('2026-11-14'), []);
+  assert.deepEqual(at('2026-11-15'), [], 'today east of UTC is still today');
+  assert.deepEqual(at('2026-11-17'), ['custom.problem.startFuture']);
+  assert.deepEqual(at('2010-01-01'), ['custom.problem.startOld']);
+  assert.equal(t('custom.problem.startFuture', 'pt'), 'O início da missão não pode ser depois de hoje.');
 });

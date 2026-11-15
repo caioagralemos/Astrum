@@ -36,6 +36,13 @@ export class AlertWatcher {
   crewMessages: (now: number) => EarthMessage[] = () => [];
   /** What the medical lead's rules find now from the hub's records (engine/medical.ts): SpO2, blood, "did not get better". */
   findings: (now: number) => Finding[] = () => [];
+  /**
+   * A drill's person and room (core/drill.ts), or null. While set, the engine sees that person in
+   * that room and nobody else there: the drill is about one person, wherever the others walk.
+   */
+  placed: () => { person: string; room: string } | null = () => null;
+  /** Messages to Earth listed by a drill's alerts: they stay marked after the drill ends. */
+  private drillEarth = new Set<string>();
   /** Findings raised by a question (a card her signs picked, a crisis), each kept until its time ends. */
   private raised = new Map<string, { finding: Finding; until: number }>();
 
@@ -94,22 +101,36 @@ export class AlertWatcher {
     this.doing = settleActivity(this.doing, this.activity(now), now);
     this.hub.setActivity(this.doing);
     const asleep = sleepersOf(this.doing);
+    const roomAlarms = this.roomAlarms.list();
+    let here = occupants(this.store.stays(now, now), now);
+    const placed = this.placed();
+    if (placed) {
+      here = Object.fromEntries(Object.entries(here).map(([room, ids]) => [room, ids.filter((id) => id !== placed.person)]));
+      here[placed.room] = [placed.person];
+    }
     const out = stepAlerts(this.alerts, {
       now,
       crew: this.profile.crew,
       delayToEarthMs: this.profile.delayToEarthSeconds * 1000,
-      roomAlarms: this.roomAlarms.list(),
+      roomAlarms,
       roomAverages: this.roomAlarms.averages,
-      occupants: occupants(this.store.stays(now, now), now),
+      occupants: here,
       unusual: this.unusual(now),
       asleep,
       actWithin: this.actWithin,
       cardFor: (signal) => this.cardFor(signal),
       findings: this.allFindings(now),
     });
+    // An alert on a drill's alarm is a drill's, and so is the message to Earth it lists.
+    const drillRoom = (a: Alert) => a.reason === 'room-limit' && roomAlarms.some((x) => x.drill && x.room === a.room && x.signal === a.signal && x.limitSource === a.limitSource);
+    const mark = (a: Alert): Alert => (a.drill || !drillRoom(a) ? a : { ...a, drill: true });
+    out.alerts = out.alerts.map(mark);
+    out.events = out.events.map((e) => ({ ...e, alert: mark(e.alert) }));
+    for (const a of out.alerts) if (a.drill && a.earthId) this.drillEarth.add(a.earthId);
     const changed = out.events.length > 0 || JSON.stringify(out.alerts) !== JSON.stringify(this.alerts);
     this.alerts = out.alerts;
-    this.earth = stepEarth(this.earth, this.alerts, out.events, now);
+    this.earth = stepEarth(this.earth, this.alerts, out.events, now).map((m) => (m.drill || !this.drillEarth.has(m.id) ? m : { ...m, drill: true }));
+    for (const id of this.drillEarth) if (!this.earth.some((m) => m.id === id) && !this.alerts.some((a) => a.earthId === id)) this.drillEarth.delete(id);
     for (const event of out.events) this.onEvent(event);
     if (changed) this.hub.setAlerts(this.alerts);
     this.hub.setEarthMessages(this.allEarth(now));
