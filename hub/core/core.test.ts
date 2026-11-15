@@ -430,6 +430,48 @@ test('a level 3 in a room with no board sounds the galley board; "I\'ve seen it"
   assert.deepEqual(watcher.earthMessages(), []);
 });
 
+test('"Emergency settled" over HTTP: level 3 only, the alert and its room alarm stay, and it survives a core restart', async (t) => {
+  const { RoomAlarms } = await import('./alarms.ts');
+  const { AlertWatcher } = await import('./alerts.ts');
+  const { COUNTDOWN_MS, isSettled } = await import('../engine/alerts.ts');
+  const store = new Store(':memory:');
+  const hub = new Hub(store, profile, '/nonexistent');
+  hub.chipCommand = () => false;
+  const alarms = new RoomAlarms(hub, store, ['quarters-2']);
+  const watcher = new AlertWatcher(hub, store, profile, alarms);
+  hub.settleAlert = (id, by) => watcher.settle(id, by);
+  await new Promise<void>((done) => hub.http.listen(0, '127.0.0.1', done));
+  const { port } = hub.http.address() as { port: number };
+  t.after(() => { hub.http.closeAllConnections(); hub.http.close(); store.close(); });
+  const post = (path: string, body: unknown) => fetch(`http://127.0.0.1:${port}${path}`, { method: 'POST', body: JSON.stringify(body) });
+
+  const start = 1_000_000_000_000;
+  for (let m = 0; m < 60; m += 5) hub.ingest([{ t: start + m * 60_000, signal: 'co2', value: 3.4, unit: 'mmHg', kind: 'replayed', source: 'test', room: 'quarters-2' }]);
+  hub.move('reyes', 'quarters-2', start, 'simulated', 'test');
+  const now = start + 3600_000;
+  alarms.check(now);
+  watcher.check(now);
+  const two = watcher.list()[0];
+  assert.equal(two.level, 2);
+  assert.equal((await post('/api/alerts/settle', { id: two.id })).status, 404, 'only a level 3');
+
+  watcher.check(now + COUNTDOWN_MS);
+  const three = watcher.list()[0];
+  assert.equal(three.level, 3);
+  assert.equal((await post('/api/alerts/settle', { id: three.id, by: 'nobody' })).status, 400);
+  assert.equal((await post('/api/alerts/settle', { id: three.id, by: 'leo' })).status, 200);
+  assert.deepEqual([watcher.list()[0].settledBy, watcher.list()[0].level], ['leo', 3], 'who settled it is recorded; the level stays');
+  assert.equal(alarms.list().length, 1, 'the room alarm stays');
+  assert.equal((await post('/api/alerts/settle', { id: three.id })).status, 404, 'settled once');
+
+  watcher.check(now + COUNTDOWN_MS + 5000);
+  assert.equal(isSettled(watcher.list()[0]), true, 'kept from check to check');
+  // A restart reads the open alerts back from the store: still settled, same occurrence.
+  const again = new AlertWatcher(new Hub(store, profile, '/nonexistent'), store, profile, alarms);
+  assert.equal(again.list()[0].settledBy, 'leo');
+  assert.equal(isSettled(again.list()[0]), true, 'settled across a restart');
+});
+
 test('the hub tells screens its clock every 10 seconds', async (t) => {
   t.mock.timers.enable({ apis: ['setInterval'] });
   const store = new Store(':memory:');
@@ -441,4 +483,150 @@ test('the hub tells screens its clock every 10 seconds', async (t) => {
   t.mock.timers.tick(25_000);
   assert.deepEqual(heard.map((m) => m.type), ['clock', 'clock']);
   assert.equal(typeof (heard[0] as { now: number }).now, 'number');
+});
+
+test('a follow-up question reaches only its person\'s socket, and an answer posted to the check-in route moves it on', async () => {
+  const store = new Store(':memory:');
+  const hub = new Hub(store, profile, '/nonexistent');
+  let answered = false;
+  hub.followUpOf = (person) => (person === 'reyes' && !answered ? { person, signal: 'checkin.bp_slept_well', kind: 'yes_no', text: { en: 'q', pt: 'q' }, since: 1, origin: 'person' } : null);
+  await new Promise<void>((done) => hub.http.listen(0, '127.0.0.1', done));
+  const { port } = hub.http.address() as { port: number };
+  const open = async (person: string | null) => {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    const messages: HubMessage[] = [];
+    socket.addEventListener('message', (e) => messages.push(JSON.parse(String(e.data))));
+    await new Promise((done) => socket.addEventListener('open', done, { once: true }));
+    socket.send(JSON.stringify(person ? { type: 'hello', role: 'screen', person } : { type: 'hello', role: 'screen' }));
+    return { socket, messages };
+  };
+  try {
+    const [reyes, leo, shared] = [await open('reyes'), await open('leo'), await open(null)];
+    await new Promise((done) => setTimeout(done, 100));
+    const states = (m: HubMessage[]) => m.filter((x): x is Extract<HubMessage, { type: 'state' }> => x.type === 'state');
+    assert.equal(states(reyes.messages).at(-1)?.followUp?.signal, 'checkin.bp_slept_well');
+    assert.equal(states(leo.messages).at(-1)?.followUp, null);
+    assert.ok(states(shared.messages).every((s) => !('followUp' in s)));
+    const state = (await (await fetch(`http://127.0.0.1:${port}/api/state`)).json()) as Extract<HubMessage, { type: 'state' }>;
+    assert.ok(!('followUp' in state));
+    answered = true;
+    const res = await fetch(`http://127.0.0.1:${port}/api/checkin`, { method: 'POST', body: JSON.stringify({ person: 'reyes', answers: [{ signal: 'checkin.bp_slept_well', value: 1 }] }) });
+    assert.deepEqual(await res.json(), { accepted: 1 });
+    await new Promise((done) => setTimeout(done, 100));
+    assert.deepEqual(reyes.messages.filter((m) => m.type === 'followUp'), [{ type: 'followUp', followUp: null }]);
+    assert.deepEqual(leo.messages.filter((m) => m.type === 'followUp'), [{ type: 'followUp', followUp: null }]);
+    assert.ok(shared.messages.every((m) => m.type !== 'followUp'));
+    for (const c of [reyes, leo, shared]) c.socket.close();
+  } finally {
+    hub.http.closeAllConnections();
+    hub.http.close();
+    store.close();
+  }
+});
+
+test('an open alert survives a restart as the same occurrence; a level rise is still new', async (t) => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { RoomAlarms } = await import('./alarms.ts');
+  const { AlertWatcher } = await import('./alerts.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'astrum-restart-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'hub.db');
+  let level: 1 | 2 = 1;
+  const finding = () => ({
+    key: 'blood.glucose', person: 'reyes', level, signal: 'blood.glucose', value: 7.4, unit: 'mmol/L', limit: 7, limitSource: 'test',
+    direction: 'high' as const, kind: 'measured' as const, card: null, private: null, nextQuestion: null,
+  });
+  const boot = () => {
+    const store = new Store(file);
+    const hub = new Hub(store, profile, '/nonexistent');
+    const watcher = new AlertWatcher(hub, store, profile, new RoomAlarms(hub, store, []));
+    watcher.findings = () => [finding()];
+    const events: string[] = [];
+    watcher.onEvent = (e) => events.push(`${e.type}:${e.alert.level}`);
+    return { store, hub, watcher, events, stop: () => { hub.buzz('off'); store.close(); } };
+  };
+  const start = 1_000_000_000_000;
+
+  const first = boot();
+  first.watcher.check(start);
+  const opened = first.watcher.list()[0];
+  assert.equal(opened.id, 'reyes|finding|blood.glucose');
+  first.stop();
+
+  const second = boot();
+  second.watcher.check(start + 3600_000);
+  const after = second.watcher.list()[0];
+  assert.equal(after.since, opened.since, 'same since after a restart');
+  assert.equal(after.levelSince, opened.levelSince, 'same levelSince after a restart');
+  assert.deepEqual(second.events, [], 'not raised again');
+
+  level = 2;
+  second.watcher.check(start + 7200_000);
+  const risen = second.watcher.list()[0];
+  assert.equal(risen.since, opened.since);
+  assert.equal(risen.levelSince, start + 7200_000, 'a level rise is a new levelSince');
+  assert.deepEqual(second.events, ['escalated:2']);
+  second.stop();
+
+  // Ended while the hub was down: not carried on.
+  const third = boot();
+  third.watcher.findings = () => [];
+  third.watcher.check(start + 9000_000);
+  assert.equal(third.watcher.list().length, 0);
+  assert.deepEqual(third.events, ['resolved:2']);
+  third.stop();
+});
+
+test('a finding an answer raised stays the same occurrence across restarts; the same answer again mints nothing', async (t) => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { RoomAlarms } = await import('./alarms.ts');
+  const { AlertWatcher } = await import('./alerts.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'astrum-raised-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'hub.db');
+  const finding = {
+    key: 'card:dizziness-fainting', person: 'reyes', level: 2 as const, signal: null, value: null, unit: null, limit: null, limitSource: 'test',
+    direction: null, kind: 'reported' as const, card: 'dizziness-fainting', private: null, nextQuestion: null,
+  };
+  const boot = () => {
+    const store = new Store(file);
+    const hub = new Hub(store, profile, '/nonexistent');
+    const watcher = new AlertWatcher(hub, store, profile, new RoomAlarms(hub, store, []));
+    const events: string[] = [];
+    watcher.onEvent = (e) => events.push(`${e.type}:${e.alert.level}`);
+    return { watcher, events, stop: () => { hub.buzz('off'); store.close(); } };
+  };
+  const start = 1_000_000_000_000;
+  const keep = 3600_000;
+  const key = (w: { watcher: { list: () => { id: string; level: number; since: number }[] } }) => w.watcher.list().map((a) => `${a.id}|${a.level}|${a.since}`);
+
+  const first = boot();
+  first.watcher.raise(finding, keep, start);
+  const opened = key(first);
+  assert.equal(opened.length, 1);
+  first.watcher.raise(finding, keep, start + 60_000);
+  assert.deepEqual(key(first), opened, 'the same answer again: same occurrence');
+  assert.deepEqual(first.events, ['raised:2']);
+  first.stop();
+
+  for (const at of [start + 120_000, start + 180_000]) {
+    const next = boot();
+    next.watcher.check(at);
+    assert.deepEqual(key(next), opened, 'same id, level and since after a restart');
+    next.watcher.raise(finding, keep, at + 1000);
+    assert.deepEqual(key(next), opened);
+    assert.deepEqual(next.events, [], 'not resolved, not raised again');
+    next.stop();
+  }
+
+  // Its time ended while the hub was down: resolved, not carried on.
+  const last = boot();
+  last.watcher.check(start + 180_000 + 1000 + keep);
+  assert.equal(last.watcher.list().length, 0);
+  assert.deepEqual(last.events, ['resolved:2']);
+  last.stop();
 });

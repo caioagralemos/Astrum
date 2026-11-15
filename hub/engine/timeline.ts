@@ -95,6 +95,24 @@ export function occupants(stays: Stay[], at: number): Record<string, string[]> {
   return out;
 }
 
+/** The last room the hub knew for someone whose place is now unknown, and when that stay ended. Display only. */
+export interface LastSeen { room: string; at: number; kind: Kind }
+
+/**
+ * For each person in no room at `at`, the stay of theirs that ended last (by then).
+ * Only for showing "last seen": never a current place, so nothing that judges a room uses it.
+ */
+export function lastSeen(stays: Stay[], at: number): Record<string, LastSeen> {
+  const placed = new Set(Object.values(occupants(stays, at)).flat());
+  const out: Record<string, LastSeen> = {};
+  for (const stay of stays) {
+    if (placed.has(stay.person) || stay.until === null || stay.until > at) continue;
+    const held = out[stay.person];
+    if (!held || stay.until > held.at) out[stay.person] = { room: stay.room, at: stay.until, kind: stay.kind };
+  }
+  return out;
+}
+
 /** Checks a row arriving from outside the hub. Returns the problem, or null. */
 export function rowProblem(row: unknown): string | null {
   if (typeof row !== 'object' || row === null) return 'row is not an object';

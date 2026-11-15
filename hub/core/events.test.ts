@@ -58,7 +58,7 @@ test('a declared dust storm is one level 3 alert every viewer sees, with a messa
 
 test('a card is attached only where one of hers plainly covers the kind', (t) => {
   const { events, declared } = setUp(t);
-  const expected: Record<string, string | null> = { dust_storm: null, solar_particle_event: 'decompression-radiation', pressure_loss: 'decompression-radiation', fire: 'smoke-toxic-air', other: null };
+  const expected: Record<string, string | null> = { dust_storm: null, solar_particle_event: 'decompression-radiation', pressure_loss: 'decompression-radiation', fire: 'smoke-toxic-air', quake: null, meteoroid_impact: null, other: null };
   for (const kind of EVENT_KINDS) assert.ok('event' in events.declare({ kind, by: crew[0] }), kind);
   for (const a of declared()) assert.equal(a.card, expected[a.declared!.kind], a.declared!.kind);
 });
@@ -119,6 +119,30 @@ test('declared ahead: a level 2 notice with no question, no card, no buzzer, no 
   assert.equal(a.declared?.stage, 'event');
   assert.equal(alerts.earthMessages().length, 1);
   assert.equal(boardSounds([room], [], alerts.list()), true);
+});
+
+test('a quake and a meteoroid impact: warning ahead, then the event with its words only, then ended', (t) => {
+  for (const kind of ['quake', 'meteoroid_impact'] as const) {
+    const { events, at, declared } = setUp(t);
+    const out = events.declare({ kind, by: crew[0], expectedAt: START + HOUR });
+    assert.ok('event' in out, kind);
+    let a = declared()[0];
+    assert.equal(a.signal, `event.${kind}`);
+    assert.equal(a.level, 2);
+    assert.equal(a.notice, true);
+    assert.equal(a.declared?.stage, 'warning');
+    assert.equal(a.declared?.expectedAt, START + HOUR);
+    assert.equal(a.card, null);
+    at(START + HOUR);
+    a = declared()[0];
+    assert.equal(a.level, 3);
+    assert.equal(a.declared?.stage, 'event');
+    assert.equal(a.card, null, 'no card of hers covers it: no steps are made up');
+    assert.ok('ended' in events.end(out.event.id, crew[1]));
+    assert.equal(declared().length, 0);
+    assert.notEqual(word(`event.${kind}`, 'en'), `event.${kind}`);
+    assert.notEqual(word(`event.${kind}`, 'pt'), `event.${kind}`);
+  }
 });
 
 test('update moves the time or cancels; past and too-far times are refused', (t) => {

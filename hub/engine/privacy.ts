@@ -48,6 +48,14 @@ export function evidenceFor<E extends Evidence>(evidence: E, viewer: Viewer): E 
   return { ...evidence, reported: { ...evidence.reported, rows: evidence.reported.rows.map((r) => ({ ...r, text: null })) } };
 }
 
+/**
+ * A follow-up question of the medical lead (engine/followup.ts) waiting for one person:
+ * only their own screen receives it. A shared screen, and anyone else, gets nothing.
+ */
+export function followUpFor<F extends { person: string }>(ask: F | null, viewer: Viewer): F | null {
+  return ask && viewer !== 'common' && ask.person === viewer ? ask : null;
+}
+
 export function alertsFor(alerts: Alert[], viewer: Viewer): Alert[] {
   return alerts.some((a) => a.private) ? alerts.map((a) => alertFor(a, viewer)) : alerts;
 }

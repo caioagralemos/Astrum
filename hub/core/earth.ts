@@ -98,6 +98,14 @@ export interface EarthRouteContext {
 /** GET /api/earth and POST /api/earth/messages, for Hub.routes. */
 export function earthRoute(ctx: EarthRouteContext) {
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
+    const reportPath = /^\/api\/earth\/messages\/([^/]+)\/report$/.exec(url.pathname);
+    if (reportPath) {
+      if (req.method !== 'GET') { res.writeHead(405, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'method not allowed' })); return true; }
+      const id = decodeURIComponent(reportPath[1]);
+      const report = ctx.messages().find((m) => m.id === id)?.report ?? null;
+      res.writeHead(report ? 200 : 404, { 'content-type': 'application/json' }).end(JSON.stringify(report ?? { error: 'no report for that message' }));
+      return true;
+    }
     if (url.pathname !== '/api/earth' && url.pathname !== '/api/earth/messages') return false;
     const json = (status: number, body: unknown) => {
       res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));

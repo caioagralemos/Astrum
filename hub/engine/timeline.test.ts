@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLOCK_SLACK_MS, SCENARIO_GAP_MS, clockOffset, current, occupants, rowProblem, screenNow, timeInRooms } from './timeline.ts';
+import { CLOCK_SLACK_MS, SCENARIO_GAP_MS, clockOffset, current, lastSeen, occupants, rowProblem, screenNow, timeInRooms } from './timeline.ts';
 import { allStrings, t } from './strings.ts';
 import type { Row, Stay } from './types.ts';
 
@@ -88,4 +88,14 @@ test('the model is named Astra on every screen: "Ask Astra", and no string still
   assert.equal(t('bench.ask.title', 'en'), t('ask.title', 'en'));
   assert.equal(t('bench.ask.title', 'pt'), t('ask.title', 'pt'));
   for (const [key, entry] of Object.entries(allStrings())) assert.ok(!/Ask Astrum|Pergunte ao Astrum/.test(entry.en + entry.pt), key);
+});
+
+test('someone whose stay ended is last seen there, with its end and kind; someone placed is not', () => {
+  const stays: Stay[] = [
+    { person: 'reyes', room: 'lab', from: 0, until: 3000, kind: 'simulated', source: 'sim' },
+    { person: 'reyes', room: 'commons', from: 3000, until: 6000, kind: 'measured', source: 'phone:reyes:ble' },
+    { person: 'leo', room: 'lab', from: 0, until: null, kind: 'simulated', source: 'sim' },
+  ];
+  assert.deepEqual(lastSeen(stays, 8000), { reyes: { room: 'commons', at: 6000, kind: 'measured' } });
+  assert.deepEqual(lastSeen(stays, 5000), {});
 });

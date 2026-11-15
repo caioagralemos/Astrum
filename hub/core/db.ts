@@ -99,6 +99,10 @@ export class Store {
       CREATE INDEX IF NOT EXISTS stays_until ON stays (t_until);
       -- Raw rows kept around alerts and alarms (core/retention.ts): from, until (null while it lasts).
       CREATE TABLE IF NOT EXISTS raw_holds (key TEXT PRIMARY KEY, t_from INTEGER NOT NULL, t_until INTEGER);
+      -- The alerts open when the hub last changed them (core/alerts.ts), as JSON: a restart carries them on, same occurrence.
+      CREATE TABLE IF NOT EXISTS open_alerts (id TEXT PRIMARY KEY, alert TEXT NOT NULL);
+      -- Findings a question raised (core/alerts.ts raise), kept until t_until: a restart keeps them, so their alerts stay open.
+      CREATE TABLE IF NOT EXISTS raised_findings (key TEXT PRIMARY KEY, finding TEXT NOT NULL, t_until INTEGER NOT NULL);
     `);
     // Summary rows (core/retention.ts): {n, min, max, ms} as JSON; null on raw rows. Added in place to an older file.
     const columns = this.db.prepare('PRAGMA table_info(readings)').all() as { name: string }[];
@@ -143,6 +147,54 @@ export class Store {
       if (this.sinceOptimize >= OPTIMIZE_EVERY_ROWS) { this.sinceOptimize = 0; this.db.exec('PRAGMA optimize;'); }
     }
     return out;
+  }
+
+  /** The alerts open when the hub last saved them, as saved. */
+  openAlerts(): unknown[] {
+    const rows = this.prepared('SELECT alert FROM open_alerts').all() as { alert: string }[];
+    const out: unknown[] = [];
+    for (const r of rows) {
+      try { out.push(JSON.parse(r.alert)); } catch { /* an unreadable row is left behind */ }
+    }
+    return out;
+  }
+
+  /** Replaces the saved open alerts with these. */
+  saveOpenAlerts(alerts: { id: string }[]): void {
+    this.db.exec('BEGIN');
+    try {
+      this.prepared('DELETE FROM open_alerts').run();
+      const add = this.prepared('INSERT INTO open_alerts (id, alert) VALUES (?, ?)');
+      for (const a of alerts) add.run(a.id, JSON.stringify(a));
+      this.db.exec('COMMIT');
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** The findings a question raised, still kept, as saved. */
+  raisedFindings(): { key: string; finding: unknown; until: number }[] {
+    const rows = this.prepared('SELECT key, finding, t_until FROM raised_findings').all() as { key: string; finding: string; t_until: number }[];
+    const out: { key: string; finding: unknown; until: number }[] = [];
+    for (const r of rows) {
+      try { out.push({ key: r.key, finding: JSON.parse(r.finding), until: r.t_until }); } catch { /* an unreadable row is left behind */ }
+    }
+    return out;
+  }
+
+  /** Replaces the saved raised findings with these. */
+  saveRaisedFindings(list: { key: string; finding: unknown; until: number }[]): void {
+    this.db.exec('BEGIN');
+    try {
+      this.prepared('DELETE FROM raised_findings').run();
+      const add = this.prepared('INSERT INTO raised_findings (key, finding, t_until) VALUES (?, ?, ?)');
+      for (const r of list) add.run(r.key, JSON.stringify(r.finding), r.until);
+      this.db.exec('COMMIT');
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      throw err;
+    }
   }
 
   /** Keeps raw rows from `from` to `until` (null: until closed) out of retention's summaries. Same key again moves the end. */

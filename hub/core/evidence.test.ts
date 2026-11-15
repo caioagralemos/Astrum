@@ -150,7 +150,8 @@ test('the highest 1-hour average is on the card, and Reyes\'s answer says it sta
   assert.equal(reyes.maxHourAverage, 2.93);
   assert.ok(long.people.every((p) => p.maxHourAverage !== null && p.maxHourAverage < 3));
   const lines = renderItems(composeAnswer({ name: 'Reyes', question: 'Why do I keep waking up with a headache?', readings: null, evidence: card, passages: [], lang: 'en' }).items, 'en', { name: 'Reyes', pronouns: 'she', self: true });
-  assert.ok(lines.includes("The 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it throughout; the highest was 2.9 mmHg. (CO2 replayed; location simulated)"), lines.join('\n'));
+  // Since 15 Nov the single readings above 3 mmHg and the 1-hour average share one sentence (engine/answer.ts 'answer.exposure.aboveHourUnder').
+  assert.ok(lines.includes("In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated)"), lines.join('\n'));
   // The output check: time "above the limit" is wrong when no hour was over it, which is what ai.ts passes from this field.
   const hourOverLimit = maxHourAverage(reyes)! > 3;
   assert.equal(hourOverLimit, false);

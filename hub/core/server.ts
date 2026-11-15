@@ -11,7 +11,7 @@ import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import type { Store } from './db.ts';
 import { rowProblem, FRESH_MS } from '../engine/timeline.ts';
-import type { ClientMessage, HubMessage, Kind, Profile, Quality, Rejected, Row, SourceStatus } from '../engine/types.ts';
+import type { ClientMessage, HubMessage, Kind, Profile, Quality, Rejected, Row, SourceStatus, Stay } from '../engine/types.ts';
 import { KINDS, isDemoOnly } from '../engine/types.ts';
 import type { RoomAlarm, Unjudged } from '../engine/cabin.ts';
 import { boardSounds } from '../engine/alerts.ts';
@@ -19,15 +19,16 @@ import type { Alert, EarthMessage } from '../engine/alerts.ts';
 import { impossible } from '../engine/quality.ts';
 import type { Stuck } from '../engine/quality.ts';
 import { checkinRows } from '../engine/checkin.ts';
-import { occupants } from '../engine/timeline.ts';
+import { lastSeen, occupants } from '../engine/timeline.ts';
 import type { Evidence } from '../engine/evidence.ts';
 import type { PersonDose } from '../engine/dose.ts';
 import type { CrewWatch } from '../engine/sensors.ts';
 import { sleepersOf } from '../engine/activity.ts';
 import type { Activity } from '../engine/activity.ts';
-import { alertsFor, evidenceFor, latestFor, rowsFor } from '../engine/privacy.ts';
+import { alertsFor, evidenceFor, followUpFor, latestFor, rowsFor } from '../engine/privacy.ts';
 import type { Viewer } from '../engine/privacy.ts';
 import type { CardLang, CardView } from '../engine/cards.ts';
+import type { FollowUpAsk } from '../engine/followup.ts';
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -77,6 +78,8 @@ export class Hub {
   answerAlert: (id: string, answer: 'ok' | 'help') => boolean = () => false;
   /** Set by the alert watcher: "I've seen it" on a level 3, from anyone (a crew id, or null from a shared screen). */
   seeAlert: (id: string, by: string | null) => boolean = () => false;
+  /** Set by the alert watcher: "Emergency settled" on a level 3, from anyone (a crew id, or null from a shared screen). */
+  settleAlert: (id: string, by: string | null) => boolean = () => false;
 
   /** Her cards' text by id, set by main.ts (engine/cards.ts cardView). None until then. */
   cardViews: (ids: string[], lang: CardLang) => CardView[] = () => [];
@@ -136,7 +139,7 @@ export class Hub {
   /** Tells every screen the hub's clock every 10 seconds. */
   startClock(): void {
     this.stopClock();
-    this.clockTimer = setInterval(() => this.broadcast({ type: 'clock', now: Date.now() }), CLOCK_EVERY_MS);
+    this.clockTimer = setInterval(() => { this.broadcast({ type: 'clock', now: Date.now() }); this.refreshFollowUps(); }, CLOCK_EVERY_MS);
   }
 
   stopClock(): void {
@@ -252,7 +255,30 @@ export class Hub {
     for (const r of rows) if (r.room && !r.person && r.source !== STAND_IN) this.heard.set(`${r.room}|${r.signal}`, r.t);
     const saved = this.store.addRows(rows);
     this.broadcastFor((viewer) => ({ type: 'rows', rows: rowsFor(saved, viewer) }));
+    if (saved.some((r) => r.signal.startsWith('checkin.'))) this.refreshFollowUps();
     return saved;
+  }
+
+  /** Set by main.ts: the medical lead's follow-up question waiting for one person (engine/followup.ts), or null. */
+  followUpOf: (person: string) => FollowUpAsk | null = () => null;
+  private followUpsSent = '';
+
+  /**
+   * Tells each crewmate's own socket its waiting follow-up question, when any
+   * changed (or always, with `force`). A shared screen gets nothing, and nothing
+   * is recorded (engine/privacy.ts followUpFor).
+   */
+  refreshFollowUps(force = false): void {
+    if (this.scenarioState) return;
+    const now = this.profile.crew.map((p) => this.followUpOf(p.id));
+    const text = JSON.stringify(now);
+    if (!force && text === this.followUpsSent) return;
+    this.followUpsSent = text;
+    for (const client of this.wss.clients) {
+      const viewer = this.viewers.get(client);
+      if (client.readyState !== 1 || !viewer) continue;
+      client.send(JSON.stringify({ type: 'followUp', followUp: followUpFor(now.find((f) => f?.person === viewer) ?? null, viewer) } satisfies HubMessage));
+    }
   }
 
   move(person: string, room: string, t: number, kind: Kind, source: string): void {
@@ -268,6 +294,11 @@ export class Hub {
   leave(person: string, t: number, source: string): void {
     const changed = this.store.leave(person, t, source);
     if (changed.length) this.broadcast({ type: 'stay', stays: changed });
+  }
+
+  /** Every source's status as screens get it. */
+  sourceList(): SourceStatus[] {
+    return [...this.sources.values()];
   }
 
   setSource(status: SourceStatus): void {
@@ -286,6 +317,8 @@ export class Hub {
       profile: this.profile,
       latest: latestFor(this.store.recent(now - STATE_WINDOW_MS), viewer),
       stays: this.store.stays(now - FRESH_MS, now),
+      // Display only: where each crewmate whose place is unknown was last (their last stay, even if older than the window).
+      lastSeen: lastSeen(this.profile.crew.map((p) => this.store.lastStay(p.id)).filter((x): x is Stay => Boolean(x)), now),
       sources: [...this.sources.values()],
       alarms: this.alarms,
       alerts: this.alertsAs(this.alerts, viewer),
@@ -296,6 +329,7 @@ export class Hub {
       evidence: Object.fromEntries(Object.entries(this.evidence).map(([p, e]) => [p, evidenceFor(e, viewer)])),
       crewWatch: this.crewWatch,
       dose: this.dose,
+      ...(viewer === 'common' ? {} : { followUp: followUpFor(this.followUpOf(viewer), viewer) }),
     };
   }
 
@@ -319,6 +353,7 @@ export class Hub {
   releaseScreens(now = Date.now()): void {
     this.scenarioState = null;
     this.sendToScreens(this.state(now));
+    this.refreshFollowUps(true);
     this.soundBoard();
   }
 
@@ -453,6 +488,14 @@ export class Hub {
       if (b.by !== undefined && !this.profile.crew.some((p) => p.id === b.by)) return send(res, 400, { error: 'by must be a crew id, or left out on a shared screen' });
       if (this.scenarioState) return send(res, 409, { error: 'a recorded story is playing: its alerts cannot be acknowledged', code: 'recorded' });
       return this.seeAlert(b.id, b.by ?? null) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no level 3 alert waiting to be seen with that id', code: 'not-waiting' });
+    }
+
+    if (url.pathname === '/api/alerts/settle' && req.method === 'POST') {
+      const b = (await readJson(req)) as { id?: string; by?: string } | undefined;
+      if (typeof b?.id !== 'string') return send(res, 400, { error: 'needs an alert id' });
+      if (b.by !== undefined && !this.profile.crew.some((p) => p.id === b.by)) return send(res, 400, { error: 'by must be a crew id, or left out on a shared screen' });
+      if (this.scenarioState) return send(res, 409, { error: 'a recorded story is playing: its alerts cannot be settled', code: 'recorded' });
+      return this.settleAlert(b.id, b.by ?? null) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'no unsettled level 3 alert with that id', code: 'not-waiting' });
     }
 
     if (url.pathname === '/api/alarms/acknowledge' && req.method === 'POST') {

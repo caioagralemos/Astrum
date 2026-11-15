@@ -10,7 +10,7 @@ import { answerSignal, parseCards, pickCard } from './cards.ts';
 import type { Card, Facts } from './cards.ts';
 import { cardFinding, parseLevelOverrides } from './medical.ts';
 import {
-  askFirstFinding, decideFollowUp, followUpSignal, givenFrom, loneOnly, parseFollowUps, pendingQuestions, pickWithFollowUp,
+  askFirstFinding, decideFollowUp, followUpSignal, givenFrom, loneOnly, nextFollowUp, parseFollowUps, pendingQuestions, pickWithFollowUp,
 } from './followup.ts';
 import type { FollowUpRow, Given } from './followup.ts';
 import { t } from './strings.ts';
@@ -143,4 +143,34 @@ test('answerSignal: one valid, distinct check-in signal per card question of her
   const signals = questions.map(answerSignal);
   assert.equal(new Set(signals).size, questions.length);
   for (const s of signals) assert.equal(rowProblem({ t: 1, signal: s, value: 1, unit: '', kind: 'reported', source: 'checkin:reyes', person: 'reyes' }), null, s);
+});
+
+test('the next question for the person\'s own screen: her words in EN and PT, the check-in signal, one at a time, none once answered', () => {
+  const bp = rows.filter((r) => r.id === 'high-blood-pressure');
+  const first = pendingQuestions(bp, {})[0];
+  const ask = nextFollowUp('reyes', bp, {}, 5000);
+  assert.ok(ask);
+  assert.deepEqual(ask, {
+    person: 'reyes', signal: followUpSignal(first.key), kind: first.kind, text: { en: t(first.string_key, 'en'), pt: t(first.string_key, 'pt') }, since: 5000, origin: 'person',
+    ...(first.unit ? { unit: first.unit } : {}),
+  });
+  const all: Record<string, Given> = {};
+  for (const q of bp[0].questions) all[q.key] = q.kind === 'yes_no' ? { value: 1, text: null } : { value: null, text: '130/85' };
+  assert.equal(nextFollowUp('reyes', bp, all, 5000), null);
+  assert.equal(nextFollowUp('reyes', bp, {}, 5000, 'hub')?.origin, 'hub');
+});
+
+test('her lone words said naturally (EN and PT) ask first; with "warm" and "painful" it is her answer, not a lone word', () => {
+  for (const q of ['I feel like my leg is getting swollen', 'my leg is swelling', 'minha perna está inchando', 'perna está inchada', 'my blood pressure feels high', 'acho que minha pressão está alta']) {
+    const r = pickWithFollowUp(cards, facts(q), 0, rows);
+    assert.equal(r.askFirst?.card, 'heart-circulation', q);
+    assert.equal(r.picked, null, q);
+  }
+  for (const q of ['my leg is swollen, warm and painful', 'minha perna está inchada, quente e doendo']) {
+    const r = pickWithFollowUp(cards, facts(q), 0, rows);
+    assert.equal(r.askFirst, null, q);
+    assert.equal(cardFinding(r.picked, 'reyes', cards, 'reported', overrides)?.level, 2, `${q}: concerning`);
+  }
+  assert.equal(pickWithFollowUp(cards, facts('my leg is swollen and I have chest pain'), 0, rows).picked?.card.id, 'chest-pain');
+  assert.equal(pickWithFollowUp(cards, facts('I swallowed my gum, legal?'), 0, rows).askFirst, null, 'no limb and swelling, no question');
 });

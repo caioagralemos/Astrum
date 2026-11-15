@@ -147,6 +147,7 @@ import type { Stuck } from './quality.ts';
 import type { Evidence } from './evidence.ts';
 import type { Activity } from './activity.ts';
 import type { PersonDose } from './dose.ts';
+import type { FollowUpAsk } from './followup.ts';
 
 /** Readings refused at ingest because no working sensor could give them (quality.ts BOUNDS). */
 export interface Rejected {
@@ -209,6 +210,10 @@ export type HubMessage = (
     type: 'state'; now: number; profile: Profile; latest: Row[]; stays: Stay[]; sources: SourceStatus[]; alarms: RoomAlarm[]; alerts: Alert[]; quality?: Quality;
     asleep?: string[]; earthMessages?: EarthMessage[]; evidence?: Record<string, Evidence & { computedAt?: number }>; crewWatch?: CrewWatch[];
     activity?: Record<string, Activity>; dose?: Record<string, PersonDose>;
+    /** Display only: for each crewmate whose place is unknown, their last room, when that stay ended and its kind. Absent from older hubs. */
+    lastSeen?: Record<string, { room: string; at: number; kind: Kind }>;
+    /** Only on a crewmate's own socket: the medical lead's follow-up question waiting for them, or null (engine/privacy.ts followUpFor). */
+    followUp?: FollowUpAsk | null;
   }
   | { type: 'alarms'; alarms: RoomAlarm[]; unjudged?: Unjudged[]; stuck?: Stuck[]; crewWatch?: CrewWatch[] }
   | { type: 'alerts'; alerts: Alert[] }
@@ -221,6 +226,8 @@ export type HubMessage = (
   | { type: 'sources'; sources: SourceStatus[] }
   | { type: 'evidence'; person: string; evidence: Evidence & { computedAt?: number } }
   | { type: 'dose'; dose: Record<string, PersonDose> }
+  /** Only to a crewmate's own socket: their waiting follow-up question changed (null: none is left). */
+  | { type: 'followUp'; followUp: FollowUpAsk | null }
   /** The hub is about to restart on another mission (`to`, a mission file): screens wait for its new state. */
   | { type: 'restarting'; to: string }
 ) & { scenario?: ScenarioFlag };

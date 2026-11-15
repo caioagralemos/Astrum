@@ -215,7 +215,8 @@ export interface PickedWithFollowUp {
  * level), and the questions to ask are returned. With no other card, the pick
  * is null.
  */
-export function pickWithFollowUp(cards: Card[], facts: Facts, gravity: number | null, rows: readonly FollowUpRow[], given: Readonly<Record<string, Given>> = {}): PickedWithFollowUp {
+export function pickWithFollowUp(cards: Card[], rawFacts: Facts, gravity: number | null, rows: readonly FollowUpRow[], given: Readonly<Record<string, Given>> = {}): PickedWithFollowUp {
+  const facts = recognised(rawFacts, cards, rows);
   const first = pickCard(cards, facts, gravity);
   const lone = loneOnly(first, rows);
   if (!first || !lone) return { picked: withoutLoneWords(first, rows), askFirst: null };
@@ -232,6 +233,55 @@ export function pickWithFollowUp(cards: Card[], facts: Facts, gravity: number | 
     rule: decideFollowUp(lone, given),
   };
   return { picked, askFirst };
+}
+
+/**
+ * Recognition only: the ways people actually say her lone words and her
+ * combined answer, on the lower-case, accent-free text (as cards.ts matches).
+ * "My leg is getting swollen" is her "swollen leg"; "acho que minha pressão
+ * está alta" is her "pressão alta". No word, level or card of hers changes:
+ * a phrase found here adds her own word (or her own answer) to what was
+ * typed, and her rules decide as before. Each applies only while her data
+ * still has that word as a lone word (or that question as an answer sign).
+ */
+const LEG = String.raw`\b(legs?|arms?|calf|calves|ankles?|feet|foot|pernas?|bra[cç]os?|panturrilhas?|tornozelos?|p[eé]s?)\b`;
+const SWOLLEN = String.raw`\b(swollen|swelling|swell|swells|swelled|puffy|inchad[oa]s?|inchando|inchou|incha|inchaco)\b`;
+const BP = String.raw`\b(blood pressure|bp|pressao( arterial)?)\b`;
+const HIGH = String.raw`\b(high|higher|up|raised|elevated|alta|elevada|subiu|subindo)\b`;
+const near = (a: string, b: string, gap = 40) => new RegExp(`${a}[^.!?;]{0,${gap}}${b}|${b}[^.!?;]{0,${gap}}${a}`);
+const LONE_PHRASES: Record<string, RegExp> = {
+  'swollen leg': near(LEG, SWOLLEN),
+  'perna inchada': near(LEG, SWOLLEN),
+  'high blood pressure': near(BP, HIGH),
+  'pressão alta': near(BP, HIGH),
+};
+/** Her combined answer, said in one message: the limb, swollen, warm and painful together. */
+const ANSWER_PHRASES: Record<string, (text: string) => boolean> = {
+  'Is one leg or arm swollen, warm and painful?': (s) => near(LEG, SWOLLEN).test(s)
+    && /\b(warm|hot|heat|quente|calor|esquentando)\b/.test(s)
+    && /\b(pain\w*|hurts?|hurting|sore|tender|dor|dores|dolorid[oa]s?|doendo|doi)\b/.test(s),
+};
+
+function plainText(s: string): string {
+  return ` ${s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9.!?;]+/g, ' ').trim()} `;
+}
+
+/** The facts with her lone words and her combined answer added where the typed text says them in other words. */
+export function recognised(facts: Facts, cards: readonly Card[], rows: readonly FollowUpRow[]): Facts {
+  if (!facts.text) return facts;
+  const s = plainText(facts.text);
+  // Per row of hers: nothing to add when one of its own words is already there as typed; else its first word said in other words.
+  const typed = (w: string) => s.replace(/[.!?;]/g, ' ').replace(/ +/g, ' ').includes(` ${plainText(w).replace(/[.!?;]/g, '').trim()} `);
+  const words = rows.filter((r) => !r.lone_words.some(typed))
+    .map((r) => r.lone_words.find((w) => LONE_PHRASES[w]?.test(s)))
+    .filter((w): w is string => !!w);
+  const signs = cards.flatMap((c) => c.signs.answers);
+  const answers = Object.entries(ANSWER_PHRASES)
+    .filter(([q, test]) => signs.some((a) => a.question === q && a.answer === 'yes') && test(s)
+      && !facts.answers.some((a) => a.question === q))
+    .map(([question]) => ({ question, answer: 'yes' }));
+  if (!words.length && !answers.length) return facts;
+  return { ...facts, text: words.length ? `${facts.text} ${words.join(', ')}` : facts.text, answers: [...facts.answers, ...answers] };
 }
 
 /**
@@ -262,6 +312,32 @@ export function askFirstFinding(a: AskFirst | null, person: string): Finding | n
     key: `card:${a.card}`, person, level: ruleLevel(a.rule), signal: null, value: null, unit: null, limit: null, limitSource: MEDICAL_LEAD,
     direction: null, kind: 'reported', card: a.card, private: privacyOf(a.card), nextQuestion: null,
   };
+}
+
+/**
+ * The one follow-up question waiting for a person, as their own screen receives it
+ * (engine/privacy.ts followUpFor: no other screen gets it). Her words, EN and PT, from
+ * engine/strings.ts; the answer goes to POST /api/checkin under `signal`, 1 yes, 0 no.
+ */
+export interface FollowUpAsk {
+  person: string;
+  signal: string;
+  kind: 'yes_no' | 'value';
+  unit?: string;
+  text: { en: string; pt: string };
+  /** When the hub started asking (the hub's clock). */
+  since: number;
+  /** Who started the sequence: 'person' = they typed a symptom to Ask Astra, 'hub' = the hub needs data from them (phone notifies only for 'hub'). */
+  origin: 'person' | 'hub';
+}
+
+/** The next question still to ask `person` from these rows, or null when none is left. */
+export function nextFollowUp(person: string, rows: readonly FollowUpRow[], given: Readonly<Record<string, Given>>, since: number, origin: 'person' | 'hub' = 'person'): FollowUpAsk | null {
+  const q = pendingQuestions(rows, given)[0];
+  if (!q) return null;
+  const out: FollowUpAsk = { person, signal: followUpSignal(q.key), kind: q.kind, text: { en: t(q.string_key, 'en'), pt: t(q.string_key, 'pt') }, since, origin };
+  if (q.unit) out.unit = q.unit;
+  return out;
 }
 
 /** A question's text in one language. */

@@ -55,6 +55,7 @@
 import type { RoomAlarm } from './cabin.ts';
 import type { Kind, Person } from './types.ts';
 import type { CardView } from './cards.ts';
+import type { IncidentReport } from './earth-report.ts';
 
 export type Level = 1 | 2 | 3;
 
@@ -127,6 +128,13 @@ export interface Alert {
   seenBy?: string | null;
   seenAt?: number | null;
   /**
+   * Level 3: someone marked the emergency settled (a crew id, or null from a shared screen). The takeover
+   * stops showing and the buzzer stops as for "seen"; the alert, its level and any room alarm stay.
+   * It applies to this occurrence only: a settle from before `levelSince` is not one (isSettled).
+   */
+  settledBy?: string | null;
+  settledAt?: number;
+  /**
    * Level 3 only: how soon the steps card says to act, in seconds, from the
    * caller's lookup (the medical lead's card file). Null when the card gives
    * no such time; this file never makes one up.
@@ -168,14 +176,14 @@ export interface Alert {
 }
 
 /** The base-wide events a crewmate may declare. A fixed list: each has its words in the string table ("event.<kind>"). */
-export const EVENT_KINDS = ['dust_storm', 'solar_particle_event', 'pressure_loss', 'fire', 'other'] as const;
+export const EVENT_KINDS = ['dust_storm', 'solar_particle_event', 'pressure_loss', 'fire', 'quake', 'meteoroid_impact', 'other'] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 /**
  * The medical lead's card that plainly covers an event, by its own id and title:
  * "Smoke and toxic air" for a fire, "Pressure drop and radiation" for a loss of
- * pressure or a solar particle event. A dust storm and "other" have none of
- * hers, so they get no card; no steps are ever made up here.
+ * pressure or a solar particle event. A dust storm, a quake, a meteoroid impact
+ * and "other" have none of hers, so they get no card; no steps are ever made up here.
  */
 export const EVENT_CARD: Readonly<Partial<Record<EventKind, string>>> = {
   fire: 'smoke-toxic-air',
@@ -238,6 +246,18 @@ export interface Finding {
 /** The signal a private alert carries, and the string key it is worded with: "<name> needs someone with them". */
 export const NEEDS_SOMEONE = 'needs-someone';
 export const NEEDS_SOMEONE_KEY = 'alert.needsSomeone';
+
+/**
+ * The person asked for help themselves (Ask Astra's "Call for help", POST /api/ask/help): the same level 3 an
+ * answer of "help" to "Are you OK?" brings, for everyone, with her urgent card beside it. No card, no words.
+ */
+export const ASKED_HELP = 'asked-help';
+export function askedHelpFinding(person: string): Finding {
+  return {
+    key: ASKED_HELP, person, level: 3, signal: ASKED_HELP, value: null, unit: null, limit: null, limitSource: null,
+    direction: null, kind: 'reported', card: null, private: null, nextQuestion: null,
+  };
+}
 /** Her urgent card, shown at level 3 beside any other. */
 export const URGENT_CARD_ID = 'unknown-urgent';
 
@@ -265,11 +285,17 @@ export interface EarthMessage {
   delivered: boolean;
   /**
    * Earth's reply. The hub has no ground station, so the only reply there can
-   * be is the fixed, labelled one demo mode puts on a crew message
-   * (engine/earth.ts). Always null in production and on alert messages.
-   * `key` names its text in the string table, for a screen in Portuguese.
+   * be is a simulated one, in demo mode only (engine/earth-reply.ts). Always
+   * null in production. `key` names its text in the string table, for a screen
+   * in Portuguese, with `vars` filling its blanks.
    */
-  reply: { text: string; at: number; simulated: true; key?: string } | null;
+  reply: { text: string; at: number; simulated: true; key?: string; vars?: Record<string, string | number> } | null;
+  /** Demo mode only: the reply was written by the on-board model or is its fixed fallback. Every screen shows "Reply simulated by AI" beside it. */
+  simulated?: 'ai';
+  /** An alert's message: the incident report the hub filed with it at level 3 (engine/earth-report.ts). Absent on a crew message. */
+  report?: IncidentReport;
+  /** Demo mode only: arrivesAt and replyAt are the demo's shortened delay (demoEarthReplySeconds), not the mission's. Screens say "simulated delay". */
+  simulatedDelay?: true;
   /** When the last alert it was about ended. Null while one lasts, and always for a crew message. */
   resolvedAt: number | null;
   /** Listed by a drill's alert (core/drill.ts). Stays marked after the drill ends. */
@@ -344,6 +370,9 @@ function urgentBeside(card: string | null): string | null {
 function toLevel(alert: Alert, level: Level, inputs: AlertInputs, rescuer = false): Alert {
   const { now, crew, delayToEarthMs } = inputs;
   const next: Alert = { ...alert, level, levelSince: now };
+  // A new level is a new occurrence: a settle from before it does not carry.
+  delete next.settledBy;
+  delete next.settledAt;
   if (level === 1) next.toldTo = [alert.person];
   if (level === 2) {
     next.medicalTeam = medicalTeam(crew, alert.person);
@@ -533,6 +562,7 @@ function findingAlert(was: Alert | null, f: Finding, id: string, inputs: AlertIn
     since: was?.since ?? now, levelSince: levelChanged ? now : was!.levelSince,
     askedAt: null, answerBy: null, answer: null, askKey: null, held: false, toldTo: [f.person], card,
     stationWide: false, lowestRoom: null, earth: null, earthId: null, seenBy: was?.seenBy ?? null, seenAt: was?.seenAt ?? null,
+    ...(was && !levelChanged && was.settledAt !== undefined ? { settledBy: was.settledBy ?? null, settledAt: was.settledAt } : {}),
     alsoCard: f.private ? null : f.alsoCard ?? null, notAlone: false, private: priv, nextQuestion: f.private ? null : f.nextQuestion,
   };
   if (f.private) next.textKey = NEEDS_SOMEONE_KEY;
@@ -618,6 +648,25 @@ export function seeAlert(alerts: Alert[], id: string, by: string | null, now: nu
   return { alerts: next, seen };
 }
 
+/** Whether this occurrence of a level 3 was marked settled (a new levelSince is a new occurrence). */
+export function isSettled(alert: Alert): boolean {
+  return alert.level === 3 && typeof alert.settledAt === 'number' && alert.settledAt >= alert.levelSince;
+}
+
+/**
+ * "Emergency settled" on a level 3, from anyone. Records who and when; the level, the alert and any
+ * room alarm stay. A declared base-wide event has its own end (events/end) and is not settled here.
+ */
+export function settleAlert(alerts: Alert[], id: string, by: string | null, now: number): { alerts: Alert[]; settled: boolean } {
+  let settled = false;
+  const next = alerts.map((alert) => {
+    if (alert.id !== id || alert.level !== 3 || alert.declared || isSettled(alert)) return alert;
+    settled = true;
+    return { ...alert, settledBy: by, settledAt: now };
+  });
+  return { alerts: next, settled };
+}
+
 /** Records the person's answer to "Are you OK?". "help" escalates on the next step. */
 export function answerAlert(alerts: Alert[], id: string, answer: 'ok' | 'help'): { alerts: Alert[]; event: AlertEvent | null } {
   let event: AlertEvent | null = null;
@@ -641,7 +690,7 @@ export function answerAlert(alerts: Alert[], id: string, answer: 'ok' | 'help'):
  */
 export function boardSounds(boardRooms: string[], alarms: RoomAlarm[], alerts: Alert[]): boolean {
   const ownRoom = alarms.some((a) => !a.acknowledged && boardRooms.includes(a.room));
-  const everyone = boardRooms.length > 0 && alerts.some((a) => a.level === 3 && !a.seenAt && a.answer !== 'ok');
+  const everyone = boardRooms.length > 0 && alerts.some((a) => a.level === 3 && !a.seenAt && !isSettled(a) && a.answer !== 'ok');
   return ownRoom || everyone;
 }
 

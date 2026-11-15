@@ -26,15 +26,15 @@ import { NasaReplay } from './nasa.ts';
 import { RoomAlarms } from './alarms.ts';
 import { AlertWatcher, crewActivity } from './alerts.ts';
 import { SHIP_PLACES, placesOf } from '../engine/crew.ts';
-import { hubProfileOf, profileOf } from '../engine/mission.ts';
+import { dayOf, hubProfileOf, profileOf } from '../engine/mission.ts';
 import type { Mission } from '../engine/mission.ts';
 import { listMissionFiles, loadAnyMission, loadMission, missionsRoute, nameCrewOnce, overrideFile, pickStartOnce } from './missions.ts';
 import { EarthMail, earthRoute } from './earth.ts';
-import { SIM_REPLY_KEY } from '../engine/earth.ts';
 import { answerSignal, appliesAt, displayLangs, cardView } from '../engine/cards.ts';
-import { FOLLOW_UP_FILE, askFirstFinding, decideFollowUp, givenFrom, parseFollowUps } from '../engine/followup.ts';
+import { FOLLOW_UP_FILE, askFirstFinding, decideFollowUp, givenFrom, nextFollowUp, parseFollowUps } from '../engine/followup.ts';
 import type { AskFirst, FollowUpRow } from '../engine/followup.ts';
 import type { Finding } from '../engine/alerts.ts';
+import { askedHelpFinding } from '../engine/alerts.ts';
 import { Baselines } from './baseline.ts';
 import { EvidenceCards, evidenceRoute } from './evidence.ts';
 import { CrewDose, doseRoute } from './dose.ts';
@@ -47,15 +47,18 @@ import { CARD_FINDING_KEEP_MS, crisisFinding, findingsNow, parseLevelOverrides }
 import type { LevelOverride } from '../engine/medical.ts';
 import type { Profile } from '../engine/types.ts';
 import { AiRuntime, handleAsk } from './ai.ts';
+import { EarthReplies } from './earth-reply.ts';
+import { EarthReports } from './earth-report.ts';
+import { buildReport, reportDigest } from '../engine/earth-report.ts';
 import { Threads } from '../engine/conversation.ts';
 import { checkinRows } from '../engine/checkin.ts';
 import { buildIndex } from '../engine/search.ts';
 import type { Passage } from '../engine/search.ts';
 import { parseCards } from '../engine/cards.ts';
 import type { ParsedCards } from '../engine/cards.ts';
-import { detectorLine, plainSignalName, summaryReadings } from '../engine/baseline.ts';
+import { DEFAULTS as BASELINE_DEFAULTS, detectorLine, plainSignalName, summaryReadings } from '../engine/baseline.ts';
 import type { Reading } from '../engine/prompt.ts';
-import { LIMITS, windowAverage } from '../engine/cabin.ts';
+import { LIMITS, QUIET_MS, windowAverage } from '../engine/cabin.ts';
 import { t } from '../engine/strings.ts';
 import { SensorRegistry, handleSensors } from './sensors.ts';
 import { SerialJsonAdapter } from './serial-json.ts';
@@ -134,6 +137,7 @@ hub.acknowledgeAlarm = (room) => alarms.acknowledge(room);
 const alerts = new AlertWatcher(hub, store, profile, alarms);
 hub.answerAlert = (id, answer) => alerts.answer(id, answer);
 hub.seeAlert = (id, by) => alerts.see(id, by);
+hub.settleAlert = (id, by) => alerts.settle(id, by);
 const baselines = new Baselines(store, profile.crew.map((p) => p.id));
 alerts.unusual = (now) => baselines.sustained(now);
 // Evidence cards are worked out in the background, one person per tick, and pushed to screens.
@@ -180,7 +184,31 @@ hub.routes.push(missionsRoute(missionsDir, missionFile, missionFile === null ? p
 }));
 
 // Contact Earth: messages a crewmate writes. The simulated reply exists in demo mode only.
-const mail = new EarthMail({ store, delayMs: profile.delayToEarthSeconds * 1000, simulatedReply: production ? null : t(SIM_REPLY_KEY, 'en') });
+// Each level 3 message to Earth carries an incident report: the hub's own facts at that moment (core/earth-report.ts).
+alerts.reports = new EarthReports({
+  file: `${dbFile}.earth-reports.json`,
+  build: (alert, message, now) => buildReport({
+    alert, message, now,
+    mission: { name: missionFile ?? profile.id, day: (() => { try { return dayOf(profile, now); } catch { return null; } })(), lightDelaySeconds: profile.delayToEarthSeconds },
+    roomName: (id) => profile.rooms.find((r) => r.id === id)?.name ?? null,
+    personName: (id) => profile.crew.find((p) => p.id === id)?.name ?? null,
+    signalName: (signal) => t(`signal.${signal}`, 'en'),
+    roomRows: alert.room ? store.rows({ room: alert.room, from: now - QUIET_MS, to: now, limit: 5000 }) : [],
+    // The person's own readings, never a check-in (typed or not): what the crew sees of them.
+    bodyRows: store.rows({ person: alert.person, from: now - QUIET_MS, to: now, limit: 5000 }).filter((r) => !r.signal.startsWith('checkin.') && r.signal !== 'earth.message'),
+    alarms: alarms.list(),
+    card: (id) => {
+      const c = loadCards().cards.find((x) => x.id === id);
+      const v = c ? cardView(c, 'en') : null;
+      return v ? { id: v.id, title: v.title, approvedBy: v.approvedBy, unverified: v.unverified } : null;
+    },
+    sources: hub.sourceList(),
+    quietMs: QUIET_MS,
+  }),
+});
+
+// Every reply is made by EarthReplies (core/earth-reply.ts), so the mail itself makes none.
+const mail = new EarthMail({ store, delayMs: profile.delayToEarthSeconds * 1000, simulatedReply: null });
 mail.load();
 alerts.crewMessages = (now) => mail.list(now);
 mail.onChange = () => alerts.publishEarth(Date.now());
@@ -200,6 +228,40 @@ alerts.activity = (now) => crewActivity(store, crewIds, now, simulatedDay);
 // missing, the hub runs without it and says so.
 const ai = new AiRuntime();
 void ai.start();
+
+// Demo mode only: Earth's reply, simulated by the on-board model and labelled so (core/earth-reply.ts).
+// ASTRUM_DEMO_EARTH_REPLY_SECONDS (demoEarthReplySeconds) shortens the wait for a filmed demo; unset, the mission's real delay.
+const demoReplySeconds = Number(process.env.ASTRUM_DEMO_EARTH_REPLY_SECONDS);
+const earthReplies = production ? null : new EarthReplies({
+  messages: (now) => alerts.listedEarth(now),
+  publish: () => alerts.publishEarth(Date.now()),
+  storyPlaying: () => scenarios.status().playing !== null,
+  restricted: (m) => {
+    if (m.kind !== 'alert') return false;
+    const alert = alerts.list().find((a) => a.earthId === m.id);
+    return !alert || Boolean(alert.private) || m.report?.restricted === true;
+  },
+  // An alert's reply is written from its incident report: its room, its alert name, its card, and the hub's digest of it.
+  facts: (m) => m.report && !m.report.restricted
+    ? { room: m.report.where.roomName, alertKind: m.report.alert.name, card: m.report.card !== null, digest: reportDigest(m.report), report: true }
+    : {
+      room: m.about.room ? profile.rooms.find((r) => r.id === m.about.room)?.name ?? null : null,
+      alertKind: m.kind === 'alert' && m.about.signal ? t(`signal.${m.about.signal}`, 'en') : null,
+      card: m.kind === 'alert' && Boolean(alerts.list().find((a) => a.earthId === m.id)?.card),
+    },
+  delayMs: profile.delayToEarthSeconds * 1000,
+  demoSeconds: Number.isFinite(demoReplySeconds) && demoReplySeconds > 0 ? demoReplySeconds : null,
+  rooms: profile.rooms.map((r) => r.name),
+  names: profile.crew.map((p) => p.name),
+  model: {
+    ready: () => ai.state === 'ready',
+    chat: (messages) => ai.enqueue(() => ai.client.chat({ messages, maxTokens: 110, firstTokenMs: ai.firstTokenMs, totalMs: 20_000, stop: ['\n\n', '<think>'] }), () => {}),
+  },
+});
+if (earthReplies) {
+  alerts.decorateEarth = (list, now) => earthReplies.apply(list, now);
+  earthReplies.start();
+}
 const passageIndex = buildIndex(JSON.parse(readFileSync(join(hubDir, 'data-nasa', 'passages', 'passages.json'), 'utf8')) as Passage[]);
 const cardsFile = process.env.ASTRUM_CARDS ?? join(hubDir, 'medical', 'cards.json');
 // Read again only when the file changes, so the alert watcher can look every tick.
@@ -272,6 +334,14 @@ const askFirstFindings = (now: number): Finding[] => {
     if (finding) out.push(finding);
   }
   return out;
+};
+// The next of her questions still waiting for a person, for their own screen only (core/server.ts refreshFollowUps).
+hub.followUpOf = (person) => {
+  const held = askingFirst.get(person);
+  const now = Date.now();
+  if (!held || now - held.t > CARD_FINDING_KEEP_MS) return null;
+  const rows = loadFollowUps().filter((r) => held.askFirst.rows.includes(r.id));
+  return nextFollowUp(person, rows, givenFrom(recentCheckins(person, now)), held.t);
 };
 
 // The steps cards, for the screens that show them. Only approved cards are sent as
@@ -362,12 +432,14 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   facts: (person) => { const room = roomOf(person); return { readings: alarms.list().filter((a) => a.room === room && a.limitSource !== 'crew').map((a) => ({ signal: CARD_SIGNAL[a.signal] ?? a.signal, direction: 'high' as const, basis: 'nasa_limit' as const, value: a.value, unit: a.unit })), answers: checkinAnswers(person) }; },
   // A crisis: the medical officer (or the commander in her place) is told "<name> needs someone with them", never the words.
   onCrisis: (person) => { alerts.raise(crisisFinding(person), CARD_FINDING_KEEP_MS); return true; },
+  // "Call for help" in the chat: the level 3 an answer of "help" brings, everyone told (engine/alerts.ts askedHelpFinding).
+  onHelp: (person) => { alerts.raise(askedHelpFinding(person), CARD_FINDING_KEEP_MS); return true; },
   // A card her signs picked raises the alert her level gives; a private card's name stays with the person (engine/alerts.ts alertFor).
   onFinding: (finding, keepMs) => alerts.raise(finding, keepMs),
   levelOverrides: loadLevelOverrides,
   followUps: loadFollowUps,
   followUpAnswers: (person) => givenFrom(recentCheckins(person)),
-  onAskFirst: (person, askFirst) => { askingFirst.set(person, { askFirst, t: Date.now() }); findingsCache = null; },
+  onAskFirst: (person, askFirst) => { askingFirst.set(person, { askFirst, t: Date.now() }); findingsCache = null; hub.refreshFollowUps(); },
   evidenceFor: (person) => cards.get(person),
   roomName: (id) => { const r = profile.rooms.find((x) => x.id === id); return r ? t(r.name, 'en') : id; },
   personName: (id) => profile.crew.find((p) => p.id === id)?.name ?? id,
@@ -378,6 +450,14 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   // Each crewmate's conversation with Astra, kept here for 30 minutes of quiet (engine/conversation.ts).
   threads: askThreads,
   crew: () => profile.crew.map((p) => ({ id: p.id, name: p.name })),
+  // Whether a body signal has a current reading, by the baseline's own freshness rule: a question about one
+  // that has gone quiet gets "I have no … reading from the last hour; the last one was at …".
+  signalState: (person, signal) => {
+    const s = summaryOf(person)?.signals.find((x) => x.signal === signal);
+    if (!s) return { state: 'none' };
+    if (s.status !== 'no-recent') return { state: 'fresh' };
+    return s.lastSeen === null ? { state: 'none' } : { state: 'stale', at: s.lastSeen, live: BASELINE_DEFAULTS.liveSignals.includes(signal) };
+  },
   // A reply to one of her questions in the chat: the same reported check-in row POST /api/checkin makes.
   storeCheckin: (person, answer) => {
     const made = checkinRows({ person, answers: [answer] }, crewIds, Date.now(), roomOf);

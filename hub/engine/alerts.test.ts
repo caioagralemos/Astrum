@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { COUNTDOWN_MS, EARTH_KEEP_MS, RESCUER_COUNTDOWN_MS, answerAlert, boardSounds, seeAlert, stepAlerts, stepEarth, visibleTo } from './alerts.ts';
+import { ASKED_HELP, COUNTDOWN_MS, EARTH_KEEP_MS, RESCUER_COUNTDOWN_MS, URGENT_CARD_ID, answerAlert, askedHelpFinding, boardSounds, isSettled, seeAlert, settleAlert, stepAlerts, stepEarth, visibleTo } from './alerts.ts';
 import type { Alert, AlertInputs, EarthMessage } from './alerts.ts';
 import type { RoomAlarm } from './cabin.ts';
 import { overBy } from './cabin.ts';
@@ -272,4 +272,37 @@ test('messages to Earth from alerts carry their kind and whether they have arriv
   s = run(s.alerts, s.earth, at(s.earth[0].arrivesAt));
   assert.equal(s.earth[0].delivered, true);
   assert.equal(s.earth[0].reply, null, 'an alert message never gets a reply from the hub');
+});
+
+test('"Call for help" in the chat: the same level 3 as "help", everyone told, her urgent card, one message to Earth', () => {
+  const { alerts, events } = stepAlerts([], at(1000, { roomAlarms: [], findings: [askedHelpFinding('reyes')] }));
+  assert.equal(alerts.length, 1);
+  const a = alerts[0];
+  assert.deepEqual([a.person, a.level, a.toldTo, a.signal, a.card, a.alsoCard, a.private], ['reyes', 3, 'everyone', ASKED_HELP, null, URGENT_CARD_ID, null]);
+  assert.deepEqual(events.map((e) => e.type), ['raised']);
+  assert.equal(stepEarth([], alerts, events, 1000).length, 1);
+  assert.equal(visibleTo(alerts, 'common').length, 1);
+});
+
+test('"Emergency settled" records who and when on a level 3 only, keeps the alert, and is for this occurrence only', () => {
+  const two = stepAlerts([], at(1000)).alerts;
+  assert.equal(settleAlert(two, two[0].id, 'leo', 2000).settled, false, 'only a level 3');
+  const three = stepAlerts(two, at(1000 + COUNTDOWN_MS)).alerts;
+  const out = settleAlert(three, three[0].id, null, 70_000);
+  assert.equal(out.settled, true);
+  assert.deepEqual([out.alerts[0].settledBy, out.alerts[0].settledAt, out.alerts[0].level], [null, 70_000, 3], 'shared screen: no name; the level stays');
+  assert.equal(isSettled(out.alerts[0]), true);
+  assert.equal(settleAlert(out.alerts, three[0].id, 'leo', 80_000).settled, false, 'once');
+  const later = stepAlerts(out.alerts, at(90_000)).alerts;
+  assert.equal(later.length, 1, 'the alert stays listed');
+  assert.equal(isSettled(later[0]), true, 'kept from step to step');
+  assert.equal(boardSounds(['galley'], [], later), false, 'the buzzer stops as for "seen"');
+  // The same alert reaching level 3 again (a new levelSince) is a new occurrence.
+  assert.equal(isSettled({ ...later[0], levelSince: 100_000 }), false, 'a new occurrence is not settled');
+  // It ends and comes back: a new alert, not settled.
+  const ended = stepAlerts(later, { ...at(100_000), roomAlarms: [] }).alerts;
+  assert.equal(ended.length, 0, 'ended');
+  const back = stepAlerts(stepAlerts(ended, at(200_000)).alerts, at(200_000 + COUNTDOWN_MS)).alerts;
+  assert.equal(back[0].level, 3);
+  assert.equal(isSettled(back[0]), false, 'came back: not settled');
 });

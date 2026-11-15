@@ -3,10 +3,11 @@
 // connected what changed, including what each crewmate is doing (and so who is
 // asleep: engine/activity.ts).
 
-import { answerAlert, seeAlert, stepAlerts, stepEarth } from '../engine/alerts.ts';
+import { answerAlert, seeAlert, settleAlert, stepAlerts, stepEarth } from '../engine/alerts.ts';
 import type { Alert, AlertEvent, DeclaredEvent, EarthMessage, Finding, Unusual } from '../engine/alerts.ts';
 import { occupants } from '../engine/timeline.ts';
 import type { Profile } from '../engine/types.ts';
+import type { EarthReports } from './earth-report.ts';
 import { REAL_WITHIN_MS, decideActivity, settleActivity, sleepersOf } from '../engine/activity.ts';
 import type { Activity, Decided } from '../engine/activity.ts';
 import { stationHour } from '../engine/crew.ts';
@@ -51,11 +52,26 @@ export class AlertWatcher {
   /** Keeps a finding for `keepMs` (the same person and key again restarts it), and looks at the station now. */
   raise(finding: Finding, keepMs: number, now = Date.now()): void {
     this.raised.set(`${finding.person}|${finding.key}`, { finding, until: now + keepMs });
+    this.saveRaised();
     this.check(now);
   }
 
+  /**
+   * Saved with the open alerts: a restart that forgot them resolved their alerts at its first
+   * check, and the next answer raised them again with a new since, a new notice on the phone.
+   */
+  private saveRaised(): void {
+    try {
+      this.store.saveRaisedFindings([...this.raised].map(([key, r]) => ({ key, finding: r.finding, until: r.until })));
+    } catch (err) {
+      console.error('Could not save the raised findings:', err);
+    }
+  }
+
   private allFindings(now: number): Finding[] {
-    for (const [key, r] of this.raised) if (now >= r.until) this.raised.delete(key);
+    let ended = false;
+    for (const [key, r] of this.raised) if (now >= r.until) { this.raised.delete(key); ended = true; }
+    if (ended) this.saveRaised();
     return [...this.findings(now), ...[...this.raised.values()].map((r) => r.finding)];
   }
 
@@ -69,6 +85,39 @@ export class AlertWatcher {
     this.store = store;
     this.profile = profile;
     this.roomAlarms = roomAlarms;
+    this.restore(Date.now());
+  }
+
+  /**
+   * The alerts open before a restart, carried on as the same occurrences: the same since and
+   * levelSince, who has seen them, the answer. The first check resolves any whose condition ended
+   * meanwhile. Without this every restart raised them again with a new since, and the phones
+   * (one notice per alert and since) told the person again.
+   */
+  private restore(now: number): void {
+    for (const r of this.store.raisedFindings()) {
+      const f = r.finding as Finding;
+      if (f && typeof f === 'object' && typeof f.key === 'string' && typeof f.person === 'string' && typeof r.until === 'number') this.raised.set(r.key, { finding: f, until: r.until });
+    }
+    const saved = this.store.openAlerts().filter((a): a is Alert =>
+      !!a && typeof a === 'object' && typeof (a as Alert).id === 'string' && typeof (a as Alert).since === 'number' && typeof (a as Alert).levelSince === 'number');
+    if (!saved.length) return;
+    this.alerts = saved;
+    for (const a of saved) {
+      if (a.drill && a.earthId) this.drillEarth.add(a.earthId);
+      // The store closed this hold when it opened (core/db.ts): the alert is still open, so is its hold.
+      this.store.holdRaw(`alert|${a.id}|${a.since}`, a.since - 2 * 3600_000, null);
+    }
+    // Their messages to Earth, listed again under the same ids.
+    this.earth = stepEarth([], saved, saved.filter((a) => a.level === 3).map((alert) => ({ type: 'escalated', alert })), now);
+  }
+
+  private save(): void {
+    try {
+      this.store.saveOpenAlerts(this.alerts);
+    } catch (err) {
+      console.error('Could not save the open alerts:', err);
+    }
   }
 
   start(): void {
@@ -88,11 +137,23 @@ export class AlertWatcher {
     return this.earth;
   }
 
-  /** Every message to Earth still listed, the alerts' and the crew's, oldest first. */
+  /** Every message to Earth still listed, the alerts' and the crew's, oldest first, as screens get them. */
   allEarth(now: number): EarthMessage[] {
-    const crew = this.crewMessages(now);
-    return crew.length ? [...this.earth, ...crew].sort((a, b) => a.sentAt - b.sentAt) : this.earth;
+    return this.decorateEarth(this.listedEarth(now), now);
   }
+
+  /** The same list before demo mode's simulated replies are put on it (core/earth-reply.ts). */
+  listedEarth(now: number): EarthMessage[] {
+    const crew = this.crewMessages(now);
+    const own = this.reports ? this.reports.attach(this.earth, this.alerts, now) : this.earth;
+    return crew.length ? [...own, ...crew].sort((a, b) => a.sentAt - b.sentAt) : own;
+  }
+
+  /** The incident reports alert messages file with Earth (core/earth-report.ts). */
+  reports: EarthReports | null = null;
+
+  /** Demo mode only: puts the simulated replies on the list. Production leaves it as it is. */
+  decorateEarth: (list: EarthMessage[], now: number) => EarthMessage[] = (list) => list;
 
   /** Tells the screens the list now (a crewmate just wrote, or a reply came). */
   publishEarth(now: number): void {
@@ -141,7 +202,10 @@ export class AlertWatcher {
       if (event.type === 'resolved') this.store.holdRaw(key, event.alert.since - 2 * 3600_000, now + 2 * 3600_000);
       this.onEvent(event);
     }
-    if (changed) this.hub.setAlerts(this.alerts);
+    if (changed) {
+      this.hub.setAlerts(this.alerts);
+      this.save();
+    }
     this.hub.setEarthMessages(this.allEarth(now));
   }
 
@@ -151,6 +215,17 @@ export class AlertWatcher {
     if (!out.seen) return false;
     this.alerts = out.alerts;
     this.hub.setAlerts(this.alerts);
+    this.save();
+    return true;
+  }
+
+  /** "Emergency settled" on a level 3 alert. Returns false if there was no such alert left to settle. */
+  settle(id: string, by: string | null, now = Date.now()): boolean {
+    const out = settleAlert(this.alerts, id, by, now);
+    if (!out.settled) return false;
+    this.alerts = out.alerts;
+    this.hub.setAlerts(this.alerts);
+    this.save();
     return true;
   }
 
@@ -162,6 +237,7 @@ export class AlertWatcher {
     this.onEvent(out.event);
     this.check(now);
     this.hub.setAlerts(this.alerts);
+    this.save();
     return true;
   }
 }

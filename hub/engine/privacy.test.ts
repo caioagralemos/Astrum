@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { latestFor, rowsFor } from './privacy.ts';
+import { followUpFor, latestFor, rowsFor } from './privacy.ts';
 import { crewMessage, crewMessageRow } from './earth.ts';
 import { signalName, t } from './strings.ts';
 import type { Row } from './types.ts';
@@ -27,4 +27,12 @@ test('a signal never reads as its key: named in both languages, plain words when
     }
   }
   assert.equal(signalName('some_new.thing_here', 'en'), 'Thing here');
+});
+
+test('a follow-up question reaches only the person it is for: never a shared screen, never another crewmate', () => {
+  const ask = { person: 'reyes', signal: 'checkin.bp_slept_well', kind: 'yes_no' as const, text: { en: 'q', pt: 'q' }, since: 1 };
+  assert.equal(followUpFor(ask, 'reyes'), ask);
+  assert.equal(followUpFor(ask, 'leo'), null);
+  assert.equal(followUpFor(ask, 'common'), null);
+  assert.equal(followUpFor(null, 'reyes'), null);
 });
