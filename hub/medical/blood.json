@@ -60,7 +60,64 @@
     ],
     "status": "approved",
     "notes": "APPROVED by the medical lead (pt) on 14 Nov. en_checked: false. Source quotes not yet checked against the texts; sources supplied by the medical lead, not verified. No NASA source yet. FASTING (crew answers 'are you fasting?'): normal 70-99; outside that = unusual, notify self. NOT FASTING (one table, any time after eating): <54 = dangerous, everyone; 54-69 = concerning, medical_officer; 70-139 = normal, no alert; 140-249 = unusual, self (mild alert); >=250 = concerning, medical_officer (urgent_above=250 means concerning, NOT everyone). ESCALATE >=250 to dangerous/everyone if any of: Kussmaul (fast deep breathing, even early), vomiting (aspiration risk), drowsiness/confusion/prostration (possible acidosis, risk of stroke or cardiac arrest). Other questions asked for the medical officer, level unchanged: nausea, abdominal pain, ketone breath, dehydration signs. LOW glucose 54-69: drowsiness/confusion = medical_officer only and keep monitoring heart rate; escalate to dangerous/everyone if heart_rate < 40 bpm (reference_range, medical lead's choice, no source). VARIABILITY: coefficient of variation (SD/mean x100) > 36% with at least 3 measurements = unusual, with note of higher hypoglycemia risk (consensus CGM limit; designed for continuous data, so noisy with few i-STAT readings). 140 and 200 cutoffs come from the 2 h oral glucose tolerance test, not from an ordinary meal. 300 mg/dL has no guideline cutoff and is no longer a separate step. i-STAT does not measure ketones (from memory, unverified): ketone steps become 'call medical officer'. XABCDE protocol: from the medical lead, no source. The medical lead's own wording is kept in the conversation notes, not yet saved. what_it_means pt approved 14 Nov (English is a translation, not checked). Spaceflight note still to be written. SOURCE CHECK 14 Nov: CONFIRMED in text: SBD/Afya (fasting <100, 100-125 pre-diabetes, 2h OGTT 140-199 and >=200; quote read by a subagent); Battelino 2019 (hypoglycemia 54-69 level 1 and <54 level 2; 70-180 target; 181-250 level 1 and >250 level 2 hyperglycemia; CV target <=36%, but it recommends 14 days and 70% of data, so it is not designed for 3 readings); CCJM 2024 (DKA glucose >=200; no symptom list, no aspiration or stroke statements); Endotext (nausea, vomiting, abdominal pain, confusion, lethargy, Kussmaul breathing as DKA features; no text found linking vomiting to aspiration). NOT CHECKED: ADA Section 2 and StatPearls (blocked by the sites; kept with empty quote, ask before relying on them). REMOVED: SBD goals page (link returns 404), ADA 'Section 6' link (it is Section 9 and has no glucose thresholds), ISPAD sick day guide (about children with type 1 diabetes; did not state a ketone check at 250 in the text read). The 40 bpm heart-rate cutoff, the stroke/arrest reasoning and the 250/300 mg/dL escalation have no source in the documents read. Update 14 Nov (medical lead): below 60 mg/dL (fasting or not) = concerning, the medical officer is alerted and she is NOT left alone, because she may faint. 60-69 stays as before: the person is still fine. CHANGED 14 Nov (after Caio's check against the i-STAT range, medical lead chose B): the fasting upper limit is now 105 (before: 99), so a fasting glucose of 100 to 105 is normal and only above 105 is unusual (self). Fasting lower limit 70 and everything for not fasting did not change. Caio's i-STAT number came from search snippets: confirm in the package insert.",
-    "en_checked": false
+    "en_checked": false,
+    "symptom_questions": [
+      {
+        "key": "glucose_high_signs",
+        "question": {
+          "pt": "Você está respirando rápido e fundo, vomitando, ou com sono, confusa ou prostrada?",
+          "en": "Are you breathing fast and deep, vomiting, or sleepy, confused or prostrated?"
+        },
+        "if_yes": {
+          "level": "dangerous",
+          "notify": "everyone"
+        }
+      }
+    ],
+    "escalations": [
+      {
+        "id": "high-with-signs",
+        "from": 250,
+        "from_inclusive": true,
+        "to": null,
+        "to_inclusive": null,
+        "ask": [
+          "glucose_high_signs"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "ESCALATE >=250 to dangerous/everyone if any of: Kussmaul (fast deep breathing, even early), vomiting (aspiration risk), drowsiness/confusion/prostration (possible acidosis, risk of stroke or cardiac arrest)."
+      },
+      {
+        "id": "low-slow-heart",
+        "from": 54,
+        "from_inclusive": true,
+        "to": 69,
+        "to_inclusive": true,
+        "reading": {
+          "signal": "heart_rate",
+          "below": 40,
+          "unit": "bpm"
+        },
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "LOW glucose 54-69: drowsiness/confusion = medical_officer only and keep monitoring heart rate; escalate to dangerous/everyone if heart_rate < 40 bpm"
+      },
+      {
+        "id": "variation",
+        "from": null,
+        "from_inclusive": null,
+        "to": null,
+        "to_inclusive": null,
+        "variation": {
+          "above_percent": 36,
+          "min_results": 3
+        },
+        "level": "unusual",
+        "notify": "self",
+        "note": "coefficient of variation (SD/mean x100) > 36% with at least 3 measurements = unusual"
+      }
+    ]
   },
   {
     "id": "sodium",
@@ -123,7 +180,121 @@
     ],
     "status": "approved",
     "notes": "Medical lead pasted the four sources, 14 Nov. She said they are the origin of the treatment (hypertonic saline, correction limits), not necessarily of the flag numbers; not opened, unverified. Proposed flags, not yet confirmed by her: below 135 and above 146; urgent below 125 and above 160. Management tables she pasted had no named source. Numbers confirmed by the medical lead, 14 Nov: flag below 135 / above 146; urgent below 125 / above 160. Her severity table also lists below 120 (very severe), below 110 (imminent risk to life), above 170 (very severe), above 180 (imminent risk to life); these are not cut-offs, only recorded here. Levels from the medical lead (low side): below 125 = concerning, notify the medical officer, the person must not be left alone; below 120 = dangerous, notify everyone; seizure or seizure risk at any value = call someone, not unusual. Levels for 125-134, and for the high side (147-160, above 160), not decided yet. Update from the medical lead: 125-129 (moderate) = concerning, notify the medical officer without waiting for symptom answers (a person having a seizure cannot answer); act before the seizure. 130-134 (mild) = unusual, self only (not yet confirmed by her). Confirmed by the medical lead: 130-134 = unusual, self only, and it is usually without symptoms. If there are symptoms (mild headache, nausea, slow thinking), it is no longer mild: treated like the moderate range (concerning, medical officer). The symptom handling is a reading of her words; ask her to confirm. FINAL LEVELS (medical lead, 14 Nov). Low: 130-134 unusual (self), usually no symptoms; 125-129 concerning (medical officer) without waiting for answers; below 125 concerning, medical officer, person not left alone; below 120 dangerous, everyone. High: 147-150 unusual (self), usually no symptoms; 151-160 unusual and the system asks about symptoms; above 160 concerning (seizure risk), medical officer, person not left alone, without waiting for answers; above 170 dangerous, everyone. Symptom rule for BOTH low and high: if she answers confusion or vomiting, notify the medical officer. A seizure or seizure risk at any value: call someone, never only unusual. Symptom lists from the medical lead (no named source, unverified). Mild to moderate: new confusion, slow thinking, disorientation, inattention; persistent headache; nausea and vomiting (early sign in low sodium); marked weakness, cramps, tremor, irritability, lethargy; in high sodium also intense thirst, agitation, less urine. Moderate to severe: sleepiness hard to reverse, difficulty waking; seizures; repeated vomiting with intense headache; intense disorientation, delirium, coma; breathing changes (severe low sodium); muscle rigidity and spasticity (severe high sodium). What best predicts worsening: speed of change (hours), trend in serial tests, and a persisting cause (diuretic, excess water, vomiting or diarrhea, fever, no access to water). A numeric rule for rapid change is not decided yet. Source mapping pasted by the medical lead: symptoms and progression of hyponatremia, and symptom severity classification = Spasovski 2014 (Eur J Endocrinol 170:G1-47); speed of change = Verbalis 2013 (Am J Med 126 Suppl 1:S1-42) and Sterns 2015; hypernatremia symptoms = Adrogue 2000. Her paste says WITHOUT a formal source: the numeric hypernatremia ranges 147-150, 151-160, above 160 (vary between labs); the 'very severe' levels below 120 and above 170 (clinical consensus, not a guideline threshold). Citations not opened: unverified. Symptom groups (medical lead, 14 Nov): group 1 (confusion, slow thinking, headache, nausea, vomiting) = notify the medical officer, for low and high sodium. Group 2 (sleepiness hard to reverse, difficulty waking, seizures) = concerning, medical officer only. The earlier line 'seizure or seizure risk at any value = call someone' stays as the rule for below 125 and above 160. CHANGED 14 Nov (after Caio's check against the i-STAT ranges, medical lead chose B): normal range is now 138 to 146 (before: 135 to 146). So 135 to 137 is now outside the normal range and counts as unusual (self); the other bands (130-134 unusual, 125-129 concerning, below 125 concerning, below 120 dangerous, high side) did not change. Caio's i-STAT numbers came from search snippets: confirm them in the package insert.",
-    "en_checked": false
+    "en_checked": false,
+    "symptom_questions": [
+      {
+        "key": "sodium_group1",
+        "question": {
+          "pt": "Você está com confusão, raciocínio lento, dor de cabeça, náusea ou vômito?",
+          "en": "Do you have confusion, slow thinking, headache, nausea or vomiting?"
+        },
+        "if_yes": {
+          "level": "concerning",
+          "notify": "medical_officer"
+        }
+      },
+      {
+        "key": "sodium_group2",
+        "question": {
+          "pt": "Você está com muito sono e difícil de acordar, ou está tendo uma convulsão?",
+          "en": "Are you very sleepy and hard to wake, or having a seizure?"
+        },
+        "if_yes": {
+          "level": "concerning",
+          "notify": "medical_officer"
+        }
+      }
+    ],
+    "bands": [
+      {
+        "from": null,
+        "from_inclusive": null,
+        "to": 120,
+        "to_inclusive": false,
+        "level": "dangerous",
+        "notify": "everyone"
+      },
+      {
+        "from": 120,
+        "from_inclusive": true,
+        "to": 125,
+        "to_inclusive": false,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 125,
+        "from_inclusive": true,
+        "to": 130,
+        "to_inclusive": false,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 130,
+        "from_inclusive": true,
+        "to": 135,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "sodium_group1",
+          "sodium_group2"
+        ]
+      },
+      {
+        "from": 135,
+        "from_inclusive": true,
+        "to": 138,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "sodium_group1",
+          "sodium_group2"
+        ]
+      },
+      {
+        "from": 146,
+        "from_inclusive": false,
+        "to": 151,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "sodium_group1",
+          "sodium_group2"
+        ]
+      },
+      {
+        "from": 151,
+        "from_inclusive": true,
+        "to": 160,
+        "to_inclusive": true,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "sodium_group1",
+          "sodium_group2"
+        ]
+      },
+      {
+        "from": 160,
+        "from_inclusive": false,
+        "to": 170,
+        "to_inclusive": true,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 170,
+        "from_inclusive": false,
+        "to": null,
+        "to_inclusive": null,
+        "level": "dangerous",
+        "notify": "everyone"
+      }
+    ]
   },
   {
     "id": "potassium",
@@ -180,7 +351,49 @@
     ],
     "status": "approved",
     "notes": "Numbers from the medical lead's table, 14 Nov (table has no named source: unverified); she confirmed them. Levels: below 3.0 concerning (medical officer); 3.0-3.4 unusual (self); 3.5-5.3 normal; 5.4-5.9 unusual (self); 6.0 or more concerning (medical officer); 6.5 or more dangerous (everyone, risk of fatal arrhythmia even without symptoms). Warnings for 5.4 or more include 'repeat the collection' because flight potassium can be high from collection technique. ECG left out: the system has none. Smith 1997 is by NASA authors and a copy is on the NASA Life Sciences Portal; is_nasa left false until Caio decides. Sources added 14 Nov by the medical lead (not opened, unverified). Geldermann 2026 supports 6.5 mmol/L as the high-risk cut-off; Pepin 2012 supports checking hemolysis and repeating the collection. They support the treatment, not all of the flag numbers. CHECKED 14 Nov against Caio's i-STAT range (3.5 to 4.9): The medical lead chose A, keep 3.5 to 5.3, because in flight potassium tends to rise from the collection technique (Smith 1997) and a cut-off of 4.9 would alert too much.",
-    "en_checked": false
+    "en_checked": false,
+    "bands": [
+      {
+        "from": null,
+        "from_inclusive": null,
+        "to": 3.0,
+        "to_inclusive": false,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 3.0,
+        "from_inclusive": true,
+        "to": 3.5,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 5.3,
+        "from_inclusive": false,
+        "to": 6.0,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 6.0,
+        "from_inclusive": true,
+        "to": 6.5,
+        "to_inclusive": false,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 6.5,
+        "from_inclusive": true,
+        "to": null,
+        "to_inclusive": null,
+        "level": "dangerous",
+        "notify": "everyone"
+      }
+    ]
   },
   {
     "id": "ionized-calcium",
@@ -225,7 +438,76 @@
     ],
     "status": "approved",
     "notes": "Table from the medical lead, 14 Nov, no named source: unverified. Low: below 0.9 (some use below 0.8) urgent; 0.9-1.0 attention; 1.0-1.11 warning. High: 1.33-1.50 warning; 1.51-1.75 attention; above 1.75 (some use above 1.6) urgent. Choice of the two urgent numbers and the levels per band not decided yet. Her paste says Kost 1986 (liver transplant, not a guideline) puts the critical value at most 0.4 below the reference mean, about 0.8; Valero-Politi shows small biological variation (CV about 2%) and has no clinical thresholds. She also notes no source found for the other cut-offs. Citations not opened. Effects pasted by the medical lead (no named source, unverified). Very low (below 0.9): tingling around the mouth and in the hands, cramps, spasms, tetany; laryngospasm and bronchospasm with risk of breathlessness and asphyxia; seizures, confusion, irritability; long QT, arrhythmias, low blood pressure, possible cardiac arrest. Very high (above 1.75): polyuria, thirst, dehydration, acute kidney injury; nausea, vomiting, constipation, abdominal pain; weakness, lethargy, confusion, psychosis, coma; short QT, slow heart rate, blocks, arrhythmias, risk of arrest. CORRECTED TABLE (no overlaps), 14 Nov: below 0.9 urgent; 0.90-0.99 attention; 1.00-1.11 warning; 1.12-1.32 normal; 1.33-1.50 warning; 1.51-1.75 attention; above 1.75 urgent. Urgent numbers kept at 0.9 and 1.75 as in her table. Her paste notes 0.9 warns earlier (more conservative) than 0.8, and 1.75 is the more permissive side: many labs use above 1.6, which could be preferred for safety. Levels proposed in the draft, pending her yes: warning bands unusual (self); attention bands unusual with symptom questions, symptoms call the medical officer; urgent bands concerning, medical officer, not left alone, without waiting for answers. Levels above approved by the medical lead, 14 Nov. CHANGED by the medical lead, 14 Nov (option B, after a review of the test cases): below 0.9 and 1.60 or more are now DANGEROUS, notify everyone (they were concerning, medical officer). The high cut-off moves from 1.75 to 1.6. Bands now: below 0.9 dangerous (everyone); 0.90-0.99 unusual with symptom questions, symptoms call the medical officer; 1.00-1.11 unusual (self); 1.12-1.32 normal; 1.33-1.50 unusual (self); 1.51-1.59 unusual with symptom questions, symptoms call the medical officer; 1.60 or more dangerous (everyone). The review she pasted cites lab critical limits (CHI 0.8 or less and 1.6 or more; OHSU 0.75 and 1.62; others 1.58), not opened, unverified.",
-    "en_checked": false
+    "en_checked": false,
+    "symptom_questions": [
+      {
+        "key": "calcium_symptoms",
+        "question": {
+          "pt": "Você está com formigamento, câimbras, espasmos, confusão, sede, vômito ou fraqueza?",
+          "en": "Do you have tingling, cramps, spasms, confusion, thirst, vomiting or weakness?"
+        },
+        "if_yes": {
+          "level": "concerning",
+          "notify": "medical_officer"
+        }
+      }
+    ],
+    "bands": [
+      {
+        "from": null,
+        "from_inclusive": null,
+        "to": 0.9,
+        "to_inclusive": false,
+        "level": "dangerous",
+        "notify": "everyone"
+      },
+      {
+        "from": 0.9,
+        "from_inclusive": true,
+        "to": 1.0,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "calcium_symptoms"
+        ]
+      },
+      {
+        "from": 1.0,
+        "from_inclusive": true,
+        "to": 1.12,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 1.32,
+        "from_inclusive": false,
+        "to": 1.51,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 1.51,
+        "from_inclusive": true,
+        "to": 1.6,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self",
+        "ask": [
+          "calcium_symptoms"
+        ]
+      },
+      {
+        "from": 1.6,
+        "from_inclusive": true,
+        "to": null,
+        "to_inclusive": null,
+        "level": "dangerous",
+        "notify": "everyone"
+      }
+    ]
   },
   {
     "id": "ph",
@@ -339,7 +621,41 @@
     ],
     "status": "approved",
     "notes": "Medical lead, 14 Nov: only sourced numbers kept, same rule as pH. Normal 38-51; critical below 20 and above 60; no warning between 20-37 and 52-60 (value shown as out of range). i-STAT reportable range 15-75: the device does not show values outside it. Level of the critical bands not decided yet (concerning, medical officer, or dangerous, everyone). Effects pasted by her, no named source, unverified: low (anemia) = less oxygen to the tissues, tiredness, shortness of breath, fast heartbeat, pallor, and if severe heart and brain ischemia; high = thicker blood with risk of thrombosis, stroke and heart attack, and in dehydration it shows hemoconcentration. Sources not opened. Level chosen by the medical lead: below 20 and above 60 = concerning, medical officer, the person is not left alone. Update 14 Nov: outside the normal range but not critical (20-37 and 52-60) = unusual, self only (medical lead's request: warn the person instead of nobody). Open question: fixed reference range or the person's own normal. Medical lead chose the fixed range 38-51 (option A), not the person's own normal. Reference ranges differ between men and women (from memory, unverified); she knows.",
-    "en_checked": false
+    "en_checked": false,
+    "bands": [
+      {
+        "from": null,
+        "from_inclusive": null,
+        "to": 20,
+        "to_inclusive": false,
+        "level": "concerning",
+        "notify": "medical_officer"
+      },
+      {
+        "from": 20,
+        "from_inclusive": true,
+        "to": 38,
+        "to_inclusive": false,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 51,
+        "from_inclusive": false,
+        "to": 60,
+        "to_inclusive": true,
+        "level": "unusual",
+        "notify": "self"
+      },
+      {
+        "from": 60,
+        "from_inclusive": false,
+        "to": null,
+        "to_inclusive": null,
+        "level": "concerning",
+        "notify": "medical_officer"
+      }
+    ]
   },
   {
     "id": "hemoglobin",

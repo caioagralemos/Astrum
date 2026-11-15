@@ -1,0 +1,79 @@
+{
+  "about": "Questions the hub asks before any level, when a check-in's words pick a card only through a lone symptom (engine/followup.ts). The medical lead, 14 Nov 2026, answering 'if someone only writes \"pressão alta\" or \"perna inchada\", which level?': \"Não dá para classificarmos o nível sem outras informações relacionadas, a duração, a coloração e outros sintomas associados, classificamos o quadro do paciente e não um sintoma isolado.\" So the hub raises nothing for these words alone: it asks her questions to that person only. Each question's text is in engine/strings.ts (Portuguese close to her words; English is a translation, not checked). She gave no rule for turning the answers into a level, so level_rules is empty: the answers are stored as reported (check-in rows 'checkin.<key>') and raise nothing; the question is with her (steps-demo/QUESTIONS-FOR-MEDICAL-LEAD.md). A level rule may be added here only from her written words, each quoting her.",
+  "follow_ups": [
+    {
+      "id": "high-blood-pressure",
+      "card": "heart-circulation",
+      "lone_words": [
+        "high blood pressure",
+        "pressão alta"
+      ],
+      "her_sentence": "Com isso temos que perguntar para pressão alta ( se dormiu bem, se está com sintomas de cabeça pesada e mal estar, se tem pressão alta e se sim, se tomou o remédio, medir a pressão da paciente)",
+      "answered_on": "2026-11-14",
+      "questions": [
+        {
+          "key": "bp_slept_well",
+          "string_key": "followup.bp.sleptWell",
+          "kind": "yes_no"
+        },
+        {
+          "key": "bp_heavy_head",
+          "string_key": "followup.bp.heavyHead",
+          "kind": "yes_no"
+        },
+        {
+          "key": "bp_diagnosed",
+          "string_key": "followup.bp.diagnosed",
+          "kind": "yes_no"
+        },
+        {
+          "key": "bp_took_medicine",
+          "string_key": "followup.bp.tookMedicine",
+          "kind": "yes_no",
+          "only_if": {
+            "key": "bp_diagnosed",
+            "answer": "yes"
+          }
+        },
+        {
+          "key": "bp_measured",
+          "string_key": "followup.bp.measure",
+          "kind": "value",
+          "unit": "mmHg"
+        }
+      ],
+      "level_rules": [],
+      "en_checked": false
+    },
+    {
+      "id": "swollen-leg",
+      "card": "heart-circulation",
+      "lone_words": [
+        "swollen leg",
+        "perna inchada"
+      ],
+      "her_sentence": "Já para perna inchada deve perguntar ( se houve mudança de coloração dos membros, se está sentindo dor ou outros sinais flogisticos)",
+      "answered_on": "2026-11-14",
+      "questions": [
+        {
+          "key": "leg_colour_changed",
+          "string_key": "followup.leg.colourChanged",
+          "kind": "yes_no"
+        },
+        {
+          "key": "leg_pain",
+          "string_key": "followup.leg.pain",
+          "kind": "yes_no"
+        },
+        {
+          "key": "leg_inflammation",
+          "string_key": "followup.leg.inflammation",
+          "kind": "yes_no",
+          "her_signs": "calor, vermelhidão, inchaço: the medical lead, 14 Nov 2026 (night), \"PODE SER ASSIM MESMO COMO O EXEMPLO\"."
+        }
+      ],
+      "level_rules": [],
+      "en_checked": false
+    }
+  ]
+}

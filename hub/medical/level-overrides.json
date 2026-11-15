@@ -1,23 +1,41 @@
 {
-  "about": "Levels per situation for cards whose base level is dangerous, from the medical lead's own notes list (engine/medical.ts cardLevel). Her warning, changes-after-check.md, 14 Nov 2026: \"heart-circulation base level is now dangerous, everyone (before: unusual, self). Warning to Caio: the notes list (slightly high blood pressure or a slightly swollen leg = unusual, self) must still decide the real level, otherwise a mild pressure alert would call everyone.\" A row applies only when one of the card's own answer signs names the situation exactly. Her mild situations (slightly high blood pressure, a slightly swollen leg, mild choking cleared by coughing) have no sign the hub can tell apart from the serious ones, so they are not here: those cards keep their own level and the question is in steps-demo/QUESTIONS-FOR-MEDICAL-LEAD.md. Every row awaits her confirmation.",
+  "about": "Levels per situation for cards whose base level is dangerous, from the medical lead's own notes list (engine/medical.ts cardSituation). Her warning, changes-after-check.md, 14 Nov 2026: \"heart-circulation base level is now dangerous, everyone (before: unusual, self). Warning to Caio: the notes list (slightly high blood pressure or a slightly swollen leg = unusual, self) must still decide the real level, otherwise a mild pressure alert would call everyone.\" A row applies only when one of the card's own answer signs names the situation exactly. Her mild situations have no sign the hub can tell apart from the serious ones, so they are not here: for heart-circulation the lone words ask her follow-up questions first (medical/follow-up.json); for choking the question is in steps-demo/QUESTIONS-FOR-MEDICAL-LEAD.md. Both rows were confirmed by her on 14 Nov 2026 (\"Pode\"); she confirmed the swollen-limb row again that night (\"AVISA AO MÉDICO\"). This file is not read for a card that carries its own \"situations\" field (her fields win), so it becomes unnecessary once her export carries them. Since her fields export (14 Nov 2026, night), heart-circulation carries its own situations (both answers concerning), so this file is no longer read for it; it is kept as the record of her answers.",
   "overrides": [
     {
       "card": "heart-circulation",
-      "answer": { "question": "Is one leg or arm swollen, warm and painful?", "answer": "yes" },
-      "with_words": ["swollen leg", "perna inchada"],
+      "answer": {
+        "question": "Is one leg or arm swollen, warm and painful?",
+        "answer": "yes"
+      },
+      "with_words": [
+        "swollen leg",
+        "perna inchada"
+      ],
       "level": "concerning",
       "notify": "medical_officer",
       "source": "heart-circulation notes: \"an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone)\"; her case-077 expects the same.",
-      "status": "awaiting the medical lead's confirmation"
+      "status": "confirmed by the medical lead, 2026-11-14 (\"Pode\"); concerning at once, confirmed again 2026-11-14 (night)",
+      "her_answer": "Pode, pode avisar e fazer as recomendações, quais as orientações para melhorar a circulação dos membros, como elevar as pernas ao deitar e se nao houver melhora, classificar como preocupante.",
+      "her_answer_note": "Her answer of 14 Nov 2026 (night), asked about this exact combination (swollen, warm and painful at the same time): \"AVISA AO MÉDICO E PODE ADMINISTRAR UMA MEIA COMPRESSIVA TAMBÉM CASO TENHA UMA NA CABINE\". It replaces her earlier \"Orienta E SÓ AVISA SE NÃO MELHORAR\" for this combination: concerning at once, the medical officer told. Her guidance for limb circulation in general (\"como elevar as pernas ao deitar\") is recorded here only and is not shown for this combination; where it should appear, if anywhere, is asked of her. The compression stocking is new card content: not on any card or screen; listed for her own session (PEDIDO-CAMPOS.md) and to check against a guideline (PERGUNTAS-ABERTAS.md).",
+      "her_decision": "AVISA AO MÉDICO E PODE ADMINISTRAR UMA MEIA COMPRESSIVA TAMBÉM CASO TENHA UMA NA CABINE",
+      "decided_on": "2026-11-14"
     },
     {
       "card": "heart-circulation",
-      "answer": { "question": "Is your blood pressure very high with a strong headache?", "answer": "yes" },
-      "with_words": ["high blood pressure", "pressão alta"],
+      "answer": {
+        "question": "Is your blood pressure very high with a strong headache?",
+        "answer": "yes"
+      },
+      "with_words": [
+        "high blood pressure",
+        "pressão alta"
+      ],
       "level": "concerning",
       "notify": "medical_officer",
       "source": "heart-circulation notes: \"an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone)\".",
-      "status": "awaiting the medical lead's confirmation"
+      "status": "confirmed by the medical lead, 2026-11-14 (\"Pode\")",
+      "her_answer": "Pode, pode avisar e fazer as recomendações, quais as orientações para melhorar a circulação dos membros, como elevar as pernas ao deitar e se nao houver melhora, classificar como preocupante.",
+      "her_answer_note": "Confirmed as written: concerning, the medical officer told. The rest of her sentence (limb circulation, raising the legs) is about the swollen limb row, not this one."
     }
   ]
 }

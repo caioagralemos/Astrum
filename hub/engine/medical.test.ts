@@ -93,12 +93,12 @@ test('her base levels: heart-circulation, choking and choking-no-gravity are dan
   }
 });
 
-test('level-overrides.json loads against her cards; every row quotes her and awaits her confirmation', () => {
+test('level-overrides.json loads against her cards; every row quotes her and is confirmed by her (14 Nov 2026, "Pode")', () => {
   assert.deepEqual(levelRows.problems, []);
   assert.equal(levelRows.overrides.length, 2);
   for (const o of levelRows.overrides) {
     assert.ok(o.source.length > 20, o.answer.question);
-    assert.match(o.status, /awaiting/);
+    assert.match(o.status, /confirmed by the medical lead, 2026-11-14/);
   }
   const bad = parseLevelOverrides({ overrides: [
     { card: 'heart-circulation', answer: { question: 'Is your blood pressure a little high?', answer: 'yes' }, with_words: [], level: 'unusual', notify: 'self', source: 'x' },
@@ -108,7 +108,7 @@ test('level-overrides.json loads against her cards; every row quotes her and awa
   assert.equal(bad.problems.length, 2);
 });
 
-test('heart-circulation: her concerning answers give concerning; words alone, or any other sign, keep her base level (everyone)', () => {
+test('heart-circulation, by her situations (fields export, 14 Nov 2026): her concerning answers give concerning; an unplaced word or sign keeps her base level (everyone)', () => {
   const level = (answers: { question: string; answer: string }[], text?: string) => {
     const picked = pickCard(cards, { readings: [], answers, text })!;
     assert.equal(picked.card.id, 'heart-circulation');
@@ -118,17 +118,27 @@ test('heart-circulation: her concerning answers give concerning; words alone, or
   const pressure = answer('Is your blood pressure very high with a strong headache?', 'yes');
   const pale = answer('Are you pale with cold sweat and weakness?', 'yes');
   assert.equal(level([swollen]), 2);
-  assert.equal(level([swollen], 'swollen leg'), 2, 'her case-077: the word names the same situation');
-  assert.equal(level([pressure], 'high blood pressure'), 2);
+  // Her situations hold no word for this one; cardLevel alone keeps the base level, and the ask-first rule takes her lone word out
+  // beside the answer (engine/followup.ts withoutLoneWords; followup.test.ts gives concerning for case-077).
+  assert.equal(level([swollen], 'swollen leg'), 3);
+  assert.equal(level([pressure], 'high blood pressure'), 3);
   assert.equal(level([swollen, pressure]), 2);
   assert.equal(level([pale]), 3, 'her dangerous line');
   assert.equal(level([swollen, pale]), 3);
   assert.equal(level([swollen], 'swollen leg and cold sweat'), 3, 'a word the table does not place keeps the base level');
-  assert.equal(level([], 'high blood pressure'), 3, 'slightly high or very high: the hub cannot tell, so her base level (question with her)');
+  // cardLevel alone still gives her base level for the lone words; the ask-first rule (engine/followup.ts) is what keeps it from being raised.
+  assert.equal(level([], 'high blood pressure'), 3);
   assert.equal(level([], 'swollen leg'), 3);
   assert.equal(level([swollen]), cardLevel(pickCard(cards, { readings: [], answers: [swollen] })!, levelRows.overrides));
-  assert.equal(cardLevel(pickCard(cards, { readings: [], answers: [swollen] })!, []), 3, 'without the table, everyone');
-  assert.equal(cardFinding(pickCard(cards, { readings: [], answers: [swollen] }), 'reyes', cards, 'reported', levelRows.overrides)?.level, 2);
+  assert.equal(cardLevel(pickCard(cards, { readings: [], answers: [swollen] })!, []), 2, 'her situations, with or without the old table');
+  // Her answer, 14 Nov 2026 (night), for swollen, warm and painful at once: "AVISA AO MÉDICO ...": concerning at once.
+  const swollenPick = pickCard(cards, { readings: [], answers: [swollen] });
+  assert.equal(cardFinding(swollenPick, 'reyes', cards, 'reported', levelRows.overrides)?.level, 2);
+  // Her other confirmed row raises at once, alone or beside the swollen limb.
+  const pressurePick = pickCard(cards, { readings: [], answers: [pressure] });
+  assert.equal(cardFinding(pressurePick, 'reyes', cards, 'reported', levelRows.overrides)?.level, 2);
+  assert.equal(cardFinding(pickCard(cards, { readings: [], answers: [swollen, pressure] }), 'reyes', cards, 'reported', levelRows.overrides)?.level, 2);
+  assert.equal(cardFinding(pickCard(cards, { readings: [], answers: [swollen, pale] }), 'reyes', cards, 'reported', levelRows.overrides)?.level, 3, 'with a dangerous sign: everyone, no waiting');
 });
 
 test('choking: no row; every pick keeps her base level, dangerous', () => {
@@ -204,9 +214,11 @@ test('glucose: fasting and not fasting by her numbers; unanswered takes the high
   assert.equal(findingsNow({ people: ['reyes'], now: 2, cards, entries: blood.entries, rowsOf: () => [], latestBlood: [row] })[0].nextQuestion, FASTING_QUESTION);
 });
 
-test('hemoglobin never alerts; sodium, potassium, calcium and hematocrit raise nothing until their levels are machine-readable', () => {
+test('hemoglobin never alerts; sodium, potassium, calcium and hematocrit follow her bands (fields export, 14 Nov 2026)', () => {
   assert.equal(bloodLevel(entry('hemoglobin'), 3, null), null);
-  for (const [id, v] of [['sodium', 110], ['potassium', 7], ['ionized-calcium', 0.5], ['hematocrit', 10]] as const) assert.equal(bloodLevel(entry(id), v, null), null, id);
+  for (const [id, v, level] of [['sodium', 110, 3], ['potassium', 7, 3], ['ionized-calcium', 0.5, 3], ['hematocrit', 10, 2], ['sodium', 140, null], ['hematocrit', 60, 1]] as const) {
+    assert.equal(bloodLevel(entry(id), v, null)?.level ?? null, level, `${id} ${v}`);
+  }
 });
 
 // ---------- who is told, not left alone, the urgent card, sleep ----------

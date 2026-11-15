@@ -1,6 +1,8 @@
 // The medical lead's rules for warning levels, as the hub runs them. Pure: no
 // I/O, no model. Source: hub/medical/README.md, "Rules she decided that change
-// how the system works", and her own files (cards.json, blood.json).
+// how the system works", and her own files (cards.json, blood.json), including
+// her level fields when her export carries them (engine/levels.ts: a card's
+// "situations", a blood entry's "bands", "symptom_questions", "escalations").
 //
 // Every number here is hers. Where her files carry it (a card's sign
 // threshold, a blood entry's flag or urgent field) it is read from the file at
@@ -19,6 +21,8 @@ import type { BloodEntry } from './blood.ts';
 import { bloodSignal } from './blood.ts';
 import type { AnswerSign, Card, CardLevel, CardNotify, Facts, Picked } from './cards.ts';
 import { NO_CARD_FITS, pickCard } from './cards.ts';
+import { GLUCOSE_ID, NOTIFY_OF, bandOf, coefficientOfVariation, higher, inBound } from './levels.ts';
+import type { Band, SymptomQuestion } from './levels.ts';
 import type { Kind, Row } from './types.ts';
 
 /** Where every limit in this file comes from. */
@@ -126,31 +130,116 @@ export const GLUCOSE_NOT_FASTING_HIGH = 140;
 /** The fasting question, in her words (cases.json, case-039). */
 export const FASTING_QUESTION = 'Are you fasting?';
 
+/** What the hub knows beside a blood result, for her level fields. Each part optional. */
+export interface BloodContext {
+  /** Her symptom questions answered, by key: true yes, false no. Unanswered keys are absent. */
+  answers?: Record<string, boolean>;
+  /** The person's latest reading of a body signal, for an escalation that names it. */
+  reading?: (signal: string) => { value: number; unit: string } | null;
+  /** The same entry's recent results (this one included), oldest first, for the variation escalation. */
+  history?: number[];
+}
+
+export interface BloodJudged {
+  level: Level;
+  limit: number | null;
+  /** Her symptom question still to ask for this result, or null. */
+  ask: SymptomQuestion | null;
+}
+
 /**
  * The level of one blood result by her rules, or null when it raises nothing.
- * Only the entries her README gives rules for raise anything: glucose and pH.
- * Hemoglobin never does. Sodium, potassium, ionized calcium and hematocrit
- * have their levels per band only in prose (blood.json notes), so they raise
- * nothing here yet; the screen still shows their judgement against her range.
+ * Hemoglobin never does. With her level fields (engine/levels.ts):
+ *   - an entry with "bands" takes the band that holds the value (no band: no
+ *     alert); each of the band's symptom questions answered yes raises it to
+ *     that question's level; the first unanswered one is asked;
+ *   - glucose keeps the rules below, and each of its "escalations" whose
+ *     condition holds raises it to that escalation's level.
+ * Without the fields: glucose and pH by her README; sodium, potassium, ionized
+ * calcium and hematocrit raise nothing (their levels were only in prose).
  *
  * `fasting` is the person's answer to her fasting question; null when not
  * answered. Unanswered, the result takes the higher of the two tables'
  * levels (both hers), and the finding asks the question.
  */
-export function bloodLevel(entry: BloodEntry, value: number, fasting: boolean | null): { level: Level; limit: number | null } | null {
+export function bloodLevel(entry: BloodEntry, value: number, fasting: boolean | null, ctx: BloodContext = {}): BloodJudged | null {
   if (!Number.isFinite(value) || NO_ALERTS_OF_ITS_OWN.includes(entry.id)) return null;
-  if (entry.id === 'ph') return phLevel(entry, value);
-  if (entry.id === 'glucose') {
-    if (fasting === null) {
-      const a = glucoseLevel(entry, value, true);
-      const b = glucoseLevel(entry, value, false);
-      if (!a) return b;
-      if (!b) return a;
-      return a.level >= b.level ? a : b;
-    }
-    return glucoseLevel(entry, value, fasting);
+  if (entry.bands) return bandLevel(entry, entry.bands, value, ctx);
+  const base = entry.id === 'ph' ? phLevel(entry, value) : entry.id === GLUCOSE_ID ? glucoseBoth(entry, value, fasting) : null;
+  if (entry.id !== GLUCOSE_ID || !entry.escalations) return base ? { ...base, ask: null } : null;
+  return escalate(entry, value, base, ctx);
+}
+
+function glucoseBoth(entry: BloodEntry, value: number, fasting: boolean | null): { level: Level; limit: number | null } | null {
+  if (fasting !== null) return glucoseLevel(entry, value, fasting);
+  const a = glucoseLevel(entry, value, true);
+  const b = glucoseLevel(entry, value, false);
+  if (!a) return b;
+  if (!b) return a;
+  return a.level >= b.level ? a : b;
+}
+
+const LEVEL_NAME: Record<Level, CardLevel> = { 1: 'unusual', 2: 'concerning', 3: 'dangerous' };
+
+/**
+ * Her symptom questions named by `keys`: the highest level of those answered
+ * yes, and the band's question that goes with the result: the first one not
+ * answered yes. Her case-007 (sodium 132, answered no) still expects its
+ * question with the result; her case-008 (answered yes) expects none.
+ */
+function symptomAnswers(entry: BloodEntry, keys: readonly string[], ctx: BloodContext): { level: CardLevel | null; ask: SymptomQuestion | null } {
+  let level: CardLevel | null = null;
+  let ask: SymptomQuestion | null = null;
+  for (const key of keys) {
+    const q = entry.symptom_questions?.find((x) => x.key === key);
+    if (!q) continue;
+    if (ctx.answers?.[key] === true) level = higher(level, q.if_yes.level);
+    else if (!ask) ask = q;
   }
-  return null;
+  return { level, ask: level ? null : ask };
+}
+
+/** The edge of a band nearest her normal range, for the alert's limit and direction. */
+function bandLimit(entry: BloodEntry, band: Band): number | null {
+  const low = entry.reference_range.low;
+  if (band.to !== null && (band.from === null || (low !== null && band.to <= low))) return band.to;
+  return band.from;
+}
+
+function bandLevel(entry: BloodEntry, bands: Band[], value: number, ctx: BloodContext): BloodJudged | null {
+  const band = bandOf(bands, value);
+  if (!band) return null;
+  const sym = symptomAnswers(entry, band.ask ?? [], ctx);
+  const level = higher(band.level, sym.level)!;
+  return { level: LEVEL_OF[level], limit: bandLimit(entry, band), ask: sym.ask };
+}
+
+/**
+ * Glucose: her escalations on top of the fasting rules. Each holds only inside
+ * its own range. An escalation's symptom question raises the level when
+ * answered yes, but is not put to the person as the next question: her
+ * case-050 (270, not fasting, no symptom answer) expects no question.
+ */
+function escalate(entry: BloodEntry, value: number, base: { level: Level; limit: number | null } | null, ctx: BloodContext): BloodJudged | null {
+  let level: CardLevel | null = base ? LEVEL_NAME[base.level] : null;
+  for (const e of entry.escalations ?? []) {
+    if (e.variation) {
+      const values = ctx.history ?? [];
+      const cv = values.length >= e.variation.min_results ? coefficientOfVariation(values) : null;
+      if (cv !== null && cv > e.variation.above_percent) level = higher(level, e.level);
+      continue;
+    }
+    if (!inBound(e, value)) continue;
+    if (e.ask) {
+      if (symptomAnswers(entry, e.ask, ctx).level) level = higher(level, e.level);
+    } else if (e.reading) {
+      const r = ctx.reading?.(e.reading.signal) ?? null;
+      if (!r || r.unit.toLowerCase() !== e.reading.unit.toLowerCase()) continue;
+      if ((e.reading.below !== undefined && r.value < e.reading.below) || (e.reading.above !== undefined && r.value > e.reading.above)) level = higher(level, e.level);
+    }
+  }
+  if (!level) return null;
+  return { level: LEVEL_OF[level], limit: base?.limit ?? null, ask: null };
 }
 
 /**
@@ -194,14 +283,15 @@ function glucoseLevel(e: BloodEntry, v: number, fasting: boolean): { level: Leve
 }
 
 /** One blood result as a finding, or null. `signal` is the row's (blood.<id> with _ for -). */
-export function bloodFinding(entry: BloodEntry, row: Row, fasting: boolean | null): Finding | null {
+export function bloodFinding(entry: BloodEntry, row: Row, fasting: boolean | null, ctx: BloodContext = {}): Finding | null {
   if (row.value === null || row.unit !== entry.unit || !row.person) return null;
-  const judged = bloodLevel(entry, row.value, fasting);
+  const judged = bloodLevel(entry, row.value, fasting, ctx);
   if (!judged) return null;
   return {
     key: row.signal, person: row.person, level: judged.level, signal: row.signal, value: row.value, unit: row.unit, limit: judged.limit,
     limitSource: MEDICAL_LEAD, direction: judged.limit !== null && row.value < judged.limit ? 'low' : 'high', kind: row.kind, card: null, private: null,
-    nextQuestion: entry.id === 'glucose' && fasting === null ? FASTING_QUESTION : null,
+    // Her fasting question first; then her symptom question for this result (English, as her cases write it).
+    nextQuestion: entry.id === GLUCOSE_ID && fasting === null ? FASTING_QUESTION : judged.ask?.question.en ?? null,
   };
 }
 
@@ -249,7 +339,6 @@ export interface LevelOverride {
   status: string;
 }
 
-const NOTIFY_OF: Record<CardLevel, CardNotify> = { unusual: 'self', concerning: 'medical_officer', dangerous: 'everyone' };
 
 /**
  * Reads level-overrides.json against her cards. Never throws. A row that does
@@ -281,21 +370,47 @@ export function parseLevelOverrides(json: unknown, cards: Card[]): { overrides: 
 }
 
 /**
- * The level of the card her signs picked. The card's own level, unless a row
- * of the table names the situation: then the row's level, when every sign of
- * that card that matched is a row's answer or one of its words. Any other sign
- * of the card that matched (a word the table does not place, a reading) keeps
- * the card's own level, so nothing is lowered on a guess. Several rows: the
- * highest of their levels.
+ * The level of the card her signs picked, and the card she names beside it.
+ *
+ * A card with "situations" (her fields, engine/levels.ts) uses them, and
+ * level-overrides.json is not read for it (her fields win): every situation
+ * that one of the matched answers or words belongs to counts; the level is the
+ * highest of them, and never below the card's own level while any matched sign
+ * (a reading, or an answer or word in no situation) belongs to no situation:
+ * nothing is lowered on a guess, and nothing she placed is lowered either.
+ *
+ * Otherwise the card's own level, unless a row of level-overrides.json names
+ * the situation: then the row's level, when every sign of that card that
+ * matched is a row's answer or one of its words. Any other sign of the card
+ * that matched (a word the table does not place, a reading) keeps the card's
+ * own level, so nothing is lowered on a guess. Several rows: the highest of
+ * their levels.
  */
-export function cardLevel(picked: Picked, overrides: LevelOverride[] = []): Level {
+export function cardSituation(picked: Picked, overrides: LevelOverride[] = []): { level: Level; alsoCard: string | null } {
   const base = LEVEL_OF[picked.card.level];
   const signs = picked.signs;
+  const situations = picked.card.situations;
+  if (situations?.length) {
+    if (!signs) return { level: base, alsoCard: null };
+    const same = (a: AnswerSign, b: AnswerSign) => a.question === b.question && a.answer === b.answer;
+    const hit = situations.filter((s) => s.answers.some((a) => signs.answers.some((b) => same(a, b))) || s.words.some((w) => signs.words.includes(w)));
+    if (!hit.length) return { level: base, alsoCard: null };
+    // A reading that matched belongs to no situation: like any unplaced sign, it keeps the card's own level as the floor.
+    const placed = !signs.readings.length && signs.answers.every((a) => hit.some((s) => s.answers.some((b) => same(a, b)))) && signs.words.every((w) => hit.some((s) => s.words.includes(w)));
+    const top = hit.reduce((a, b) => (LEVEL_OF[b.level] > LEVEL_OF[a.level] ? b : a));
+    const level = Math.max(LEVEL_OF[top.level], placed ? 0 : base) as Level;
+    return { level, alsoCard: top.also_card ?? null };
+  }
   const rows = overrides.filter((o) => o.card === picked.card.id && signs?.answers.includes(o.answer));
-  if (!signs || !rows.length || signs.readings.length) return base;
+  if (!signs || !rows.length || signs.readings.length) return { level: base, alsoCard: null };
   const placed = (s: { question: string; answer: string } | string) => rows.some((o) => (typeof s === 'string' ? o.with_words.includes(s) : o.answer === s));
-  if (!signs.answers.every(placed) || !signs.words.every(placed)) return base;
-  return Math.max(...rows.map((o) => LEVEL_OF[o.level])) as Level;
+  if (!signs.answers.every(placed) || !signs.words.every(placed)) return { level: base, alsoCard: null };
+  return { level: Math.max(...rows.map((o) => LEVEL_OF[o.level])) as Level, alsoCard: null };
+}
+
+/** The level only (cardSituation). */
+export function cardLevel(picked: Picked, overrides: LevelOverride[] = []): Level {
+  return cardSituation(picked, overrides).level;
 }
 
 /**
@@ -320,10 +435,13 @@ export function cardFinding(picked: Picked | null, person: string, cards: Card[]
     };
   }
   const card = picked.card;
-  return {
-    key: `card:${card.id}`, person, level: cardLevel(picked, overrides), signal: null, value: null, unit: null, limit: null, limitSource: MEDICAL_LEAD,
+  const { level, alsoCard } = cardSituation(picked, overrides);
+  const finding: Finding = {
+    key: `card:${card.id}`, person, level, signal: null, value: null, unit: null, limit: null, limitSource: MEDICAL_LEAD,
     direction: null, kind, card: card.id, private: privacyOf(card.id), nextQuestion: null,
   };
+  if (alsoCard) finding.alsoCard = alsoCard;
+  return finding;
 }
 
 /** How long an alert raised by a card her signs picked in a question stays, unless the same card is picked again. The owner's to decide. */
@@ -376,6 +494,43 @@ export const FASTING_SIGNAL = 'checkin.fasting';
 /** A fasting answer counts for a glucose result taken at most this long after it. The owner's to decide. */
 export const FASTING_MATCH_MS = 2 * 3600_000;
 
+/** A symptom answer counts for a blood result from this long before it until now. The owner's to decide. */
+export const SYMPTOM_MATCH_MS = FASTING_MATCH_MS;
+/** A body reading (heart rate) counts for a glucose escalation when it is at most this old. The owner's to decide. */
+export const READING_MATCH_MS = 10 * 60_000;
+/** The glucose results her variation rule looks at. Her notes say "over the days"; the owner's to decide. */
+export const VARIATION_LOOKBACK_MS = 14 * 86_400_000;
+
+/** The check-in signal of one of her symptom questions: "checkin.<key>", 1 yes, 0 no. */
+export function symptomSignal(key: string): string {
+  return `checkin.${key}`;
+}
+
+/** What her level fields need beside one blood result, from the hub's own rows. Empty when the entry has none. */
+function bloodContext(src: FindingSources, entry: BloodEntry, row: Row): BloodContext {
+  const person = row.person!;
+  const ctx: BloodContext = {};
+  const keys = entry.symptom_questions?.map((q) => q.key) ?? [];
+  if (keys.length) {
+    ctx.answers = {};
+    for (const key of keys) {
+      const latest = src.rowsOf(person, symptomSignal(key), row.t - SYMPTOM_MATCH_MS).filter((r) => r.value !== null && r.t <= src.now).sort((a, b) => b.t - a.t)[0];
+      if (latest) ctx.answers[key] = latest.value === 1;
+    }
+  }
+  if (entry.escalations?.some((e) => e.reading)) {
+    ctx.reading = (signal) => {
+      const r = src.rowsOf(person, signal, src.now - READING_MATCH_MS).filter((x) => x.value !== null && x.t <= src.now).sort((a, b) => b.t - a.t)[0];
+      return r ? { value: r.value!, unit: r.unit } : null;
+    };
+  }
+  if (entry.escalations?.some((e) => e.variation)) {
+    ctx.history = src.rowsOf(person, row.signal, src.now - VARIATION_LOOKBACK_MS).filter((r) => r.value !== null && r.t <= src.now && r.unit === entry.unit)
+      .sort((a, b) => a.t - b.t).map((r) => r.value!);
+  }
+  return ctx;
+}
+
 export interface FindingSources {
   people: string[];
   now: number;
@@ -401,7 +556,7 @@ export function findingsNow(src: FindingSources): Finding[] {
     const entry = src.entries.find((e) => bloodSignal(e.id) === row.signal);
     if (!entry) continue;
     const answer = src.rowsOf(row.person, FASTING_SIGNAL, row.t - FASTING_MATCH_MS).filter((r) => r.t <= row.t && r.value !== null).sort((a, b) => b.t - a.t)[0];
-    const finding = bloodFinding(entry, row, answer ? answer.value === 1 : null);
+    const finding = bloodFinding(entry, row, answer ? answer.value === 1 : null, bloodContext(src, entry, row));
     if (finding) out.push(finding);
   }
   return out;

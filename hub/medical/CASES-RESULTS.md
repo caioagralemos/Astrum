@@ -4,11 +4,11 @@ Written by `npm run cases` (medical/run-cases.ts). Each case is built as inputs 
 
 ## Totals
 
-- Cases: 96. **Passed: 46. Failed: 50.**
+- Cases: 96. **Passed: 79. Failed: 17.**
 - A case passes when flag, level, who is told and card match, the next question matches where it can be checked, and no checkable "must not" fails.
-- flag: 73 pass, 23 fail. level: 55 / 41. notify: 55 / 41. card: 87 / 9.
-- next_question: 89 pass, 4 fail, 3 not checkable (the hub has no fixed question for it: its fixed questions are her SpO2 question, "Are you fasting?" and "Did it get better?").
-- must_not items: 243: 218 pass, 23 fail, 2 not automatically checkable. "Reassure", "suggest a diagnosis" and "say the word sepsis" are checked with the output check's rules on the hub's fixed texts only; the model's own answer is not checked here.
+- flag: 93 pass, 3 fail. level: 88 / 8. notify: 88 / 8. card: 87 / 9.
+- next_question: 91 pass, 4 fail, 1 not checkable (the hub has no fixed question for it: its fixed questions are her SpO2 question, "Are you fasting?" and "Did it get better?").
+- must_not items: 243: 237 pass, 4 fail, 2 not automatically checkable. "Reassure", "suggest a diagnosis" and "say the word sepsis" are checked with the output check's rules on the hub's fixed texts only; the model's own answer is not checked here.
 - Card: the alert carries her urgent card beside any level 3 card, so an expected card passes when it is either one; an expected "no card" needs the alert's own card to be empty.
 
 ## Failing cases
@@ -34,207 +34,6 @@ Inputs: asleep; respiratory_rate: the value as the usual ("within"); heart_rate:
 Fails on: card.
 Why: Disagreement between the case and her cards: at 2.6 mmHg her headache card's CO2 sign (above 2.3) matches; her high-co2 card's sign is the NASA limit (above 3) and does not.
 
-### case-005: Very low sodium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-006: Low sodium, moderate
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "wait for symptom answers before alerting".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-007: Mild low sodium, no symptoms
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | Do you have confusion, slow thinking, headache, nausea or vomiting? |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing. Her symptom question is also only in the notes.
-
-### case-008: Mild low sodium, with symptoms
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-Inputs: an answer "yes: ..." is given to her signs as "yes".
-
-### case-010: High sodium, severe
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone", must not "wait for symptom answers before alerting".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-011: Low potassium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-012: Mildly low potassium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-014: Mildly high potassium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-015: High potassium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-016: Very high potassium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-017: Very low ionized calcium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-018: Moderately low ionized calcium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | Do you have tingling, cramps, spasms, confusion, thirst, vomiting or weakness? |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing. Her symptom question is also only in the notes.
-
-### case-019: Mildly low ionized calcium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-021: Mildly high ionized calcium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-022: High ionized calcium at the critical limit
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-023: Very high ionized calcium
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-029: Critically low hematocrit
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-030: Low hematocrit
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-032: High hematocrit
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | unusual | self | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify.
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
-### case-033: Critically high hematocrit
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | - | - |
-| got | false | - | - | - | - |
-
-Fails on: flag, level, notify, must not "leave her alone".
-Why: Missing machine-readable field: this entry's level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.
-
 ### case-035: Slightly low blood oxygen
 
 | | flag | level | notify | card | next question |
@@ -246,28 +45,6 @@ Fails on: card.
 Why: Disagreement between the case and her card: the low-oxygen card's sign (SpO2 below 95) matches 92, so the card is shown with the unusual level; the case expects no card.
 Inputs: SpO2 92 read twice, 60 s apart.
 
-### case-048: Not fasting, low, sleepy, slow heartbeat
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | true | concerning | medical_officer | - | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: "low glucose and heart rate below 40 = dangerous" is only in the glucose notes; the hub gives the not-fasting 54-69 band, concerning.
-Inputs: an answer "yes: ..." is given to her signs as "yes".
-
-### case-051: Not fasting, very high with fast deep breathing
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | - | - |
-| got | true | concerning | medical_officer | - | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: the escalation at 250 or more (fast deep breathing, vomiting, drowsiness = dangerous) is only in the glucose notes.
-Inputs: an answer "yes: ..." is given to her signs as "yes".
-
 ### case-052: Glucose varies a lot
 
 | | flag | level | notify | card | next question |
@@ -276,7 +53,7 @@ Inputs: an answer "yes: ..." is given to her signs as "yes".
 | got | true | unusual | self | - | Are you fasting? |
 
 Fails on: next_question.
-Why: Engine gap (missing field): the variation rule (CV above 36 %) is only in the glucose notes and is not run. The level matches only because the latest value, 150, is unusual on both her tables; with no fasting answer the hub asks "Are you fasting?", which the case does not expect.
+Why: Hub rule vs case: her variation escalation now gives unusual (as expected), but with no answer to "Are you fasting?" the hub still asks it; the case expects no question.
 
 ### case-057: Headache with repeated vomiting
 
@@ -310,27 +87,6 @@ Fails on: card.
 Why: Engine rule vs case: a reading against the person's own normal alone never picks a card; the case expects her chest-pain card. The level and who is told match.
 Inputs: resting_heart_rate: the usual the case states.
 
-### case-064: Diarrhea for 3 days, cannot drink
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | digestive | - |
-| got | true | unusual | self | digestive | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-066: Chemical in the eye
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | eyes | - |
-| got | true | unusual | self | eyes | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-Inputs: an answer "yes: ..." is given to her signs as "yes".
-
 ### case-068: Small red warm area of skin
 
 | | flag | level | notify | card | next question |
@@ -341,26 +97,6 @@ Inputs: an answer "yes: ..." is given to her signs as "yes".
 Fails on: card.
 Why: Disagreement between the case and her card words: "red and warm skin" contains her skin-rash word "skin"; her skin-infection word is "red and hot skin", which it does not contain.
 
-### case-070: Stroke signs
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | neuro | - |
-| got | true | unusual | self | neuro | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-071: Burn with blisters on the hand
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | burn | - |
-| got | true | unusual | self | burn | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
 ### case-072: Fire alarm and visible smoke
 
 | | flag | level | notify | card | next question |
@@ -369,7 +105,7 @@ Why: Missing machine-readable field: the right card is picked, but the level for
 | got | true | unusual | self | smoke-toxic-air | - |
 
 Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
+Why: Mixed sign left out by her (changes-fields.md, question 4): "smoke" and "Do you see smoke or smell something strange?" can be mild or dangerous, so no situation holds them; only "fire" and "alarm" are dangerous. The card's base level (unusual) applies.
 
 ### case-073: Cough with phlegm for more than 2 days
 
@@ -379,7 +115,7 @@ Why: Missing machine-readable field: the right card is picked, but the level for
 | got | true | unusual | self | asthma-lung | - |
 
 Fails on: level, notify.
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
+Why: Needs a time condition (changes-fields.md, question 7): "for more than 2 days" is not an answer or a word, so no situation holds "phlegm"; the base level (unusual) applies.
 
 ### case-075: Broken tooth
 
@@ -391,46 +127,6 @@ Why: Missing machine-readable field: the right card is picked, but the level for
 Fails on: level, notify, card.
 Why: Disagreement between the case and her card words: "I broke a tooth" contains her fracture word "broke"; her dental word is "broken tooth".
 
-### case-076: Very hard belly and sudden pain
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | acute-abdomen | - |
-| got | true | concerning | medical_officer | acute-abdomen | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-078: Confused with very hot, dry skin
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | heat-cold | - |
-| got | true | unusual | self | heat-cold | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-079: Hearing voices
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | depression-psychosis | - |
-| got | true | concerning | medical_officer | depression-psychosis | - |
-
-Fails on: level, notify.
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-080: Fever with confusion and cold sweat
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | sepsis-anemia | - |
-| got | true | unusual | self | sepsis-anemia | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
 ### case-081: Fast pressure drop alarm
 
 | | flag | level | notify | card | next question |
@@ -440,26 +136,6 @@ Why: Missing machine-readable field: the right card is picked, but the level for
 
 Fails on: flag, level, notify, card, must not "leave her alone".
 Why: Missing machine-readable field and an open point: there is no numeric cabin pressure limit (her README, open points), so no room alarm; a reading with no question never raises a card on its own, and her decompression card's base level is unusual.
-
-### case-084: Hard to wake after taking a medicine
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | dangerous | everyone | medication-overdose | - |
-| got | true | unusual | self | medication-overdose | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-085: Heavy bleeding
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | gynecologic | - |
-| got | true | unusual | self | gynecologic | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
 
 ### case-086: Suit mark on the skin
 
@@ -476,20 +152,10 @@ Why: Disagreement between the case and her card words: "suit mark" contains none
 | | flag | level | notify | card | next question |
 |---|---|---|---|---|---|
 | expected | true | dangerous | everyone | tingling-nerves | - |
-| got | true | unusual | self | tingling-nerves | - |
+| got | true | concerning | medical_officer | tingling-nerves | - |
 
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
-
-### case-088: Very little urine for many hours
-
-| | flag | level | notify | card | next question |
-|---|---|---|---|---|---|
-| expected | true | concerning | medical_officer | nutrition-dust-kidney | - |
-| got | true | unusual | self | nutrition-dust-kidney | - |
-
-Fails on: level, notify, must not "leave her alone".
-Why: Missing machine-readable field: the right card is picked, but the level for this situation is only in the card's `notes`; the hub uses the card's base `level`.
+Fails on: level, notify.
+Why: Mixed question (changes-fields.md, question 10): "Do you have weakness in an arm or leg?" is in her concerning situation; her dangerous line ("sudden numbness or weakness on one side") has no answer or word of its own.
 
 ### case-092: No card: question about water
 
@@ -524,4 +190,4 @@ Inputs: resting_heart_rate: the usual the case states.
 
 ## Passing cases
 
-case-001, case-004, case-009, case-013, case-020, case-024, case-025, case-026, case-027, case-028, case-031, case-034, case-036, case-037, case-038, case-039, case-040, case-041, case-042, case-043, case-044, case-045, case-046, case-047, case-049, case-050, case-053, case-054, case-055, case-056, case-058, case-061, case-062, case-063, case-065, case-067, case-069, case-074, case-077, case-082, case-083, case-089, case-090, case-091, case-094, case-095
+case-001, case-004, case-005, case-006, case-007, case-008, case-009, case-010, case-011, case-012, case-013, case-014, case-015, case-016, case-017, case-018, case-019, case-020, case-021, case-022, case-023, case-024, case-025, case-026, case-027, case-028, case-029, case-030, case-031, case-032, case-033, case-034, case-036, case-037, case-038, case-039, case-040, case-041, case-042, case-043, case-044, case-045, case-046, case-047, case-048, case-049, case-050, case-051, case-053, case-054, case-055, case-056, case-058, case-061, case-062, case-063, case-064, case-065, case-066, case-067, case-069, case-070, case-071, case-074, case-076, case-077, case-078, case-079, case-080, case-082, case-083, case-084, case-085, case-088, case-089, case-090, case-091, case-094, case-095

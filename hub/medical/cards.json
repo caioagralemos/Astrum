@@ -130,7 +130,48 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "APPROVED by the medical lead (pt) on 14 Nov. English is a translation, not checked (en_checked: false). Level depends on signs: no signs = unusual, self (fix cabin CO2); mild = unusual, self; moderate = concerning, medical_officer; severe (deep drowsiness, seizure, coma, respiratory arrest) = dangerous, everyone. Blood gas (arterial pCO2: 35-45 normal, 46-60 mild-moderate, >60 important, >80-90 narcosis/coma) is a separate idea sent to Caio; arterial values only. Insulin/potassium are NOT part of this card. SpO2 oxygen target removed: oxygen/mask works by isolating from cabin CO2, not by treating hypoxemia. Symptom sources: NASA abstract says 2.3-2.7 mmHg fatigue and full-headedness, 2.7-3.0 missed steps, above 3.0-3.4 headaches. Removed from the approved text on purpose: crew fixes the source (scrubbers, lithium hydroxide cartridges). SOURCE CHECK 14 Nov (second round): CONFIRMED in abstracts: Law 2014 (odds of headache double per 1 mmHg; 7-day average below 2.5 mmHg to keep risk under 1%; an earlier news summary said 2 mmHg, the abstract says 2.5), Scully 2019 (no clear dose-response, 600-5000 ppm), Evans 2025 (CO2 pockets in microgravity; a short commentary, not a protocol). NOT USED: Sampige 2024 (dry eye only), Rochwerg ERS/ATS 2017 NIV guideline (about noninvasive ventilation in respiratory failure, not about CO2 exposure or the sealed-mask logic). No document found gives crew response steps. The approved Portuguese text was not changed. CHANGED 14 Nov (after Caio's check against the DGLRM/ESAM 2020 microgravity CPR guideline and the NHS, item 4, medical lead chose A): step 4 no longer says another person ventilates with the bag-valve mask; for a seizure nothing goes in the mouth and the person is laid on the side when it stops; no response and not breathing normally goes to the cardiac arrest card; bag-valve mask breaths only with two people and the person strapped (no gravity)."
+    "notes": "APPROVED by the medical lead (pt) on 14 Nov. English is a translation, not checked (en_checked: false). Level depends on signs: no signs = unusual, self (fix cabin CO2); mild = unusual, self; moderate = concerning, medical_officer; severe (deep drowsiness, seizure, coma, respiratory arrest) = dangerous, everyone. Blood gas (arterial pCO2: 35-45 normal, 46-60 mild-moderate, >60 important, >80-90 narcosis/coma) is a separate idea sent to Caio; arterial values only. Insulin/potassium are NOT part of this card. SpO2 oxygen target removed: oxygen/mask works by isolating from cabin CO2, not by treating hypoxemia. Symptom sources: NASA abstract says 2.3-2.7 mmHg fatigue and full-headedness, 2.7-3.0 missed steps, above 3.0-3.4 headaches. Removed from the approved text on purpose: crew fixes the source (scrubbers, lithium hydroxide cartridges). SOURCE CHECK 14 Nov (second round): CONFIRMED in abstracts: Law 2014 (odds of headache double per 1 mmHg; 7-day average below 2.5 mmHg to keep risk under 1%; an earlier news summary said 2 mmHg, the abstract says 2.5), Scully 2019 (no clear dose-response, 600-5000 ppm), Evans 2025 (CO2 pockets in microgravity; a short commentary, not a protocol). NOT USED: Sampige 2024 (dry eye only), Rochwerg ERS/ATS 2017 NIV guideline (about noninvasive ventilation in respiratory failure, not about CO2 exposure or the sealed-mask logic). No document found gives crew response steps. The approved Portuguese text was not changed. CHANGED 14 Nov (after Caio's check against the DGLRM/ESAM 2020 microgravity CPR guideline and the NHS, item 4, medical lead chose A): step 4 no longer says another person ventilates with the bag-valve mask; for a seizure nothing goes in the mouth and the person is laid on the side when it stops; no response and not breathing normally goes to the cardiac arrest card; bag-valve mask breaths only with two people and the person strapped (no gravity).",
+    "situations": [
+      {
+        "id": "mild",
+        "answers": [
+          {
+            "question": "Do you have a headache, drowsiness, hand tremor, flushing or sweating?",
+            "answer": "yes (mild)"
+          }
+        ],
+        "words": [],
+        "level": "unusual",
+        "notify": "self",
+        "note": "mild = unusual, self"
+      },
+      {
+        "id": "moderate",
+        "answers": [
+          {
+            "question": "Are you confused, agitated or short of breath?",
+            "answer": "yes (moderate)"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "moderate = concerning, medical_officer"
+      },
+      {
+        "id": "severe",
+        "answers": [
+          {
+            "question": "Are you deeply drowsy, having a seizure, or not responding?",
+            "answer": "yes (severe)"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "severe (deep drowsiness, seizure, coma, respiratory arrest) = dangerous, everyone"
+      }
+    ]
   },
   {
     "id": "unknown-urgent",
@@ -468,7 +509,22 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels by SpO2, confirmed by the medical lead on 14 Nov: 95 or more normal; 90-94 unusual (self), the system asks about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone, with the urgent card). The card also shows when the person reports shortness of breath. Card level above is the middle one; the system uses the table. Update 14 Nov (medical lead, option B): shortness of breath she reports, even with a normal SpO2, is concerning: medical officer alerted, she is not left alone."
+    "notes": "Levels by SpO2, confirmed by the medical lead on 14 Nov: 95 or more normal; 90-94 unusual (self), the system asks about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone, with the urgent card). The card also shows when the person reports shortness of breath. Card level above is the middle one; the system uses the table. Update 14 Nov (medical lead, option B): shortness of breath she reports, even with a normal SpO2, is concerning: medical officer alerted, she is not left alone.",
+    "situations": [
+      {
+        "id": "reported-shortness-of-breath",
+        "answers": [
+          {
+            "question": "Are you short of breath?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "shortness of breath she reports, even with a normal SpO2, is concerning: medical officer alerted, she is not left alone"
+      }
+    ]
   },
   {
     "id": "skin-rash",
@@ -489,6 +545,26 @@
         {
           "question": "Is your skin painful?",
           "answer": "yes"
+        },
+        {
+          "question": "Are there blisters, peeling skin or sores in the mouth, eyes or genitals?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your face, lips or tongue swollen, or are you short of breath?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever, or is the rash getting worse fast?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is the redness very strong, or is the skin hot?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are there purple spots, dead black skin, or blue or pale skin?",
+          "answer": "yes"
         }
       ],
       "words": {
@@ -498,7 +574,18 @@
           "itchy",
           "red spots",
           "hives",
-          "skin"
+          "skin",
+          "blisters",
+          "peeling skin",
+          "swollen lips",
+          "swollen tongue",
+          "swollen face",
+          "intense redness",
+          "hot skin",
+          "purple spots",
+          "necrosis",
+          "blue skin",
+          "pale skin"
         ],
         "pt": [
           "erupção",
@@ -506,7 +593,18 @@
           "manchas",
           "vermelhidão",
           "alergia",
-          "pele"
+          "pele",
+          "bolhas",
+          "pele soltando",
+          "lábios inchados",
+          "língua inchada",
+          "rosto inchado",
+          "vermelhidão intensa",
+          "pele quente",
+          "manchas arroxeadas",
+          "necrose",
+          "pele azulada",
+          "pele pálida"
         ]
       }
     },
@@ -593,7 +691,102 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels by situation, confirmed by the medical lead on 14 Nov: only skin = unusual (self); the system asks about new medicine and skin pain and asks again in a few hours. Skin plus fever or fast worsening = concerning (medical officer). Blisters, peeling or sores in mouth, eyes or genitals = dangerous (everyone). Skin plus swelling of face, lips or tongue, or shortness of breath = dangerous (everyone, urgent card). Skin plus dizziness or fainting, vomiting or abdominal pain = dangerous (everyone, urgent card). Swelling of lips or tongue even without skin = dangerous (everyone). Card level above is the base level; the system uses this list. No SAMU or epinephrine: not available on the ship."
+    "notes": "Levels by situation, confirmed by the medical lead on 14 Nov: only skin = unusual (self); the system asks about new medicine and skin pain and asks again in a few hours. Skin plus fever or fast worsening = concerning (medical officer). Blisters, peeling or sores in mouth, eyes or genitals = dangerous (everyone). Skin plus swelling of face, lips or tongue, or shortness of breath = dangerous (everyone, urgent card). Skin plus dizziness or fainting, vomiting or abdominal pain = dangerous (everyone, urgent card). Swelling of lips or tongue even without skin = dangerous (everyone). Card level above is the base level; the system uses this list. No SAMU or epinephrine: not available on the ship. ADDED 14 Nov (fields export, medical lead's decisions): see the new answers and words in signs and the matching situations. DECISION 14 Nov (medical lead, fields export): intense redness or heat of the skin = concerning (medical officer); purple spots, necrosis (dead skin), blue (cyanosis) or pale skin = dangerous (everyone, urgent card).",
+    "situations": [
+      {
+        "id": "blisters-or-sores",
+        "answers": [
+          {
+            "question": "Are there blisters, peeling skin or sores in the mouth, eyes or genitals?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "blisters",
+          "peeling skin",
+          "bolhas",
+          "pele soltando"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "Blisters, peeling or sores in mouth, eyes or genitals = dangerous (everyone)"
+      },
+      {
+        "id": "face-swelling-or-short-of-breath",
+        "answers": [
+          {
+            "question": "Is your face, lips or tongue swollen, or are you short of breath?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "swollen lips",
+          "swollen tongue",
+          "swollen face",
+          "lábios inchados",
+          "língua inchada",
+          "rosto inchado"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "Skin plus swelling of face, lips or tongue, or shortness of breath = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "fever-or-fast-worsening",
+        "answers": [
+          {
+            "question": "Do you have a fever, or is the rash getting worse fast?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "Skin plus fever or fast worsening = concerning (medical officer)"
+      },
+      {
+        "id": "intense-redness-or-heat",
+        "answers": [
+          {
+            "question": "Is the redness very strong, or is the skin hot?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "intense redness",
+          "hot skin",
+          "vermelhidão intensa",
+          "pele quente"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "intense redness or heat of the skin = concerning (medical officer)"
+      },
+      {
+        "id": "purple-necrosis-cyanosis",
+        "answers": [
+          {
+            "question": "Are there purple spots, dead black skin, or blue or pale skin?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "purple spots",
+          "necrosis",
+          "blue skin",
+          "pale skin",
+          "manchas arroxeadas",
+          "necrose",
+          "pele azulada",
+          "pele pálida"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "purple spots, necrosis (dead skin), blue (cyanosis) or pale skin = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "upper-respiratory",
@@ -686,7 +879,36 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: only nose or throat (stuffy nose, runny nose, sore throat, mild cough) = unusual (self); the same plus fever, or worsening over a few days, or strong pain in the face or ear = concerning (medical officer); plus shortness of breath or low SpO2 = the SpO2 table and the shortness of breath card; trouble swallowing or hoarseness with a swollen throat = dangerous (everyone, urgent card). Card level above is the base level. Congestion in flight is partly from the fluid shift (from memory, unverified), so not every case is an infection. 14 Nov, medical lead: no squeeze-bottle nasal irrigation (liquid does not drain in microgravity); saline spray only, for every gravity state."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: only nose or throat (stuffy nose, runny nose, sore throat, mild cough) = unusual (self); the same plus fever, or worsening over a few days, or strong pain in the face or ear = concerning (medical officer); plus shortness of breath or low SpO2 = the SpO2 table and the shortness of breath card; trouble swallowing or hoarseness with a swollen throat = dangerous (everyone, urgent card). Card level above is the base level. Congestion in flight is partly from the fluid shift (from memory, unverified), so not every case is an infection. 14 Nov, medical lead: no squeeze-bottle nasal irrigation (liquid does not drain in microgravity); saline spray only, for every gravity state.",
+    "situations": [
+      {
+        "id": "fever",
+        "answers": [
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "the same plus fever, or worsening over a few days, or strong pain in the face or ear = concerning (medical officer)"
+      },
+      {
+        "id": "trouble-swallowing",
+        "answers": [
+          {
+            "question": "Do you have trouble swallowing?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "trouble swallowing or hoarseness with a swollen throat = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "headache",
@@ -720,19 +942,63 @@
         {
           "question": "Did you eat today?",
           "answer": "no"
+        },
+        {
+          "question": "Did it start suddenly and was it the worst headache of your life?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have weakness on one side, slurred speech or changed vision?",
+          "answer": "yes"
+        },
+        {
+          "question": "Did you have a seizure?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        },
+        {
+          "question": "Have you vomited again and again?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you confused?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your neck stiff?",
+          "answer": "yes"
         }
       ],
       "words": {
         "en": [
           "headache",
           "migraine",
-          "head hurts"
+          "head hurts",
+          "worst headache of my life",
+          "sudden severe headache",
+          "stiff neck",
+          "changed vision",
+          "confused",
+          "seizure",
+          "weakness on one side",
+          "slurred speech"
         ],
         "pt": [
           "dor de cabeça",
           "cefaleia",
           "enxaqueca",
-          "cabeça doendo"
+          "cabeça doendo",
+          "pior dor de cabeça da vida",
+          "dor de cabeça súbita e muito forte",
+          "pescoço rígido",
+          "visão alterada",
+          "confusa",
+          "convulsão",
+          "fraqueza de um lado",
+          "fala enrolada"
         ]
       }
     },
@@ -805,7 +1071,83 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: only headache = unusual (self), the system asks about sleep, water and food and asks again in a few hours (see case-004); headache that does not improve after a few hours, or repeated vomiting, or fever = concerning (medical officer); confusion, stiff neck with fever, or pain after a blow to the head = concerning (medical officer, not left alone); sudden worst-ever headache, weakness on one side, slurred speech, changed vision, or seizure = dangerous (everyone, urgent card). With cabin CO2 at 2.3 mmHg or more the high CO2 card is used instead. Card level above is the base level; the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: only headache = unusual (self), the system asks about sleep, water and food and asks again in a few hours (see case-004); headache that does not improve after a few hours, or repeated vomiting, or fever = concerning (medical officer); confusion, stiff neck with fever, or pain after a blow to the head = concerning (medical officer, not left alone); sudden worst-ever headache, weakness on one side, slurred speech, changed vision, or seizure = dangerous (everyone, urgent card). With cabin CO2 at 2.3 mmHg or more the high CO2 card is used instead. Card level above is the base level; the system uses this list. ADDED 14 Nov (fields export, medical lead's decisions): see the new answers and words in signs and the matching situations.",
+    "situations": [
+      {
+        "id": "red-flag-neuro",
+        "answers": [
+          {
+            "question": "Did it start suddenly and was it the worst headache of your life?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have weakness on one side, slurred speech or changed vision?",
+            "answer": "yes"
+          },
+          {
+            "question": "Did you have a seizure?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "worst headache of my life",
+          "sudden severe headache",
+          "changed vision",
+          "seizure",
+          "weakness on one side",
+          "slurred speech",
+          "pior dor de cabeça da vida",
+          "dor de cabeça súbita e muito forte",
+          "visão alterada",
+          "convulsão",
+          "fraqueza de um lado",
+          "fala enrolada"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "sudden worst-ever headache, weakness on one side, slurred speech, changed vision, or seizure = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "fever-or-repeated-vomiting",
+        "answers": [
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          },
+          {
+            "question": "Have you vomited again and again?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "headache that does not improve after a few hours, or repeated vomiting, or fever = concerning (medical officer)"
+      },
+      {
+        "id": "confusion-or-stiff-neck",
+        "answers": [
+          {
+            "question": "Are you confused?",
+            "answer": "yes"
+          },
+          {
+            "question": "Is your neck stiff?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "stiff neck",
+          "confused",
+          "pescoço rígido",
+          "confusa"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "confusion, stiff neck with fever, or pain after a blow to the head = concerning (medical officer, not left alone)"
+      }
+    ]
   },
   {
     "id": "cut-injury",
@@ -890,7 +1232,22 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: small cut, scrape, bruise or mild pain that passes with pressure or rest = unusual (self); bleeding that does not stop after 10 minutes of pressure, deep or wide cut, stuck object, eye injury, or suspected broken bone = concerning (medical officer); blow to the head with confusion, sleepiness or fainting = concerning (medical officer, not left alone); strong bleeding that cannot be controlled, or trouble breathing after a chest injury = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Blood floats in microgravity, so steps tell her to collect it."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: small cut, scrape, bruise or mild pain that passes with pressure or rest = unusual (self); bleeding that does not stop after 10 minutes of pressure, deep or wide cut, stuck object, eye injury, or suspected broken bone = concerning (medical officer); blow to the head with confusion, sleepiness or fainting = concerning (medical officer, not left alone); strong bleeding that cannot be controlled, or trouble breathing after a chest injury = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Blood floats in microgravity, so steps tell her to collect it.",
+    "situations": [
+      {
+        "id": "bleeding-not-stopping",
+        "answers": [
+          {
+            "question": "Is it bleeding and does the bleeding not stop?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "bleeding that does not stop after 10 minutes of pressure, deep or wide cut, stuck object, eye injury, or suspected broken bone = concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "poor-sleep",
@@ -1250,7 +1607,26 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: nausea or vomiting alone = unusual (self); repeated vomiting (more than 2 times), cannot drink water, fever, or strong belly pain = concerning (medical officer); vomit with blood, confusion, fainting, or together with a sudden very strong headache = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. No sources were given for this card. Vomiting inside a mask or helmet is a choking risk."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: nausea or vomiting alone = unusual (self); repeated vomiting (more than 2 times), cannot drink water, fever, or strong belly pain = concerning (medical officer); vomit with blood, confusion, fainting, or together with a sudden very strong headache = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. No sources were given for this card. Vomiting inside a mask or helmet is a choking risk.",
+    "situations": [
+      {
+        "id": "repeated-vomiting-or-cannot-drink",
+        "answers": [
+          {
+            "question": "Have you vomited more than twice?",
+            "answer": "yes"
+          },
+          {
+            "question": "Can you drink water?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "repeated vomiting (more than 2 times), cannot drink water, fever, or strong belly pain = concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "dizziness-fainting",
@@ -1416,7 +1792,36 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels, with the medical lead's four adjustments, 14 Nov: mild dizziness that passes on sitting = unusual (self); persistent dizziness, or sudden onset that does not change with head position, or short repeated episodes, or with high or low heart rate, low SpO2 or chest pain = concerning (medical officer, not left alone); stroke signs even when alone (double vision, lost visual field, weakness of the face or a limb, trouble speaking or swallowing, loss of balance, new strong headache), fainting, or confusion = dangerous (everyone, urgent card); dizziness with glucose outside the range = one level higher and the glucose table applies (the Astrum does not know who has diabetes, so only the glucose value is used). She sent the sources after the table without saying yes; the drafting tool took that as agreement and asks for approval of the card. Card level above is the base level; the system uses this list. Adjusted 14 Nov with the review's caveats A to D: water only if awake and not vomiting; low glucose (below 70) treated with sweets and re-measured in 15 minutes; stairs and attention tasks avoided; wait of 10-15 minutes before moving up; more urgent-card signs added. SAMU left out (not on the ship): 'call everyone'. Approved by the medical lead."
+    "notes": "Levels, with the medical lead's four adjustments, 14 Nov: mild dizziness that passes on sitting = unusual (self); persistent dizziness, or sudden onset that does not change with head position, or short repeated episodes, or with high or low heart rate, low SpO2 or chest pain = concerning (medical officer, not left alone); stroke signs even when alone (double vision, lost visual field, weakness of the face or a limb, trouble speaking or swallowing, loss of balance, new strong headache), fainting, or confusion = dangerous (everyone, urgent card); dizziness with glucose outside the range = one level higher and the glucose table applies (the Astrum does not know who has diabetes, so only the glucose value is used). She sent the sources after the table without saying yes; the drafting tool took that as agreement and asks for approval of the card. Card level above is the base level; the system uses this list. Adjusted 14 Nov with the review's caveats A to D: water only if awake and not vomiting; low glucose (below 70) treated with sweets and re-measured in 15 minutes; stairs and attention tasks avoided; wait of 10-15 minutes before moving up; more urgent-card signs added. SAMU left out (not on the ship): 'call everyone'. Approved by the medical lead.",
+    "situations": [
+      {
+        "id": "fainted",
+        "answers": [
+          {
+            "question": "Did you faint?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "stroke signs even when alone (double vision, lost visual field, weakness of the face or a limb, trouble speaking or swallowing, loss of balance, new strong headache), fainting, or confusion = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "persistent-dizziness",
+        "answers": [
+          {
+            "question": "Is the dizziness still there after sitting?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "persistent dizziness, or sudden onset that does not change with head position, or short repeated episodes, or with high or low heart rate, low SpO2 or chest pain = concerning (medical officer, not left alone)"
+      }
+    ]
   },
   {
     "id": "mood-stress",
@@ -1543,7 +1948,50 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: low mood or stress above her normal for a few days, or a conflict = unusual (self); worsening for several days, cannot sleep or work, panic attack, or a conflict that is not solved = concerning (medical officer); thoughts of hurting herself with no plan or means = concerning (medical officer, not left alone, without waiting for answers); thoughts of hurting herself WITH a plan or means, risk to another person, confusion with strange ideas, or very strong agitation = dangerous (everyone, urgent card). Physical causes first: step 1 sends her to check cabin CO2, blood oxygen and glucose before treating it as emotional (high CO2, low oxygen or low glucose cause fast heartbeat, shortness of breath, confusion, agitation). If the affected person is the medical officer (Okafor), the alert goes to the commander (Tanaka) instead of the medical officer. Privacy: the text she writes is never shown to the crew, only the alert level. Card level above is the base level; the system uses this list. Cut to 3 steps on 14 Nov at the medical lead's request. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): monotony or lack of meaningful work = unusual (self); neurocognitive problems (forgetting things, cannot concentrate) = unusual (self), and concerning (medical officer) if it lasts more than a few days or gets worse. Physical causes first."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: low mood or stress above her normal for a few days, or a conflict = unusual (self); worsening for several days, cannot sleep or work, panic attack, or a conflict that is not solved = concerning (medical officer); thoughts of hurting herself with no plan or means = concerning (medical officer, not left alone, without waiting for answers); thoughts of hurting herself WITH a plan or means, risk to another person, confusion with strange ideas, or very strong agitation = dangerous (everyone, urgent card). Physical causes first: step 1 sends her to check cabin CO2, blood oxygen and glucose before treating it as emotional (high CO2, low oxygen or low glucose cause fast heartbeat, shortness of breath, confusion, agitation). If the affected person is the medical officer (Okafor), the alert goes to the commander (Tanaka) instead of the medical officer. Privacy: the text she writes is never shown to the crew, only the alert level. Card level above is the base level; the system uses this list. Cut to 3 steps on 14 Nov at the medical lead's request. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): monotony or lack of meaningful work = unusual (self); neurocognitive problems (forgetting things, cannot concentrate) = unusual (self), and concerning (medical officer) if it lasts more than a few days or gets worse. Physical causes first.",
+    "situations": [
+      {
+        "id": "thoughts-of-self-harm",
+        "answers": [
+          {
+            "question": "Do you have thoughts of hurting yourself?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "thoughts of hurting herself with no plan or means = concerning (medical officer, not left alone, without waiting for answers)"
+      },
+      {
+        "id": "self-harm-plan",
+        "answers": [
+          {
+            "question": "Do you have a plan or something at hand to do it?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "thoughts of hurting herself WITH a plan or means, risk to another person, confusion with strange ideas, or very strong agitation = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "risk-to-another-person",
+        "answers": [
+          {
+            "question": "Are you afraid you could hurt someone else?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "thoughts of hurting herself WITH a plan or means, risk to another person, confusion with strange ideas, or very strong agitation = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "digestive",
@@ -1566,7 +2014,11 @@
           "answer": "no"
         },
         {
-          "question": "Is there blood or black stool?",
+          "question": "Is the stool black, or is there a large amount of blood?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is it a little bright blood when passing stool?",
           "answer": "yes"
         }
       ],
@@ -1667,7 +2119,53 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels, 14 Nov: mild diarrhea, constipation or indigestion = unusual (self); diarrhea for more than 2 days, cannot drink, fever, or strong belly pain = concerning (medical officer); blood in stool or vomit, black stool (melena, bleeding from the upper digestive tract; added by the medical lead), very hard and painful belly, no stool and no gas with vomiting, or strong belly pain WITH fever (possible surgical cause such as appendicitis, no surgeon on the ship) = dangerous (everyone, urgent card). The last two items (strong pain with fever raised to dangerous, and hygiene and staying apart from the crew if she has fever) are the draft's recommendations that she did not answer after being asked three times; they are included in this draft and covered by her approval of the card. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): hemorrhoids (pain, itch or a little bright blood when passing stool) = unusual (self); bleeding that does not stop, or strong pain = concerning (medical officer); blood in a large amount with dizziness = dangerous (everyone, urgent card). Covers hemorrhoids from NASA table E.2-2."
+    "notes": "Levels, 14 Nov: mild diarrhea, constipation or indigestion = unusual (self); diarrhea for more than 2 days, cannot drink, fever, or strong belly pain = concerning (medical officer); blood in stool or vomit, black stool (melena, bleeding from the upper digestive tract; added by the medical lead), very hard and painful belly, no stool and no gas with vomiting, or strong belly pain WITH fever (possible surgical cause such as appendicitis, no surgeon on the ship) = dangerous (everyone, urgent card). The last two items (strong pain with fever raised to dangerous, and hygiene and staying apart from the crew if she has fever) are the draft's recommendations that she did not answer after being asked three times; they are included in this draft and covered by her approval of the card. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): hemorrhoids (pain, itch or a little bright blood when passing stool) = unusual (self); bleeding that does not stop, or strong pain = concerning (medical officer); blood in a large amount with dizziness = dangerous (everyone, urgent card). Covers hemorrhoids from NASA table E.2-2. ADDED 14 Nov (fields export, medical lead's decisions): see the new answers and words in signs and the matching situations.",
+    "situations": [
+      {
+        "id": "diarrhea-or-cannot-drink",
+        "answers": [
+          {
+            "question": "Have you had diarrhea for more than 2 days?",
+            "answer": "yes"
+          },
+          {
+            "question": "Can you drink water?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "diarrhea for more than 2 days, cannot drink, fever, or strong belly pain = concerning (medical officer)"
+      },
+      {
+        "id": "black-stool-or-large-blood",
+        "answers": [
+          {
+            "question": "Is the stool black, or is there a large amount of blood?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "blood in stool or vomit, black stool (melena, bleeding from the upper digestive tract; added by the medical lead), very hard and painful belly, no stool and no gas with vomiting, or strong belly pain WITH fever (possible surgical cause such as appendicitis, no surgeon on the ship) = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "little-bright-blood",
+        "answers": [
+          {
+            "question": "Is it a little bright blood when passing stool?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "unusual",
+        "notify": "self",
+        "note": "hemorrhoids (pain, itch or a little bright blood when passing stool) = unusual (self)"
+      }
+    ]
   },
   {
     "id": "back-pain",
@@ -1749,7 +2247,36 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild or moderate back pain that improves with slow movement = unusual (self); pain that does not improve in 2 days, goes down the leg, or with numbness = concerning (medical officer); back pain with weakness in the legs, loss of control of urine or stool, high fever, or after a fall or hard blow = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 11, medical lead chose A): added numbness around the genitals or the anus, and numbness or weakness in both legs, to the last step and to the dangerous level (everyone, urgent card)."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild or moderate back pain that improves with slow movement = unusual (self); pain that does not improve in 2 days, goes down the leg, or with numbness = concerning (medical officer); back pain with weakness in the legs, loss of control of urine or stool, high fever, or after a fall or hard blow = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 11, medical lead chose A): added numbness around the genitals or the anus, and numbness or weakness in both legs, to the last step and to the dangerous level (everyone, urgent card). DECISION 14 Nov (medical lead, fields export): the joined question 'numbness or weakness in the legs' is dangerous (everyone, urgent card), because weakness in the legs is dangerous and numbness and weakness are both part of paresthesia.",
+    "situations": [
+      {
+        "id": "pain-down-the-leg",
+        "answers": [
+          {
+            "question": "Does the pain go down your leg?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "pain that does not improve in 2 days, goes down the leg, or with numbness = concerning (medical officer)"
+      },
+      {
+        "id": "numbness-or-weakness-in-the-legs",
+        "answers": [
+          {
+            "question": "Do you have numbness or weakness in your legs?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "back pain with weakness in the legs, loss of control of urine or stool, high fever, or after a fall or hard blow = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "eyes",
@@ -1858,7 +2385,67 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild irritation (redness, itch, tearing) without strong pain or loss of vision = unusual (self); something in the eye, scratch, pain that does not pass, discharge, or a very red eye = concerning (medical officer); chemical in the eye, loss of vision (partial or total), object stuck in the eye, or very strong pain with nausea = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): red and swollen eyelid = unusual (self), worsening = concerning; vision slowly getting worse in flight (SANS), or an ulcer (pain, discharge, white spot) = concerning (medical officer); very strong eye pain with nausea, halos and blurred vision (acute glaucoma) = dangerous (everyone). Covers eyelid infection, corneal ulcer, acute glaucoma and SANS from NASA table E.2-2. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): retinal detachment: new flashes of light or many new floaters = concerning (medical officer); a curtain or shadow over the vision, or sudden loss of vision = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 8, medical lead chose A): chemical in the eye is washed for at least 20 minutes (before: 15) and washing continues while waiting for help."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild irritation (redness, itch, tearing) without strong pain or loss of vision = unusual (self); something in the eye, scratch, pain that does not pass, discharge, or a very red eye = concerning (medical officer); chemical in the eye, loss of vision (partial or total), object stuck in the eye, or very strong pain with nausea = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): red and swollen eyelid = unusual (self), worsening = concerning; vision slowly getting worse in flight (SANS), or an ulcer (pain, discharge, white spot) = concerning (medical officer); very strong eye pain with nausea, halos and blurred vision (acute glaucoma) = dangerous (everyone). Covers eyelid infection, corneal ulcer, acute glaucoma and SANS from NASA table E.2-2. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): retinal detachment: new flashes of light or many new floaters = concerning (medical officer); a curtain or shadow over the vision, or sudden loss of vision = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 8, medical lead chose A): chemical in the eye is washed for at least 20 minutes (before: 15) and washing continues while waiting for help.",
+    "situations": [
+      {
+        "id": "something-in-the-eye",
+        "answers": [
+          {
+            "question": "Did something get into your eye?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "something in my eye",
+          "algo no olho"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "something in the eye, scratch, pain that does not pass, discharge, or a very red eye = concerning (medical officer)"
+      },
+      {
+        "id": "chemical-or-vision-loss",
+        "answers": [
+          {
+            "question": "Have you lost any vision?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "chemical in my eye",
+          "produto no olho"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "chemical in the eye, loss of vision (partial or total), object stuck in the eye, or very strong pain with nausea = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "flashes-or-floaters",
+        "answers": [],
+        "words": [
+          "flashes of light",
+          "floaters",
+          "clarões de luz",
+          "moscas volantes"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "retinal detachment: new flashes of light or many new floaters = concerning (medical officer)"
+      },
+      {
+        "id": "curtain-over-vision",
+        "answers": [],
+        "words": [
+          "curtain over vision",
+          "cortina na visão"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "a curtain or shadow over the vision, or sudden loss of vision = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "urinary-genital",
@@ -1970,7 +2557,58 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: burning when urinating, frequent urge, itching or discharge with no fever = unusual (self); those symptoms with fever, pain in the back or side, blood in the urine, or cannot urinate for many hours = concerning (medical officer); cannot urinate with very strong lower-belly pain, confusion with fever, or dizziness with high fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): urinary incontinence: leaking urine = unusual (self); with fever or pain = concerning (medical officer). Acute prostatitis: pain between the legs or below the belly, with fever, chills or trouble urinating = concerning (medical officer); cannot urinate with strong pain = dangerous (everyone). CHANGED 14 Nov (after Caio's check against healthdirect, item 12, medical lead chose A): 'cannot urinate for many hours' moves from concerning to DANGEROUS (everyone, urgent card), matching step 5; the concerning level keeps fever, pain in the back or side, and blood in the urine."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: burning when urinating, frequent urge, itching or discharge with no fever = unusual (self); those symptoms with fever, pain in the back or side, blood in the urine, or cannot urinate for many hours = concerning (medical officer); cannot urinate with very strong lower-belly pain, confusion with fever, or dizziness with high fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): urinary incontinence: leaking urine = unusual (self); with fever or pain = concerning (medical officer). Acute prostatitis: pain between the legs or below the belly, with fever, chills or trouble urinating = concerning (medical officer); cannot urinate with strong pain = dangerous (everyone). CHANGED 14 Nov (after Caio's check against healthdirect, item 12, medical lead chose A): 'cannot urinate for many hours' moves from concerning to DANGEROUS (everyone, urgent card), matching step 5; the concerning level keeps fever, pain in the back or side, and blood in the urine.",
+    "situations": [
+      {
+        "id": "fever-or-blood",
+        "answers": [
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          },
+          {
+            "question": "Is there blood in the urine?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "the concerning level keeps fever, pain in the back or side, and blood in the urine"
+      },
+      {
+        "id": "cannot-urinate",
+        "answers": [
+          {
+            "question": "Can you urinate?",
+            "answer": "no"
+          }
+        ],
+        "words": [
+          "can't pee",
+          "não consigo urinar"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "'cannot urinate for many hours' moves from concerning to DANGEROUS (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "leaking-urine",
+        "answers": [],
+        "words": [
+          "leaking urine",
+          "incontinence",
+          "dribbling",
+          "escapando urina",
+          "incontinência",
+          "gotejando"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "urinary incontinence: leaking urine = unusual (self)"
+      }
+    ]
   },
   {
     "id": "skin-infection",
@@ -2073,7 +2711,41 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: red, warm or pus-filled skin in a small area with no fever = unusual (self); an area that grows, hurts a lot, comes with fever, or a cold sore near the eye = concerning (medical officer); redness that spreads fast with high fever, skin that turns dark or blistered, or dizziness and confusion = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): herpes zoster (shingles): a band of painful blisters on one side of the body = concerning (medical officer); near the eye or face, or with confusion = dangerous."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: red, warm or pus-filled skin in a small area with no fever = unusual (self); an area that grows, hurts a lot, comes with fever, or a cold sore near the eye = concerning (medical officer); redness that spreads fast with high fever, skin that turns dark or blistered, or dizziness and confusion = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): herpes zoster (shingles): a band of painful blisters on one side of the body = concerning (medical officer); near the eye or face, or with confusion = dangerous.",
+    "situations": [
+      {
+        "id": "growing-or-fever",
+        "answers": [
+          {
+            "question": "Is the red area growing?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "an area that grows, hurts a lot, comes with fever, or a cold sore near the eye = concerning (medical officer)"
+      },
+      {
+        "id": "shingles",
+        "answers": [],
+        "words": [
+          "shingles",
+          "herpes zoster",
+          "painful blisters in a band",
+          "cobreiro",
+          "herpes zóster",
+          "bolhas dolorosas em faixa"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "herpes zoster (shingles): a band of painful blisters on one side of the body = concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "ear-nose-throat",
@@ -2137,7 +2809,7 @@
         "pt": "Não mexa no nariz nem enfie o dedo."
       },
       {
-        "en": "Look again in a day. If you have trouble swallowing, cannot even swallow saliva, a swollen neck, trouble breathing with your throat or neck, or the cloth is soaked with blood, you swallow or vomit blood, or you feel dizzy: follow the urgent card.",
+        "en": "Look again in a day. If you have trouble swallowing, cannot even swallow saliva, a swollen neck, trouble breathing because of your throat or neck, or the cloth is soaked with blood, you swallow or vomit blood, or you feel dizzy: follow the urgent card.",
         "pt": "Olhe de novo em um dia. Se tiver dificuldade para engolir, não conseguir nem engolir a saliva, pescoço inchado, dificuldade para respirar junto com a garganta ou o pescoço, ou se o pano ficar ensopado de sangue, você engolir ou vomitar sangue, ou sentir tontura: siga o cartão de urgência."
       }
     ],
@@ -2174,8 +2846,50 @@
       "The 15 minutes for a nosebleed is from memory of Earth first aid, no source; the medical lead kept it."
     ],
     "status": "approved",
-    "en_checked": false,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild ear pain, blocked ear, irritated throat, or a nosebleed that stops by itself = unusual (self); strong ear pain, discharge, sudden hearing loss, fever, or a nosebleed that does not stop in 15 minutes = concerning (medical officer); trouble swallowing or breathing, a swollen neck, or a very strong nosebleed = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Four adjustments approved 14 Nov: (1) 'very strong nosebleed' = the cloth is soaked, she swallows or vomits blood, or she feels dizzy; 15 minutes kept, no source. (2) Sudden hearing loss stays concerning (medical officer). (3) Trouble breathing alone uses the shortness of breath card; this card shows it only together with throat or neck, so the system does not pick two cards. (4) Sore throat with fever and drooling (cannot swallow saliva) = dangerous (everyone, urgent card). Approved by the medical lead."
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild ear pain, blocked ear, irritated throat, or a nosebleed that stops by itself = unusual (self); strong ear pain, discharge, sudden hearing loss, fever, or a nosebleed that does not stop in 15 minutes = concerning (medical officer); trouble swallowing or breathing, a swollen neck, or a very strong nosebleed = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Four adjustments approved 14 Nov: (1) 'very strong nosebleed' = the cloth is soaked, she swallows or vomits blood, or she feels dizzy; 15 minutes kept, no source. (2) Sudden hearing loss stays concerning (medical officer). (3) Trouble breathing alone uses the shortness of breath card; this card shows it only together with throat or neck, so the system does not pick two cards. (4) Sore throat with fever and drooling (cannot swallow saliva) = dangerous (everyone, urgent card). Approved by the medical lead.",
+    "situations": [
+      {
+        "id": "nosebleed-over-15-minutes",
+        "answers": [
+          {
+            "question": "Is the nosebleed lasting more than 15 minutes?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "strong ear pain, discharge, sudden hearing loss, fever, or a nosebleed that does not stop in 15 minutes = concerning (medical officer)"
+      },
+      {
+        "id": "trouble-swallowing-or-breathing",
+        "answers": [
+          {
+            "question": "Do you have trouble swallowing or breathing?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "trouble swallowing or breathing, a swollen neck, or a very strong nosebleed = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "sudden-hearing-loss",
+        "answers": [
+          {
+            "question": "Did you suddenly lose hearing?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "(2) Sudden hearing loss stays concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "neuro",
@@ -2270,7 +2984,54 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild blow to the head with no other symptoms = unusual (self), the system asks about dizziness, vomiting and sleep; a blow with strong headache, vomiting, too much sleep or forgetfulness = concerning (medical officer, not left alone); seizure, stroke signs (drooping face, one-sided weakness, slurred speech), fainting after the blow, or strong confusion = dangerous (everyone, urgent card). The dizziness card also lists stroke signs as dangerous. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 9, medical lead chose A): after a blow to the head someone stays and watches for the first 24 hours (before: a few hours). CHANGED 14 Nov (after Caio's check against the NHS, item 10, medical lead chose A): 'no food, drink or medicine' now applies only to a seizure or stroke signs; for a mild blow to the head nothing is said about medicine (the NHS allows paracetamol for the headache; that is the medical officer's decision)."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild blow to the head with no other symptoms = unusual (self), the system asks about dizziness, vomiting and sleep; a blow with strong headache, vomiting, too much sleep or forgetfulness = concerning (medical officer, not left alone); seizure, stroke signs (drooping face, one-sided weakness, slurred speech), fainting after the blow, or strong confusion = dangerous (everyone, urgent card). The dizziness card also lists stroke signs as dangerous. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 9, medical lead chose A): after a blow to the head someone stays and watches for the first 24 hours (before: a few hours). CHANGED 14 Nov (after Caio's check against the NHS, item 10, medical lead chose A): 'no food, drink or medicine' now applies only to a seizure or stroke signs; for a mild blow to the head nothing is said about medicine (the NHS allows paracetamol for the headache; that is the medical officer's decision).",
+    "situations": [
+      {
+        "id": "blow-to-the-head",
+        "answers": [
+          {
+            "question": "Did you hit your head?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "hit my head",
+          "head blow",
+          "bati a cabeça",
+          "pancada na cabeça"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "mild blow to the head with no other symptoms = unusual (self)"
+      },
+      {
+        "id": "seizure-or-stroke-signs",
+        "answers": [
+          {
+            "question": "Is one side of the face drooping, or is one arm weak?",
+            "answer": "yes"
+          },
+          {
+            "question": "Did you have a seizure?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "seizure",
+          "stroke",
+          "slurred speech",
+          "face drooping",
+          "convulsão",
+          "AVC",
+          "fala enrolada",
+          "rosto torto"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "seizure, stroke signs (drooping face, one-sided weakness, slurred speech), fainting after the blow, or strong confusion = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "burn",
@@ -2378,7 +3139,49 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels proposed in the draft and taken as accepted by the medical lead on 14 Nov: small mild burn (red skin, no blister, smaller than the palm) = unusual (self); blisters, a burn bigger than the palm, on the hand, face or genitals, an electrical burn, or a chemical on the skin = concerning (medical officer, not left alone); trouble breathing, soot on the face or mouth, black or white skin with no pain, or a very large burn = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Fire and smoke inhalation will be a separate card. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): toxic dermal exposure: a chemical or toxic substance on the skin is concerning (medical officer, not left alone) already; with trouble breathing or confusion = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 13, medical lead chose A): cooling is running water for 20 minutes (a cold wet cloth only if there is none); chemical burn about 1 hour of water. Running water in microgravity was not checked."
+    "notes": "Levels proposed in the draft and taken as accepted by the medical lead on 14 Nov: small mild burn (red skin, no blister, smaller than the palm) = unusual (self); blisters, a burn bigger than the palm, on the hand, face or genitals, an electrical burn, or a chemical on the skin = concerning (medical officer, not left alone); trouble breathing, soot on the face or mouth, black or white skin with no pain, or a very large burn = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Fire and smoke inhalation will be a separate card. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): toxic dermal exposure: a chemical or toxic substance on the skin is concerning (medical officer, not left alone) already; with trouble breathing or confusion = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 13, medical lead chose A): cooling is running water for 20 minutes (a cold wet cloth only if there is none); chemical burn about 1 hour of water. Running water in microgravity was not checked.",
+    "situations": [
+      {
+        "id": "concerning-burn",
+        "answers": [
+          {
+            "question": "Are there blisters?",
+            "answer": "yes"
+          },
+          {
+            "question": "Is the burn bigger than your palm?",
+            "answer": "yes"
+          },
+          {
+            "question": "Is it on the hand, face or genitals?",
+            "answer": "yes"
+          },
+          {
+            "question": "Was it an electrical burn or a chemical?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "blisters, a burn bigger than the palm, on the hand, face or genitals, an electrical burn, or a chemical on the skin = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "toxic-skin-exposure",
+        "answers": [],
+        "words": [
+          "toxic skin exposure",
+          "chemical on skin",
+          "contact with a toxic substance",
+          "exposição tóxica na pele",
+          "produto químico na pele",
+          "contato com substância tóxica"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "toxic dermal exposure: a chemical or toxic substance on the skin is concerning (medical officer, not left alone) already"
+      }
+    ]
   },
   {
     "id": "smoke-toxic-air",
@@ -2485,7 +3288,23 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: a strange smell or mild irritation of the nose, eyes or throat with no other symptoms = unusual (self); cough, mild shortness of breath, headache or dizziness together with a strange smell or smoke = concerning (medical officer, not left alone); visible smoke, a fire alarm, confusion, fainting, or severe trouble breathing = dangerous (everyone, urgent card). The Astrum reads the room (CO2, oxygen, pressure); it does not control air, lights or equipment. Card level above is the base level; the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a strange smell or mild irritation of the nose, eyes or throat with no other symptoms = unusual (self); cough, mild shortness of breath, headache or dizziness together with a strange smell or smoke = concerning (medical officer, not left alone); visible smoke, a fire alarm, confusion, fainting, or severe trouble breathing = dangerous (everyone, urgent card). The Astrum reads the room (CO2, oxygen, pressure); it does not control air, lights or equipment. Card level above is the base level; the system uses this list.",
+    "situations": [
+      {
+        "id": "fire-or-alarm",
+        "answers": [],
+        "words": [
+          "fire",
+          "alarm",
+          "fogo",
+          "alarme"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "visible smoke, a fire alarm, confusion, fainting, or severe trouble breathing = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "asthma-lung",
@@ -2589,7 +3408,40 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild cough or wheeze without shortness of breath = unusual (self); shortness of breath on effort, wheeze, a cough with phlegm for more than 2 days, or fever with cough = concerning (medical officer); shortness of breath at rest, cannot speak full sentences, or blue lips = dangerous (everyone, urgent card). CORRECTION by the drafting tool: The drafting tool first wrote 'SpO2 below 90' as dangerous, which clashes with the approved SpO2 table (below 90 concerning, below 85 dangerous); this card follows the SpO2 table, so SpO2 below 85 is the dangerous one. Shortness of breath alone has its own card; this card only shows with wheeze, cough or fever so the system does not pick two cards. Card level above is the base level; the system uses this list. Four recommendations approved 14 Nov: (1) the third line is dangerous, everyone, urgent card; (2) dangerous is SpO2 below 85, not below 90; a low watch reading only alerts after it repeats on the next reading, Caio sets the time; (3) step 1 checks the room air before anything else; (4) coughing up blood, and chest pain together with shortness of breath = dangerous (everyone); breathing rate above her own normal = concerning (medical officer). Approved by the medical lead. CHANGED 14 Nov (after Caio's check against the NHS, item 15, medical lead chose A): added a step for a reliever inhaler prescribed by the medical officer (1 puff every 30 to 60 seconds, up to 10 puffs, then the urgent card if no better)."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild cough or wheeze without shortness of breath = unusual (self); shortness of breath on effort, wheeze, a cough with phlegm for more than 2 days, or fever with cough = concerning (medical officer); shortness of breath at rest, cannot speak full sentences, or blue lips = dangerous (everyone, urgent card). CORRECTION by the drafting tool: The drafting tool first wrote 'SpO2 below 90' as dangerous, which clashes with the approved SpO2 table (below 90 concerning, below 85 dangerous); this card follows the SpO2 table, so SpO2 below 85 is the dangerous one. Shortness of breath alone has its own card; this card only shows with wheeze, cough or fever so the system does not pick two cards. Card level above is the base level; the system uses this list. Four recommendations approved 14 Nov: (1) the third line is dangerous, everyone, urgent card; (2) dangerous is SpO2 below 85, not below 90; a low watch reading only alerts after it repeats on the next reading, Caio sets the time; (3) step 1 checks the room air before anything else; (4) coughing up blood, and chest pain together with shortness of breath = dangerous (everyone); breathing rate above her own normal = concerning (medical officer). Approved by the medical lead. CHANGED 14 Nov (after Caio's check against the NHS, item 15, medical lead chose A): added a step for a reliever inhaler prescribed by the medical officer (1 puff every 30 to 60 seconds, up to 10 puffs, then the urgent card if no better).",
+    "situations": [
+      {
+        "id": "wheeze-or-fever-with-cough",
+        "answers": [
+          {
+            "question": "Are you wheezing?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have a fever with the cough?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "shortness of breath on effort, wheeze, a cough with phlegm for more than 2 days, or fever with cough = concerning (medical officer)"
+      },
+      {
+        "id": "cannot-speak-full-sentences",
+        "answers": [
+          {
+            "question": "Can you speak full sentences?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "shortness of breath at rest, cannot speak full sentences, or blue lips = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "fracture",
@@ -2697,7 +3549,88 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild sprain or joint pain that still moves and bears weight = unusual (self); swelling, deformity, strong pain on moving, or cannot use the arm or leg = concerning (medical officer); suspected fracture of the spine, neck, hip or a large leg bone, a bone showing, or an injury with numbness or a cold pale hand or foot = dangerous (everyone, urgent card). Related card: cut or injury. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): chest: mild blow with mild pain = unusual (self); strong pain on breathing, a cracking rib, a large bruise = concerning (medical officer); chest wound (object or hole), trouble breathing, coughing blood = dangerous (everyone, urgent card). Joints: a swollen, warm, painful joint with no injury (arthritis) = concerning (medical officer); very strong disproportionate pain in an arm or leg with a tense muscle and cold fingers (compartment syndrome) = dangerous (everyone, urgent card). Covers blunt and penetrating chest injury, acute arthritis and compartment syndrome from NASA table E.2-2. CHANGED 14 Nov (after Caio's check against ERC 2025, item 5, medical lead chose A): chest wound is no longer pressed with a cloth over the whole wound; it is not sealed completely (risk of tension pneumothorax), nothing stuck is pulled out, and pressure is only for heavy bleeding from one spot."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild sprain or joint pain that still moves and bears weight = unusual (self); swelling, deformity, strong pain on moving, or cannot use the arm or leg = concerning (medical officer); suspected fracture of the spine, neck, hip or a large leg bone, a bone showing, or an injury with numbness or a cold pale hand or foot = dangerous (everyone, urgent card). Related card: cut or injury. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): chest: mild blow with mild pain = unusual (self); strong pain on breathing, a cracking rib, a large bruise = concerning (medical officer); chest wound (object or hole), trouble breathing, coughing blood = dangerous (everyone, urgent card). Joints: a swollen, warm, painful joint with no injury (arthritis) = concerning (medical officer); very strong disproportionate pain in an arm or leg with a tense muscle and cold fingers (compartment syndrome) = dangerous (everyone, urgent card). Covers blunt and penetrating chest injury, acute arthritis and compartment syndrome from NASA table E.2-2. CHANGED 14 Nov (after Caio's check against ERC 2025, item 5, medical lead chose A): chest wound is no longer pressed with a cloth over the whole wound; it is not sealed completely (risk of tension pneumothorax), nothing stuck is pulled out, and pressure is only for heavy bleeding from one spot.",
+    "situations": [
+      {
+        "id": "swollen-or-cannot-use",
+        "answers": [
+          {
+            "question": "Is it swollen or deformed?",
+            "answer": "yes"
+          },
+          {
+            "question": "Can you use the arm or leg?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "swelling, deformity, strong pain on moving, or cannot use the arm or leg = concerning (medical officer)"
+      },
+      {
+        "id": "numb-or-cold-pale",
+        "answers": [
+          {
+            "question": "Is the hand or foot cold and pale, or numb?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "suspected fracture of the spine, neck, hip or a large leg bone, a bone showing, or an injury with numbness or a cold pale hand or foot = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "mild-sprain",
+        "answers": [],
+        "words": [
+          "sprain",
+          "twisted",
+          "entorse",
+          "torci"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "a mild sprain or joint pain that still moves and bears weight = unusual (self)"
+      },
+      {
+        "id": "arthritis",
+        "answers": [],
+        "words": [
+          "arthritis",
+          "swollen joint",
+          "artrite",
+          "articulação inchada"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "a swollen, warm, painful joint with no injury (arthritis) = concerning (medical officer)"
+      },
+      {
+        "id": "mild-chest-blow",
+        "answers": [],
+        "words": [
+          "chest blow",
+          "pancada no peito"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "mild blow with mild pain = unusual (self)"
+      },
+      {
+        "id": "cracking-rib",
+        "answers": [],
+        "words": [
+          "rib",
+          "costela"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "strong pain on breathing, a cracking rib, a large bruise = concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "dental",
@@ -2788,7 +3721,58 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild toothache, a loose filling or crown, or a mouth ulcer = unusual (self); strong pain, a broken or lost tooth, swollen gum or face, or fever with toothache = concerning (medical officer); swelling of the face or neck that makes swallowing or breathing hard, or swelling near the eye with fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against ILCOR and the NHS, item 14, medical lead chose A): a tooth knocked out whole is put back in place as fast as possible (held by the crown), otherwise kept in milk or saliva (before: keep it in saline); a broken piece is kept in a closed container. A baby tooth is not put back: not added to the card."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild toothache, a loose filling or crown, or a mouth ulcer = unusual (self); strong pain, a broken or lost tooth, swollen gum or face, or fever with toothache = concerning (medical officer); swelling of the face or neck that makes swallowing or breathing hard, or swelling near the eye with fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against ILCOR and the NHS, item 14, medical lead chose A): a tooth knocked out whole is put back in place as fast as possible (held by the crown), otherwise kept in milk or saliva (before: keep it in saline); a broken piece is kept in a closed container. A baby tooth is not put back: not added to the card.",
+    "situations": [
+      {
+        "id": "swollen-or-fever",
+        "answers": [
+          {
+            "question": "Is your face or gum swollen?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "broken tooth",
+          "swollen gum",
+          "dente quebrado",
+          "gengiva inchada"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "strong pain, a broken or lost tooth, swollen gum or face, or fever with toothache = concerning (medical officer)"
+      },
+      {
+        "id": "hard-to-swallow-or-breathe",
+        "answers": [
+          {
+            "question": "Is it hard to swallow or breathe?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "swelling of the face or neck that makes swallowing or breathing hard, or swelling near the eye with fever = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "mild-dental",
+        "answers": [],
+        "words": [
+          "lost filling",
+          "mouth ulcer",
+          "obturação",
+          "úlcera na boca"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "mild toothache, a loose filling or crown, or a mouth ulcer = unusual (self)"
+      }
+    ]
   },
   {
     "id": "acute-abdomen",
@@ -2883,7 +3867,44 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild belly pain with no other symptoms is covered by the stomach and bowel card; strong belly pain that does not pass in a few hours, or that starts around the navel and moves to the lower right = concerning (medical officer, not left alone); a very hard belly, very strong sudden pain, vomiting blood, a belly wound (blow or object), or pain with dizziness and cold sweat = dangerous (everyone, urgent card). The stomach and bowel card already sends strong pain with fever to dangerous; there is no surgeon on the ship. Card level above is the base level (concerning, since the card starts at strong pain); the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild belly pain with no other symptoms is covered by the stomach and bowel card; strong belly pain that does not pass in a few hours, or that starts around the navel and moves to the lower right = concerning (medical officer, not left alone); a very hard belly, very strong sudden pain, vomiting blood, a belly wound (blow or object), or pain with dizziness and cold sweat = dangerous (everyone, urgent card). The stomach and bowel card already sends strong pain with fever to dangerous; there is no surgeon on the ship. Card level above is the base level (concerning, since the card starts at strong pain); the system uses this list.",
+    "situations": [
+      {
+        "id": "strong-pain-not-passing",
+        "answers": [
+          {
+            "question": "Is the belly pain strong and not passing after a few hours?",
+            "answer": "yes"
+          },
+          {
+            "question": "Did the pain start around the navel and move to the lower right?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "strong belly pain that does not pass in a few hours, or that starts around the navel and moves to the lower right = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "hard-belly-or-wound",
+        "answers": [
+          {
+            "question": "Is the belly very hard?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "hard belly",
+          "stabbed in the belly",
+          "barriga dura"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "a very hard belly, very strong sudden pain, vomiting blood, a belly wound (blow or object), or pain with dizziness and cold sweat = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "heart-circulation",
@@ -2947,7 +3968,7 @@
         "pt": "Braço ou perna inchado, quente e dolorido de um lado: mantenha parado. Não esfregue nem massageie."
       },
       {
-        "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Do not give anything by mouth. Ask someone to stay with you.",
+        "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Anyone helping: do not give the person anything by mouth (no food, no drink). Ask someone to stay with you.",
         "pt": "Palidez, suor frio e fraqueza: deite-se, afrouxe a roupa apertada e fique aquecida. Não dê nada pela boca. Peça para alguém ficar com você."
       },
       {
@@ -2982,8 +4003,58 @@
       "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
     ],
     "status": "approved",
-    "en_checked": false,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: slightly high blood pressure, or a slightly swollen leg, with no other symptoms = unusual (self); an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone); pale with cold sweat and weakness, a very weak or irregular pulse, or sudden shortness of breath with chest pain = dangerous (everyone, urgent card). The chest pain card already covers fast heartbeat and chest pain. Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: a swollen, painful leg followed by sudden shortness of breath or chest pain = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B and kept it when the drafting tool warned): the base level of this card is now dangerous, everyone (before: unusual, self). The drafting tool's warning: if the system used the base level alone, slightly high blood pressure would alert everyone; the list above (slightly high blood pressure or a slightly swollen leg = unusual, self) is the one that must decide the real level. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation)."
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: slightly high blood pressure, or a slightly swollen leg, with no other symptoms = unusual (self); an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone); pale with cold sweat and weakness, a very weak or irregular pulse, or sudden shortness of breath with chest pain = dangerous (everyone, urgent card). The chest pain card already covers fast heartbeat and chest pain. Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: a swollen, painful leg followed by sudden shortness of breath or chest pain = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B and kept it when the drafting tool warned): the base level of this card is now dangerous, everyone (before: unusual, self). The drafting tool's warning: if the system used the base level alone, slightly high blood pressure would alert everyone; the list above (slightly high blood pressure or a slightly swollen leg = unusual, self) is the one that must decide the real level. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation).",
+    "situations": [
+      {
+        "id": "swollen-leg-or-high-pressure",
+        "answers": [
+          {
+            "question": "Is one leg or arm swollen, warm and painful?",
+            "answer": "yes"
+          },
+          {
+            "question": "Is your blood pressure very high with a strong headache?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "pale-cold-sweat",
+        "answers": [
+          {
+            "question": "Are you pale with cold sweat and weakness?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "weak pulse",
+          "pulso fraco"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "pale with cold sweat and weakness, a very weak or irregular pulse, or sudden shortness of breath with chest pain = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "embolism",
+        "answers": [],
+        "words": [
+          "embolism",
+          "pulmonary embolism",
+          "embolia",
+          "embolia pulmonar"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "embolism: a swollen, painful leg followed by sudden shortness of breath or chest pain = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "heat-cold",
@@ -3090,7 +4161,23 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: uncomfortable heat or cold, thirst, or cold fingertips = unusual (self); dizziness, nausea or cramps with heat, strong shivering with cold, or white and numb skin on the fingers = concerning (medical officer); confusion, very hot and dry skin, a very high or very low body temperature, fainting, or white hard skin (frostbite) = dangerous (everyone, urgent card). The Astrum reads the room temperature and humidity and does not control them. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the Wilderness Medical Society 2019 and MedlinePlus, item 6, medical lead chose A): frostbite rewarming gives 37 to 42 C for about 30 minutes and only if the part cannot freeze again (before: warm slowly with warm, not hot, water). Warm water in microgravity was not checked. CHANGED 14 Nov (after Caio's check, bloco 2, passo 2, medical lead's own version): active cooling (cold wet cloths on the neck, armpits and groin, and fanning the body) is added to the moderate heat step (dizziness, nausea or cramps), NOT to the urgent step."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: uncomfortable heat or cold, thirst, or cold fingertips = unusual (self); dizziness, nausea or cramps with heat, strong shivering with cold, or white and numb skin on the fingers = concerning (medical officer); confusion, very hot and dry skin, a very high or very low body temperature, fainting, or white hard skin (frostbite) = dangerous (everyone, urgent card). The Astrum reads the room temperature and humidity and does not control them. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the Wilderness Medical Society 2019 and MedlinePlus, item 6, medical lead chose A): frostbite rewarming gives 37 to 42 C for about 30 minutes and only if the part cannot freeze again (before: warm slowly with warm, not hot, water). Warm water in microgravity was not checked. CHANGED 14 Nov (after Caio's check, bloco 2, passo 2, medical lead's own version): active cooling (cold wet cloths on the neck, armpits and groin, and fanning the body) is added to the moderate heat step (dizziness, nausea or cramps), NOT to the urgent step.",
+    "situations": [
+      {
+        "id": "confused-or-fainted",
+        "answers": [
+          {
+            "question": "Are you confused or have you fainted?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "confusion, very hot and dry skin, a very high or very low body temperature, fainting, or white hard skin (frostbite) = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "depression-psychosis",
@@ -3198,7 +4285,47 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: sadness, apathy, low motivation or work tiredness for a few days is covered by the mood and stress card; sadness for more than 2 weeks, loss of interest in everything, not eating or not sleeping, or strong grief = concerning (medical officer); hearing voices, seeing things that are not there, strange or persecution ideas, or delirium (confusion with fever) = dangerous (everyone, urgent card). Same rules as the mood card: thoughts of self-harm follow that card (no plan = medical officer and not left alone; with a plan or means = everyone); if the affected person is the medical officer (Okafor), the commander (Tanaka) is alerted instead; what she writes is never shown to the crew. Physical causes first (CO2, low oxygen, low glucose, fever). Card level above is the base level (concerning, since the card starts at 2 weeks of sadness); the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): neurocognitive disorders: forgetting things or confused thinking that lasts more than a few days or gets worse = concerning (medical officer)."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: sadness, apathy, low motivation or work tiredness for a few days is covered by the mood and stress card; sadness for more than 2 weeks, loss of interest in everything, not eating or not sleeping, or strong grief = concerning (medical officer); hearing voices, seeing things that are not there, strange or persecution ideas, or delirium (confusion with fever) = dangerous (everyone, urgent card). Same rules as the mood card: thoughts of self-harm follow that card (no plan = medical officer and not left alone; with a plan or means = everyone); if the affected person is the medical officer (Okafor), the commander (Tanaka) is alerted instead; what she writes is never shown to the crew. Physical causes first (CO2, low oxygen, low glucose, fever). Card level above is the base level (concerning, since the card starts at 2 weeks of sadness); the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): neurocognitive disorders: forgetting things or confused thinking that lasts more than a few days or gets worse = concerning (medical officer).",
+    "situations": [
+      {
+        "id": "voices-or-delirium",
+        "answers": [
+          {
+            "question": "Do you hear voices or see things that are not there?",
+            "answer": "yes"
+          },
+          {
+            "question": "Are you confused with a fever?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "hearing voices",
+          "seeing things",
+          "persecuted",
+          "ouvindo vozes",
+          "vendo coisas",
+          "perseguida"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "hearing voices, seeing things that are not there, strange or persecution ideas, or delirium (confusion with fever) = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "lost-interest",
+        "answers": [
+          {
+            "question": "Have you lost interest in everything for more than 2 weeks?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "sadness for more than 2 weeks, loss of interest in everything, not eating or not sleeping, or strong grief = concerning (medical officer)"
+      }
+    ]
   },
   {
     "id": "sepsis-anemia",
@@ -3316,7 +4443,27 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, mild pallor or dizziness on standing with no other symptoms = unusual (self); if the hematocrit is low the hematocrit table applies; fever with chills, fast heartbeat and fast breathing, or strong weakness with pallor = concerning (medical officer, not left alone); fever with confusion, low blood pressure signs (pale, cold sweat, weak pulse), mottled or cold skin, or very little urine = dangerous (everyone, urgent card), suspicion of sepsis. The Astrum does not diagnose: it never shows the word sepsis. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation)."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, mild pallor or dizziness on standing with no other symptoms = unusual (self); if the hematocrit is low the hematocrit table applies; fever with chills, fast heartbeat and fast breathing, or strong weakness with pallor = concerning (medical officer, not left alone); fever with confusion, low blood pressure signs (pale, cold sweat, weak pulse), mottled or cold skin, or very little urine = dangerous (everyone, urgent card), suspicion of sepsis. The Astrum does not diagnose: it never shows the word sepsis. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation).",
+    "situations": [
+      {
+        "id": "low-pressure-signs-or-little-urine",
+        "answers": [
+          {
+            "question": "Are you confused or very pale with cold sweat?",
+            "answer": "yes"
+          },
+          {
+            "question": "Are you passing very little urine?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "fever with confusion, low blood pressure signs (pale, cold sweat, weak pulse), mottled or cold skin, or very little urine = dangerous (everyone, urgent card), suspicion of sepsis",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "decompression-radiation",
@@ -3431,7 +4578,50 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: cabin pressure a little below normal, mild joint pain, or radiation a little above normal with no symptoms = unusual (self); a pressure drop that continues, strong joint pain, tingling, or nausea or vomiting with a high radiation dose = concerning (medical officer, not left alone); a fast pressure drop (alarm), trouble breathing, sudden chest pain, confusion, or a very high radiation dose = dangerous (everyone, urgent card). The numbers for 'a little', 'continues' and 'high' are not defined: Caio or a NASA source must set them. Card level above is the base level; the system uses this list. The Astrum reads pressure and radiation and does not control them. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: sudden shortness of breath with chest pain after a pressure drop = dangerous (everyone, urgent card); venous clots are in the blood pressure and leg swelling card. CHANGED 14 Nov (after Caio's check, bloco 2, passo 4, medical lead chose A): joint pain or tingling step now says to breathe pure oxygen if the ship has it, and that the medical officer decides on recompression."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: cabin pressure a little below normal, mild joint pain, or radiation a little above normal with no symptoms = unusual (self); a pressure drop that continues, strong joint pain, tingling, or nausea or vomiting with a high radiation dose = concerning (medical officer, not left alone); a fast pressure drop (alarm), trouble breathing, sudden chest pain, confusion, or a very high radiation dose = dangerous (everyone, urgent card). The numbers for 'a little', 'continues' and 'high' are not defined: Caio or a NASA source must set them. Card level above is the base level; the system uses this list. The Astrum reads pressure and radiation and does not control them. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: sudden shortness of breath with chest pain after a pressure drop = dangerous (everyone, urgent card); venous clots are in the blood pressure and leg swelling card. CHANGED 14 Nov (after Caio's check, bloco 2, passo 4, medical lead chose A): joint pain or tingling step now says to breathe pure oxygen if the ship has it, and that the medical officer decides on recompression.",
+    "situations": [
+      {
+        "id": "joint-pain-or-tingling",
+        "answers": [
+          {
+            "question": "Do you have joint pain or tingling after a pressure drop?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "a pressure drop that continues, strong joint pain, tingling, or nausea or vomiting with a high radiation dose = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "trouble-breathing-or-chest-pain",
+        "answers": [
+          {
+            "question": "Do you have trouble breathing or sudden chest pain?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "a fast pressure drop (alarm), trouble breathing, sudden chest pain, confusion, or a very high radiation dose = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "embolism",
+        "answers": [],
+        "words": [
+          "gas embolism",
+          "sudden breathlessness",
+          "embolia",
+          "falta de ar súbita"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "embolism: sudden shortness of breath with chest pain after a pressure drop = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "choking",
@@ -3516,7 +4706,23 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. Split in two on 14 Nov at the medical lead's request: this card is for when the ship has gravity. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now)."
+    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. Split in two on 14 Nov at the medical lead's request: this card is for when the ship has gravity. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now).",
+    "situations": [
+      {
+        "id": "cannot-cough-or-speak",
+        "answers": [
+          {
+            "question": "Can you cough or speak?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "choking-no-gravity",
@@ -3603,7 +4809,23 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. This card is for no gravity or reduced gravity (the exact limit is Caio's decision). If she stops responding, the cardiac arrest card for no gravity follows. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now)."
+    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. This card is for no gravity or reduced gravity (the exact limit is Caio's decision). If she stops responding, the cardiac arrest card for no gravity follows. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now).",
+    "situations": [
+      {
+        "id": "cannot-cough-or-speak",
+        "answers": [
+          {
+            "question": "Can you cough or speak?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "medication-overdose",
@@ -3704,7 +4926,54 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild reaction to a medicine (itch, mild nausea, sleepiness), or a doubt about what was taken = unusual (self); a double dose or the wrong medicine even with no symptoms, or a reaction with repeated vomiting, strong dizziness, a large rash or a very changed heartbeat = concerning (medical officer, not left alone); hard to wake, slow or weak breathing, blue lips, strong confusion, or a severe allergic reaction (swollen face, trouble breathing) = dangerous (everyone, urgent card). Related cards: skin rash (new medicine) and shortness of breath. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 3, medical lead chose A): 'do not take another medicine' became 'only if the medical officer says so' (so it does not block an antidote); added 'if sleepy but breathing, lie on your side'; 'do not let yourself fall asleep' was removed for lack of a source."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild reaction to a medicine (itch, mild nausea, sleepiness), or a doubt about what was taken = unusual (self); a double dose or the wrong medicine even with no symptoms, or a reaction with repeated vomiting, strong dizziness, a large rash or a very changed heartbeat = concerning (medical officer, not left alone); hard to wake, slow or weak breathing, blue lips, strong confusion, or a severe allergic reaction (swollen face, trouble breathing) = dangerous (everyone, urgent card). Related cards: skin rash (new medicine) and shortness of breath. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 3, medical lead chose A): 'do not take another medicine' became 'only if the medical officer says so' (so it does not block an antidote); added 'if sleepy but breathing, lie on your side'; 'do not let yourself fall asleep' was removed for lack of a source.",
+    "situations": [
+      {
+        "id": "double-dose",
+        "answers": [
+          {
+            "question": "Did you take more medicine than you should?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "took too much",
+          "wrong medicine",
+          "tomei demais",
+          "remédio errado"
+        ],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "a double dose or the wrong medicine even with no symptoms, or a reaction with repeated vomiting, strong dizziness, a large rash or a very changed heartbeat = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "hard-to-wake",
+        "answers": [
+          {
+            "question": "Is it hard to wake the person?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "hard to wake, slow or weak breathing, blue lips, strong confusion, or a severe allergic reaction (swollen face, trouble breathing) = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      },
+      {
+        "id": "mild-reaction",
+        "answers": [],
+        "words": [
+          "medicine reaction",
+          "side effect",
+          "reação ao remédio",
+          "efeito colateral"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "a mild reaction to a medicine (itch, mild nausea, sleepiness), or a doubt about what was taken = unusual (self)"
+      }
+    ]
   },
   {
     "id": "gynecologic",
@@ -3798,7 +5067,41 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: bleeding a little outside the cycle, or unprotected sex with no symptoms = unusual (self); heavy bleeding (soaking more than one pad an hour), strong pain in the lower belly, fever, or foul-smelling discharge = concerning (medical officer, not left alone); very heavy bleeding with dizziness, pallor or fainting, or sudden very strong pain in the lower belly = dangerous (everyone, urgent card). Privacy: what she writes is shown only to the medical officer, never to the crew. Card level above is the base level; the system uses this list. Steps improved on 14 Nov at the medical lead's request (6 steps). CHANGED 14 Nov (after Caio's check, item 7, medical lead chose C): step 2 no longer says not to take ibuprofen (the AAFP 2020 review says NSAIDs reduce heavy menstrual bleeding); it now says not to take aspirin and to talk to the medical officer before any medicine. Aspirin and bleeding outside the cycle were not checked."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: bleeding a little outside the cycle, or unprotected sex with no symptoms = unusual (self); heavy bleeding (soaking more than one pad an hour), strong pain in the lower belly, fever, or foul-smelling discharge = concerning (medical officer, not left alone); very heavy bleeding with dizziness, pallor or fainting, or sudden very strong pain in the lower belly = dangerous (everyone, urgent card). Privacy: what she writes is shown only to the medical officer, never to the crew. Card level above is the base level; the system uses this list. Steps improved on 14 Nov at the medical lead's request (6 steps). CHANGED 14 Nov (after Caio's check, item 7, medical lead chose C): step 2 no longer says not to take ibuprofen (the AAFP 2020 review says NSAIDs reduce heavy menstrual bleeding); it now says not to take aspirin and to talk to the medical officer before any medicine. Aspirin and bleeding outside the cycle were not checked.",
+    "situations": [
+      {
+        "id": "heavy-bleeding-or-pain-or-fever",
+        "answers": [
+          {
+            "question": "Are you soaking more than one pad an hour?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have strong pain in the lower belly?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have a fever?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "heavy bleeding (soaking more than one pad an hour), strong pain in the lower belly, fever, or foul-smelling discharge = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "unprotected-sex",
+        "answers": [],
+        "words": [
+          "unprotected sex",
+          "sexo sem proteção"
+        ],
+        "level": "unusual",
+        "notify": "self",
+        "note": "bleeding a little outside the cycle, or unprotected sex with no symptoms = unusual (self)"
+      }
+    ]
   },
   {
     "id": "eva-hand-nails",
@@ -3892,7 +5195,40 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild hand or finger pain after work, a bruised nail with no blood, or a suit mark on the skin = unusual (self); a nail coming off, blood under the nail with strong pain, pain that does not pass in 2 days, numbness in the fingers, or bone pain on pressure (possible stress fracture) = concerning (medical officer); strong bleeding, a deformed or cold and pale finger, or loss of movement of the hand = dangerous (everyone, urgent card). Related cards: cut or injury, fractures. Card level above is the base level; the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild hand or finger pain after work, a bruised nail with no blood, or a suit mark on the skin = unusual (self); a nail coming off, blood under the nail with strong pain, pain that does not pass in 2 days, numbness in the fingers, or bone pain on pressure (possible stress fracture) = concerning (medical officer); strong bleeding, a deformed or cold and pale finger, or loss of movement of the hand = dangerous (everyone, urgent card). Related cards: cut or injury, fractures. Card level above is the base level; the system uses this list.",
+    "situations": [
+      {
+        "id": "nail-or-numb-fingers",
+        "answers": [
+          {
+            "question": "Is the nail coming off or is there blood under it?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do your fingers feel numb?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "a nail coming off, blood under the nail with strong pain, pain that does not pass in 2 days, numbness in the fingers, or bone pain on pressure (possible stress fracture) = concerning (medical officer)"
+      },
+      {
+        "id": "cannot-move-the-hand",
+        "answers": [
+          {
+            "question": "Can you move the hand?",
+            "answer": "no"
+          }
+        ],
+        "words": [],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "strong bleeding, a deformed or cold and pale finger, or loss of movement of the hand = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "tingling-nerves",
@@ -3992,7 +5328,43 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: mild tingling that comes and goes in one hand or foot with no other symptoms = unusual (self); tingling or numbness that does not pass in 2 days, weakness in an arm or leg, or pain that goes down the arm or leg = concerning (medical officer, not left alone); sudden numbness or weakness on one side, loss of control of urine or stool, very low blood pressure with a slow heartbeat (neurogenic shock), or paralysis = dangerous (everyone, urgent card). Sudden numbness on one side is also in the head blow, seizure and stroke card: this card is shown only when the tingling comes alone, so the system does not pick two cards. Card level above is the base level; the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild tingling that comes and goes in one hand or foot with no other symptoms = unusual (self); tingling or numbness that does not pass in 2 days, weakness in an arm or leg, or pain that goes down the arm or leg = concerning (medical officer, not left alone); sudden numbness or weakness on one side, loss of control of urine or stool, very low blood pressure with a slow heartbeat (neurogenic shock), or paralysis = dangerous (everyone, urgent card). Sudden numbness on one side is also in the head blow, seizure and stroke card: this card is shown only when the tingling comes alone, so the system does not pick two cards. Card level above is the base level; the system uses this list.",
+    "situations": [
+      {
+        "id": "lasting-or-weak",
+        "answers": [
+          {
+            "question": "Is the tingling or numbness lasting more than 2 days?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have weakness in an arm or leg?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "tingling or numbness that does not pass in 2 days, weakness in an arm or leg, or pain that goes down the arm or leg = concerning (medical officer, not left alone)"
+      },
+      {
+        "id": "lost-control-or-paralysis",
+        "answers": [
+          {
+            "question": "Did you lose control of urine or stool?",
+            "answer": "yes"
+          }
+        ],
+        "words": [
+          "paralysis",
+          "paralisia"
+        ],
+        "level": "dangerous",
+        "notify": "everyone",
+        "note": "sudden numbness or weakness on one side, loss of control of urine or stool, very low blood pressure with a slow heartbeat (neurogenic shock), or paralysis = dangerous (everyone, urgent card)",
+        "also_card": "unknown-urgent"
+      }
+    ]
   },
   {
     "id": "nutrition-dust-kidney",
@@ -4087,6 +5459,25 @@
     ],
     "status": "approved",
     "en_checked": true,
-    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, weak nails or hair loss for weeks, mild cough or irritation after dust, or mild side pain = unusual (self); little urine for many hours, strong side pain going to the groin, blood in the urine, or cough and irritated eyes for more than 1 day after dust = concerning (medical officer, not left alone); no urine with swelling, confusion or hard breathing, or very strong pain with vomiting = dangerous (everyone, urgent card). This card shows only with side pain, little urine, dust or lack of nutrients. Card level above is the base level; the system uses this list."
+    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, weak nails or hair loss for weeks, mild cough or irritation after dust, or mild side pain = unusual (self); little urine for many hours, strong side pain going to the groin, blood in the urine, or cough and irritated eyes for more than 1 day after dust = concerning (medical officer, not left alone); no urine with swelling, confusion or hard breathing, or very strong pain with vomiting = dangerous (everyone, urgent card). This card shows only with side pain, little urine, dust or lack of nutrients. Card level above is the base level; the system uses this list.",
+    "situations": [
+      {
+        "id": "little-urine-or-side-pain",
+        "answers": [
+          {
+            "question": "Have you passed very little urine for many hours?",
+            "answer": "yes"
+          },
+          {
+            "question": "Do you have strong pain in the side that goes to the groin?",
+            "answer": "yes"
+          }
+        ],
+        "words": [],
+        "level": "concerning",
+        "notify": "medical_officer",
+        "note": "little urine for many hours, strong side pain going to the groin, blood in the urine, or cough and irritated eyes for more than 1 day after dust = concerning (medical officer, not left alone)"
+      }
+    ]
   }
 ]

@@ -34,12 +34,22 @@
 //   - blood: one result row at the case's value in her unit; "fasting" from her
 //     answer to "Are you fasting?". The last of several values is the latest.
 //   - "Did it get better?" answers: the check-in answer the hub understands.
-//   - other answers and the English words typed: her card signs, as a question.
+//   - an answer to one of her blood symptom questions (blood.json
+//     symptom_questions, when her export carries them, matched by its English
+//     text): the check-in answer "checkin.<key>".
+//   - heart rate given against a reference value ("below 40"): also a reading
+//     row now, for a glucose escalation that names it.
+//   - other answers and the English words typed: her card signs, as a question,
+//     with her ask-first rule (medical/follow-up.json): a card picked only by a
+//     lone-symptom word raises nothing; its first question is the next question.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseCards, pickCard } from '../engine/cards.ts';
+import { parseCards } from '../engine/cards.ts';
+import { parseFollowUps, pickWithFollowUp } from '../engine/followup.ts';
+import type { FollowUpRow } from '../engine/followup.ts';
+import { t } from '../engine/strings.ts';
 import type { Card, Facts, ReadingFact } from '../engine/cards.ts';
 import { parseBloodExport } from '../engine/blood.ts';
 import { overLimit } from '../engine/cabin.ts';
@@ -48,7 +58,7 @@ import { signalBaseline } from '../engine/baseline.ts';
 import { COUNTDOWN_MS, alertFor, stepAlerts } from '../engine/alerts.ts';
 import type { Alert, AlertInputs, Finding, Unusual } from '../engine/alerts.ts';
 import {
-  FASTING_QUESTION, FASTING_SIGNAL, FOLLOW_UP_QUESTION, FOLLOW_UP_SIGNAL, SPO2_REPEAT_MIN_MS, cardFinding, crisisFinding, findingsNow, parseLevelOverrides,
+  FASTING_QUESTION, FASTING_SIGNAL, FOLLOW_UP_QUESTION, FOLLOW_UP_SIGNAL, SPO2_REPEAT_MIN_MS, cardFinding, crisisFinding, findingsNow, parseLevelOverrides, symptomSignal,
 } from '../engine/medical.ts';
 import type { LevelOverride } from '../engine/medical.ts';
 import { FIXED_TEXTS, phraseProblems, screenInput } from '../engine/prompt.ts';
@@ -100,7 +110,11 @@ const NOW = Date.UTC(2026, 10, 14, 12, 0, 0);
 const MIN = 60_000;
 const LEVEL_NAME: Record<number, LevelName> = { 1: 'unusual', 2: 'concerning', 3: 'dangerous' };
 /** The hub's fixed questions: the only next questions it can be checked on. */
-const FIXED_QUESTIONS = (cards: Card[]) => new Set([FASTING_QUESTION, FOLLOW_UP_QUESTION, cards.find((c) => c.id === 'low-oxygen')?.signs.answers[0]?.question ?? '']);
+const FIXED_QUESTIONS = (cards: Card[], entries: ReturnType<typeof parseBloodExport>['entries'] = []) => new Set([
+  FASTING_QUESTION, FOLLOW_UP_QUESTION, cards.find((c) => c.id === 'low-oxygen')?.signs.answers[0]?.question ?? '',
+  // Her blood symptom questions, once her export carries them as fields.
+  ...entries.flatMap((e) => (e.symptom_questions ?? []).map((q) => q.question.en)),
+]);
 
 function loadJson(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -156,7 +170,7 @@ function textOf(c: Case): string {
 }
 
 /** Builds one case's situation and runs it through the engine. */
-export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parseBloodExport>['entries'], crew: Person[], opts: { asleep?: boolean; overrides?: LevelOverride[] } = {}): { got: Got; alerts: Alert[]; expressed: string[]; shownTexts: string[] } {
+export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parseBloodExport>['entries'], crew: Person[], opts: { asleep?: boolean; overrides?: LevelOverride[]; followUps?: FollowUpRow[] } = {}): { got: Got; alerts: Alert[]; expressed: string[]; shownTexts: string[] } {
   const expressed: string[] = [];
   const story = `${textOf(c)} ${c.story.en}`.toLowerCase();
   let gravity = shipGravity();
@@ -208,6 +222,7 @@ export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parse
       continue;
     }
     if (r.value !== null) facts.push({ signal: r.signal, direction: dir === 'changed' ? 'high' : dir, basis: 'reference_range', value: r.value, unit: r.unit });
+    if (r.value !== null && (r.signal === 'heart_rate' || r.signal === 'resting_heart_rate')) bodyRows.push({ t: NOW - MIN, signal: r.signal, value: r.value, unit: r.unit, kind: 'measured', source: 'case', person: PERSON });
   }
 
   // Her answers: the two the hub understands as check-in answers, the rest for her card signs.
@@ -217,11 +232,12 @@ export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parse
     const yes = /^yes/i.test(a.answer.trim());
     if (a.question === FASTING_QUESTION) checkins.push({ t: NOW - 2 * MIN, signal: FASTING_SIGNAL, value: yes ? 1 : 0, unit: '', kind: 'reported', source: 'case', person: PERSON });
     else if (a.question === FOLLOW_UP_QUESTION) checkins.push({ t: NOW - MIN, signal: FOLLOW_UP_SIGNAL, value: yes ? 1 : 0, unit: '', kind: 'reported', source: 'case', person: PERSON });
+    else if (symptomKey(a.question, entries)) checkins.push({ t: NOW - MIN, signal: symptomSignal(symptomKey(a.question, entries)!), value: yes ? 1 : 0, unit: '', kind: 'reported', source: 'case', person: PERSON });
     else cardAnswers.push({ question: a.question, answer: a.answer.split(':')[0].trim() });
   }
   if ((c.answers ?? []).some((a) => a.answer.includes(':'))) expressed.push('an answer "yes: ..." is given to her signs as "yes"');
 
-  const all = [...bodyRows, ...checkins];
+  const all = [...bodyRows, ...checkins, ...bloodRows];
   const findings: Finding[] = findingsNow({
     people: [PERSON], now: NOW, cards, entries,
     rowsOf: (person, signal, from) => all.filter((r) => r.person === person && r.signal === signal && r.t >= from && r.t <= NOW),
@@ -232,17 +248,20 @@ export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parse
   const said = c.said?.en?.trim() ?? '';
   const shownTexts: string[] = [];
   let followUp = false;
+  let askQuestion = '';
   if (said || cardAnswers.length) {
     const screen = said ? screenInput(said) : null;
     if (screen?.route === 'crisis') {
       findings.push(crisisFinding(PERSON));
       shownTexts.push(FIXED_TEXTS['ai.crisisTold']);
     } else {
-      const picked = pickCard(cards, { readings: facts.filter((f) => f.basis !== 'personal_normal'), answers: cardAnswers, text: said || undefined }, gravity);
+      const { picked, askFirst } = pickWithFollowUp(cards, { readings: facts.filter((f) => f.basis !== 'personal_normal'), answers: cardAnswers, text: said || undefined }, gravity, opts.followUps ?? []);
       const finding = cardFinding(picked, PERSON, cards, 'reported', opts.overrides ?? []);
       if (finding) findings.push(finding);
+      // Only a lone symptom: nothing raised for that card; her first follow-up question is asked.
+      if (askFirst?.questions[0]) { askQuestion = t(askFirst.questions[0].stringKey, 'en'); shownTexts.push(askQuestion); expressed.push(`ask first (${askFirst.card}): no level from a lone symptom`); }
       // No card fits: the hub asks later whether it got better, unless she has already answered.
-      else if (said && !checkins.some((r) => r.signal === FOLLOW_UP_SIGNAL)) { followUp = true; shownTexts.push(FOLLOW_UP_QUESTION); }
+      else if (!finding && said && !checkins.some((r) => r.signal === FOLLOW_UP_SIGNAL)) { followUp = true; shownTexts.push(FOLLOW_UP_QUESTION); }
       if (screen?.route === 'card') shownTexts.push(FIXED_TEXTS['ai.card']);
       if (screen?.route === 'fixed') shownTexts.push(FIXED_TEXTS[screen.key]);
     }
@@ -265,9 +284,15 @@ export function runCase(c: Case, cards: Card[], entries: ReturnType<typeof parse
   const got: Got = {
     flag: alerts.length > 0, level: top ? LEVEL_NAME[top.level] : null, notify, card: own?.card ?? null, alsoCard: own?.alsoCard ?? null,
     // The question that comes with the result: the top alert's, else the "no card fits" follow-up.
-    nextQuestion: own?.nextQuestion ?? (followUp ? FOLLOW_UP_QUESTION : ''),
+    nextQuestion: own?.nextQuestion ?? (askQuestion || (followUp ? FOLLOW_UP_QUESTION : '')),
   };
   return { got, alerts, expressed, shownTexts };
+}
+
+/** The key of her blood symptom question with this English text, or null. */
+function symptomKey(question: string, entries: ReturnType<typeof parseBloodExport>['entries']): string | null {
+  for (const e of entries) for (const q of e.symptom_questions ?? []) if (q.question.en === question) return q.key;
+  return null;
 }
 
 function latestPerSignal(rows: Row[]): Row[] {
@@ -276,7 +301,7 @@ function latestPerSignal(rows: Row[]): Row[] {
   return [...best.values()];
 }
 
-function checkMustNot(item: string, c: Case, run: ReturnType<typeof runCase>, cards: Card[], entries: ReturnType<typeof parseBloodExport>['entries'], crew: Person[], overrides: LevelOverride[]): { result: Check; note: string } {
+function checkMustNot(item: string, c: Case, run: ReturnType<typeof runCase>, cards: Card[], entries: ReturnType<typeof parseBloodExport>['entries'], crew: Person[], overrides: LevelOverride[], followUps: FollowUpRow[]): { result: Check; note: string } {
   const { alerts, got, shownTexts } = run;
   const told = (pred: (a: Alert) => boolean) => alerts.some((a) => !a.held && pred(a));
   const cmo = crew.filter((p) => p.role === 'role.cmo').map((p) => p.id);
@@ -295,7 +320,7 @@ function checkMustNot(item: string, c: Case, run: ReturnType<typeof runCase>, ca
     return { result: got.flag ? 'pass' : 'fail', note: 'passes when the alert is raised with no answers' };
   }
   if (i === 'send the warning while she sleeps') {
-    const sleeping = runCase(c, cards, entries, crew, { asleep: true, overrides });
+    const sleeping = runCase(c, cards, entries, crew, { asleep: true, overrides, followUps });
     return { result: sleeping.alerts.some((a) => a.level === 1 && a.toldTo !== 'everyone' && a.toldTo.length > 0) ? 'fail' : 'pass', note: 'run again with her asleep: every level 1 is held' };
   }
   if (i === 'show what she wrote to the crew') {
@@ -314,17 +339,26 @@ function checkMustNot(item: string, c: Case, run: ReturnType<typeof runCase>, ca
   return { result: 'not checkable', note: 'about the answer\'s content; needs the model' };
 }
 
-export function runCases(): { results: CaseResult[]; passed: number; failed: number } {
+/** Her files, as runCases reads them. Each may be swapped, for a test with a small fixture. */
+export interface CaseFiles {
+  cards?: unknown;
+  blood?: unknown;
+}
+
+export function runCases(files: CaseFiles = {}): { results: CaseResult[]; passed: number; failed: number } {
   const cases = loadJson(join(here, 'cases.json')) as Case[];
-  const cards = parseCards(loadJson(join(here, 'cards.json'))).cards;
-  const entries = parseBloodExport(loadJson(join(here, 'blood.json'))).entries;
+  const cards = parseCards(files.cards ?? loadJson(join(here, 'cards.json'))).cards;
+  const entries = parseBloodExport(files.blood ?? loadJson(join(here, 'blood.json'))).entries;
   const crew = shipCrew();
   const levels = parseLevelOverrides(loadJson(join(here, 'level-overrides.json')), cards);
   if (levels.problems.length) throw new Error(levels.problems.join('\n'));
   const overrides = levels.overrides;
-  const fixed = FIXED_QUESTIONS(cards);
+  const asks = parseFollowUps(loadJson(join(here, 'follow-up.json')), cards);
+  if (asks.problems.length) throw new Error(asks.problems.join('\n'));
+  const followUps = asks.rows;
+  const fixed = FIXED_QUESTIONS(cards, entries);
   const results: CaseResult[] = cases.map((c) => {
-    const run = runCase(c, cards, entries, crew, { overrides });
+    const run = runCase(c, cards, entries, crew, { overrides, followUps });
     const e = c.expected;
     const g = run.got;
     const cardOk = e.card === null ? g.card === null : g.card === e.card || g.alsoCard === e.card;
@@ -336,7 +370,7 @@ export function runCases(): { results: CaseResult[]; passed: number; failed: num
       card: (cardOk ? 'pass' : 'fail') as Check,
       next_question: (!nqCheckable ? 'not checkable' : g.nextQuestion === e.next_question ? 'pass' : 'fail') as Check,
     };
-    const mustNot = (e.must_not ?? []).map((item) => ({ item, ...checkMustNot(item, c, run, cards, entries, crew, overrides) }));
+    const mustNot = (e.must_not ?? []).map((item) => ({ item, ...checkMustNot(item, c, run, cards, entries, crew, overrides, followUps) }));
     const passed = Object.values(checks).every((x) => x !== 'fail') && mustNot.every((m) => m.result !== 'fail');
     return { id: c.id, title: textOf(c), expected: e, got: g, checks, mustNot, passed, expressed: run.expressed };
   });
@@ -351,25 +385,28 @@ export function runCases(): { results: CaseResult[]; passed: number; failed: num
  * It never changes a result: runCases() above does not read it. A failing case
  * with no line here is printed as "not read yet".
  */
-const PROSE_BLOOD = 'Missing machine-readable field: this entry\'s level per band is only in blood.json `notes`; blood.json has flag/urgent numbers but no level (and "urgent" means concerning for some entries, dangerous for others), so the hub raises nothing.';
-const PROSE_LEVEL = 'Missing machine-readable field: the right card is picked, but the level for this situation is only in the card\'s `notes`; the hub uses the card\'s base `level`.';
+const PROSE_BLOOD = 'Missing machine-readable field: this entry\'s level per band is only in blood.json `notes`, so the hub raises nothing. The hub now reads a `bands` field (engine/levels.ts); her export does not carry it yet (asked for in PEDIDO-CAMPOS.md).';
+const PROSE_LEVEL = 'Missing machine-readable field: the right card is picked, but the level for this situation is only in the card\'s `notes`; the hub uses the card\'s base `level`. The hub now reads a card `situations` field (engine/levels.ts); her export does not carry it yet (asked for in PEDIDO-CAMPOS.md).';
 export const WHY: Record<string, string> = {
   'case-002': 'Disagreement between the case and the rules: she does not wake, so the project\'s countdown rule takes the CO2 alert to everyone after 60 s; the case expects "concerning" told to "self", while her README says concerning tells the medical officer.',
   'case-003': 'Disagreement between the case and her cards: at 2.6 mmHg her headache card\'s CO2 sign (above 2.3) matches; her high-co2 card\'s sign is the NASA limit (above 3) and does not.',
-  'case-005': PROSE_BLOOD, 'case-006': PROSE_BLOOD, 'case-007': PROSE_BLOOD + ' Her symptom question is also only in the notes.', 'case-008': PROSE_BLOOD,
+  'case-005': PROSE_BLOOD, 'case-006': PROSE_BLOOD, 'case-007': PROSE_BLOOD + ' Her symptom question is also only in the notes (field: `symptom_questions`).', 'case-008': PROSE_BLOOD,
   'case-010': PROSE_BLOOD, 'case-011': PROSE_BLOOD, 'case-012': PROSE_BLOOD, 'case-014': PROSE_BLOOD, 'case-015': PROSE_BLOOD, 'case-016': PROSE_BLOOD,
-  'case-017': PROSE_BLOOD, 'case-018': PROSE_BLOOD + ' Her symptom question is also only in the notes.', 'case-019': PROSE_BLOOD, 'case-021': PROSE_BLOOD,
+  'case-017': PROSE_BLOOD, 'case-018': PROSE_BLOOD + ' Her symptom question is also only in the notes (field: `symptom_questions`).', 'case-019': PROSE_BLOOD, 'case-021': PROSE_BLOOD,
   'case-022': PROSE_BLOOD, 'case-023': PROSE_BLOOD, 'case-029': PROSE_BLOOD, 'case-030': PROSE_BLOOD, 'case-032': PROSE_BLOOD, 'case-033': PROSE_BLOOD,
   'case-035': 'Disagreement between the case and her card: the low-oxygen card\'s sign (SpO2 below 95) matches 92, so the card is shown with the unusual level; the case expects no card.',
-  'case-048': 'Missing machine-readable field: "low glucose and heart rate below 40 = dangerous" is only in the glucose notes; the hub gives the not-fasting 54-69 band, concerning.',
-  'case-051': 'Missing machine-readable field: the escalation at 250 or more (fast deep breathing, vomiting, drowsiness = dangerous) is only in the glucose notes.',
-  'case-052': 'Engine gap (missing field): the variation rule (CV above 36 %) is only in the glucose notes and is not run. The level matches only because the latest value, 150, is unusual on both her tables; with no fasting answer the hub asks "Are you fasting?", which the case does not expect.',
+  'case-048': 'Missing machine-readable field: "low glucose and heart rate below 40 = dangerous" is only in the glucose notes; the hub gives the not-fasting 54-69 band, concerning. The hub now reads glucose `escalations` (engine/levels.ts); not in her export yet.',
+  'case-051': 'Missing machine-readable field: the escalation at 250 or more (fast deep breathing, vomiting, drowsiness = dangerous) is only in the glucose notes. The hub now reads glucose `escalations`; not in her export yet.',
+  'case-052': 'Hub rule vs case: her variation escalation now gives unusual (as expected), but with no answer to "Are you fasting?" the hub still asks it; the case expects no question.',
   'case-057': 'Card overlap: "headache" is a word of both her high-co2 and headache cards; with one match each the higher base level wins (high-co2, concerning), though the CO2 is normal. Her words, and the engine\'s tie rule (most matches, then level).',
   'case-059': 'Engine rule vs case: a reading against the person\'s own normal alone never picks a card (it raises only the unusual level); the case expects her poor-sleep card.',
   'case-060': 'Engine rule vs case: a reading against the person\'s own normal alone never picks a card; the case expects her chest-pain card. The level and who is told match.',
-  'case-064': PROSE_LEVEL, 'case-066': PROSE_LEVEL, 'case-070': PROSE_LEVEL, 'case-071': PROSE_LEVEL, 'case-072': PROSE_LEVEL, 'case-073': PROSE_LEVEL,
+  'case-064': PROSE_LEVEL, 'case-066': PROSE_LEVEL, 'case-070': PROSE_LEVEL, 'case-071': PROSE_LEVEL,
+  'case-072': 'Mixed sign left out by her (changes-fields.md, question 4): "smoke" and "Do you see smoke or smell something strange?" can be mild or dangerous, so no situation holds them; only "fire" and "alarm" are dangerous. The card\'s base level (unusual) applies.',
+  'case-073': 'Needs a time condition (changes-fields.md, question 7): "for more than 2 days" is not an answer or a word, so no situation holds "phlegm"; the base level (unusual) applies.',
   'case-076': PROSE_LEVEL, 'case-078': PROSE_LEVEL, 'case-079': PROSE_LEVEL, 'case-080': PROSE_LEVEL,
-  'case-084': PROSE_LEVEL, 'case-085': PROSE_LEVEL, 'case-087': PROSE_LEVEL, 'case-088': PROSE_LEVEL,
+  'case-084': PROSE_LEVEL, 'case-085': PROSE_LEVEL, 'case-088': PROSE_LEVEL,
+  'case-087': 'Mixed question (changes-fields.md, question 10): "Do you have weakness in an arm or leg?" is in her concerning situation; her dangerous line ("sudden numbness or weakness on one side") has no answer or word of its own.',
   'case-068': 'Disagreement between the case and her card words: "red and warm skin" contains her skin-rash word "skin"; her skin-infection word is "red and hot skin", which it does not contain.',
   'case-075': 'Disagreement between the case and her card words: "I broke a tooth" contains her fracture word "broke"; her dental word is "broken tooth".',
   'case-081': 'Missing machine-readable field and an open point: there is no numeric cabin pressure limit (her README, open points), so no room alarm; a reading with no question never raises a card on its own, and her decompression card\'s base level is unusual.',

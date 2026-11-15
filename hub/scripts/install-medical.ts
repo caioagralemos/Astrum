@@ -27,11 +27,18 @@
 // is applied to that card and it stays as she exported it (unchecked), until
 // someone checks it again. "en_checked" means the English says what her
 // Portuguese says; it is not a medical check of the steps.
+//
+// Her level fields (cards' "situations", blood's "bands", "symptom_questions",
+// "escalations": engine/levels.ts, asked for in
+// ~/Desktop/NASA/medical-factcheck/PEDIDO-CAMPOS.md) are checked last: one that
+// is malformed refuses the whole install with a plain sentence, because the hub
+// would otherwise run that card or value on today's rules without saying so.
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fieldProblems } from '../engine/levels.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const MEDICAL_DIR = join(here, '..', 'medical');
@@ -341,6 +348,12 @@ export function install(exportDir: string, dest = MEDICAL_DIR, write = true, rev
     cards.problems.push(...r.problems);
     const { text: _text, ...summary } = r;
     cards.enReview = summary;
+  }
+  // Her level fields: any malformed one refuses the install.
+  const blood = reports.find((r) => r.file === 'blood.json');
+  if (cards && blood && cards.problems.length === 0 && blood.problems.length === 0) {
+    const problems = fieldProblems(JSON.parse(cards.text), JSON.parse(blood.text));
+    for (const p of problems) (p.startsWith('Blood') ? blood : cards).problems.push(`Level fields: ${p}`);
   }
   if (write && reports.every((r) => r.problems.length === 0)) {
     mkdirSync(dest, { recursive: true });

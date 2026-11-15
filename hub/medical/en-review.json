@@ -173,14 +173,18 @@
       }
     },
     "ear-nose-throat": {
-      "checked": false,
-      "why_not": "Step 5: the Portuguese \"dificuldade para respirar junto com a garganta ou o pescoço\" is unclear (trouble breathing together with what about the throat or neck?). The English keeps the same unclear wording until the medical lead says what it means.",
+      "checked": true,
+      "note": "Step 5 answered by the medical lead, 14 Nov 2026 (night): she chose \"falta de ar POR CAUSA da garganta ou do pescoço\". The English now says \"trouble breathing because of your throat or neck\". Her Portuguese (\"junto com\") is unchanged; she may reword it to match. That was the card's only open point, so the card is checked.",
       "pt_sha256": "0c210460d740e51c54e11cdd40275dcaa3b33451f100db5588072ce476313f88",
       "en_sha256": "ac88f5f8615a5184e244d0f68cfbd3ead5417e598cf5cc7bf7051122b796c1c7",
       "fixes": {
         "steps[2]": {
           "pt": "Sangramento de nariz: fique parada, incline levemente para a frente e aperte a parte mole do nariz por 10 a 15 minutos. Recolha o sangue com gaze para não flutuar.",
           "en": "Nosebleed: stay still, lean slightly forward and press the soft part of the nose for 10 to 15 minutes. Collect the blood with gauze so it does not float."
+        },
+        "steps[4]": {
+          "pt": "Olhe de novo em um dia. Se tiver dificuldade para engolir, não conseguir nem engolir a saliva, pescoço inchado, dificuldade para respirar junto com a garganta ou o pescoço, ou se o pano ficar ensopado de sangue, você engolir ou vomitar sangue, ou sentir tontura: siga o cartão de urgência.",
+          "en": "Look again in a day. If you have trouble swallowing, cannot even swallow saliva, a swollen neck, trouble breathing because of your throat or neck, or the cloth is soaked with blood, you swallow or vomit blood, or you feel dizzy: follow the urgent card."
         }
       }
     },
@@ -251,8 +255,8 @@
       "fixes": {}
     },
     "heart-circulation": {
-      "checked": false,
-      "why_not": "Step 4: the Portuguese speaks to the person herself (\"deite-se\", \"fique aquecida\") and then says \"Não dê nada pela boca\" (do not GIVE anything by mouth), which speaks to a helper. Who must not give what to whom is unclear; the English keeps the same wording until the medical lead says which she means.",
+      "checked": true,
+      "note": "Step 4 answered by the medical lead, 14 Nov 2026: \"NÃO PODE OFERECER NADA PARA A PESSOA QUE ESTÁ SENDO SOCORRIDA COMER\", and later that night, asked whether that is food only: \"TUDO, E REMÉDIO SÓ COM A PRESCRIÇÃO MÉDICA\". The sentence speaks to the helper; nothing by mouth means no food and no drink, as the card's Portuguese (\"Não dê nada pela boca\") already says. The medicine-only-with-prescription part is not on her card, so it is not in the English: it is listed for her to add to the Portuguese if she wants it shown (PEDIDO-CAMPOS.md, PERGUNTAS-ABERTAS.md). The card is checked.",
       "pt_sha256": "553d5b0971c86c141a92f4aeab845a38fdb46c635db7ec8fae6dc587375e51a7",
       "en_sha256": "b39c154e808ffa0ea43c98b79e345c5657efede31a898bbcc66b6cc540914544",
       "fixes": {
@@ -262,7 +266,7 @@
         },
         "steps[3]": {
           "pt": "Palidez, suor frio e fraqueza: deite-se, afrouxe a roupa apertada e fique aquecida. Não dê nada pela boca. Peça para alguém ficar com você.",
-          "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Do not give anything by mouth. Ask someone to stay with you."
+          "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Anyone helping: do not give the person anything by mouth (no food, no drink). Ask someone to stay with you."
         }
       }
     },
