@@ -297,12 +297,16 @@ pub fn run() {
             }
         })
         .on_window_event(|window, event| {
-            // Closing the window keeps the hub running (the crew's devices still talk to it); Quit stops it.
-            // Mac only: Windows has no Dock icon to bring a hidden window back, so there closing quits.
+            // Closing the window (the red button, Command-W) keeps the hub running: the crew's devices still talk
+            // to it, and only Quit stops it. The window goes to the Dock, where it can be seen and brought back.
+            // In full screen the request is ignored: hiding or minimising a full-screen window leaves a black screen.
+            // Mac only: on Windows closing quits.
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if cfg!(target_os = "macos") && window.app_handle().try_state::<Hub>().is_some() {
                     api.prevent_close();
-                    let _ = window.hide();
+                    if !window.is_fullscreen().unwrap_or(false) {
+                        let _ = window.minimize();
+                    }
                 }
             }
         })
@@ -314,6 +318,7 @@ pub fn run() {
         RunEvent::Reopen { .. } => {
             if let Some(w) = handle.get_webview_window("main") {
                 let _ = w.show();
+                let _ = w.unminimize();
                 let _ = w.set_focus();
             }
         }
