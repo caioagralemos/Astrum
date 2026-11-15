@@ -106,7 +106,7 @@ function cssColour(name: string, fallback: string): THREE.Color {
 }
 
 
-export function createDistantSystem(scene: THREE.Scene, style: 'pixel' | 'soft', background: THREE.Color): DistantSystem {
+export function createDistantSystem(scene: THREE.Scene, style: 'pixel' | 'soft', background: THREE.Color, destination: 'moon' | 'mars' = 'mars'): DistantSystem {
   const pixel = style === 'pixel';
   const quad = new THREE.PlaneGeometry(1, 1);
   const discs: Disc[] = [];
@@ -129,7 +129,8 @@ export function createDistantSystem(scene: THREE.Scene, style: 'pixel' | 'soft',
   for (const p of POINTS) disc(cssColour(p.colour[0], p.colour[1]), 1, 3, p.x, p.y, p.phase, 0.7, 0);
 
   const globes: { planet: Planet; rest: [number, number]; size: number; phase: number }[] = GLOBES.map((g) => {
-    const planet = createPlanet(style, g.body, background);
+    // The world the ship is going to takes Mars's place (a trip to the Moon draws the Moon there).
+    const planet = createPlanet(style, g.body === 'mars' ? destination : g.body, background);
     scene.add(planet.mesh);
     return { planet, rest: [g.x, g.y], size: THREE.MathUtils.degToRad(g.size), phase: g.phase };
   });

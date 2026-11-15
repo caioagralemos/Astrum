@@ -19,6 +19,8 @@ import type { Lang } from '../../engine/strings.ts';
 import { FollowUp } from './person/FollowUp.tsx';
 import { timeOf } from './panels/common.tsx';
 import { isSettled } from '../../engine/alerts.ts';
+import { ICON } from './dock/widgets.tsx';
+import { boardName } from './onboarding/boardName.ts';
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -103,7 +105,7 @@ export function ConnectionPanel({ world, delaySeconds, s, onClose }: ConnectionP
         {world.sources.map((src) => (
           <div key={src.id} className="source">
             <p className="source-head">
-              <span className="mono">{src.id}</span>
+              <span className={world.profile && src.id.startsWith('chip:') ? undefined : 'mono'} title={src.id}>{world.profile ? boardName(src, world.sources, world.profile, s) : src.id}</span>
               <StatusWord status={src.connected ? 'live' : 'off'} text={s(src.connected ? 'source.connected' : 'source.disconnected')} />
             </p>
             {src.missing.length > 0 && (
@@ -217,9 +219,13 @@ export interface AlertsProps {
   onClose: () => void;
   /** Opens a level 3 alert's steps card, one step per page (emergency/Steps.tsx). */
   onSteps?: (alert: World['alerts'][number]) => void;
+  /** Earth replies this screen has not opened or marked read: informational items, never alerts (no level, no buzzer, no takeover). */
+  earthReplies?: World['earthMessages'];
+  onOpenEarth?: (id: string) => void;
+  onReadEarth?: (id: string) => void;
 }
 
-export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, onClose, onSteps }: AlertsProps) {
+export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, onClose, onSteps, earthReplies = [], onOpenEarth, onReadEarth }: AlertsProps) {
   const roomName = (id: string) => s(rooms.find((r) => r.id === id)?.name ?? id);
   const name = (id: string) => crew.find((p) => p.id === id)?.name ?? id;
   // "Emergency settled" (emergency/Beat2Zoom.tsx): who and when; the alert stays listed.
@@ -238,7 +244,7 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, 
   const others = world.alerts.filter((a) => !a.held && a.level >= 2 && !listed.has(a.id));
   // The medical lead's follow-up question for this screen's own crewmate (the hub sends it to no other screen).
   const followUp = viewer && world.followUp?.person === viewer ? world.followUp : null;
-  const count = world.alarms.length + declared.length + wide.length + single.length + others.length + (followUp ? 1 : 0);
+  const count = world.alarms.length + declared.length + wide.length + single.length + others.length + (followUp ? 1 : 0) + earthReplies.length;
   const recorded = Boolean(world.scenario);
   const [declaring, setDeclaring] = useState(false);
 
@@ -252,6 +258,24 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, 
         sub={count ? s('top.alerts.active', { count }) : <StatusWord status="ok" text={s('top.alerts.none')} />} />
 
       {viewer && <FollowUp followUp={followUp} person={viewer} lang={lang} s={s} recorded={recorded} className="alert followup" />}
+
+      {earthReplies.map((m) => m.reply && (
+        <article key={`earth|${m.id}`} className="alert alert-earth" aria-labelledby={`earth-${m.id}`}>
+          <h3 id={`earth-${m.id}`}>
+            <svg className="alert-earth-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={ICON.earth} /></svg>
+            <span>{s('earth.replied')}</span>
+          </h3>
+          <p className="alert-earth-text">{m.reply.key ? s(m.reply.key, m.reply.vars) : m.reply.text}</p>
+          <p className="quiet">
+            {m.simulated === 'ai' || m.reply.simulated ? <><span className="kind" data-kind="simulated">{s(m.simulated === 'ai' && m.simulatedBy !== 'fixed' ? 'earth.simulatedByAi' : m.simulated === 'ai' ? 'earth.simulatedFixed' : 'kind.simulated')}</span> · </> : null}
+            {timeOf(m.reply.at, lang)}
+          </p>
+          <div className="actions">
+            {onOpenEarth && <button type="button" className="btn" onClick={() => onOpenEarth(m.id)}>{s('earth.openMessage')}</button>}
+            {onReadEarth && <button type="button" className="btn" onClick={() => onReadEarth(m.id)}>{s('earth.markRead')}</button>}
+          </div>
+        </article>
+      ))}
 
       {world.alarms.map((alarm) => (
         <article key={`${alarm.room}|${alarm.signal}`} className="alert" data-level="3" role="alert">

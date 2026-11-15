@@ -50,6 +50,8 @@ import type { Body, Situation } from '../../../engine/mission.ts';
 export interface Setting {
   body: Body | null;
   situation: Situation;
+  /** In transit, the world the ship is going to; Mars when absent. */
+  destination?: 'moon' | 'mars';
 }
 
 export interface Backdrop {
@@ -313,7 +315,7 @@ export function createBackdrop(
   if (planet) scene.add(planet.mesh);
   // Between bodies: the solar system seen from its middle, as quiet as the planet would be.
   const system: DistantSystem | null = planetBase > 0 && setting.situation === 'transit'
-    ? createDistantSystem(scene, style === 'soft' ? 'soft' : 'pixel', bg)
+    ? createDistantSystem(scene, style === 'soft' ? 'soft' : 'pixel', bg, setting.destination ?? 'mars')
     : null;
 
   // The sky's axes: along the station (the way the sky drifts), up from the floor, and ahead to the horizon.

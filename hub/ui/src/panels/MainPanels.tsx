@@ -95,18 +95,20 @@ export interface MainPanelsProps {
   selected: { kind: 'room' | 'person'; id: string } | null;
   lang: Lang;
   onLang: (lang: Lang) => void;
+  /** Opens the first-run setup again (onboarding/). */
+  onSetup?: () => void;
   s: S;
   onClose: () => void;
 }
 
 /** The open panel. */
-export function MainPanels({ which, world, profile, selected, lang, onLang, s, onClose }: MainPanelsProps) {
+export function MainPanels({ which, world, profile, selected, lang, onLang, onSetup, s, onClose, earthFocus }: MainPanelsProps & { earthFocus?: string | null }) {
   const person = selected?.kind === 'person' ? selected.id : null;
-  if (which === 'settings') return <SettingsPanel world={world} lang={lang} onLang={onLang} s={s} onClose={onClose} />;
-  if (which === 'ask') return <AskPanel crew={profile.crew} selected={person} lang={lang} s={s} onClose={onClose} />;
+  if (which === 'settings') return <SettingsPanel world={world} lang={lang} onLang={onLang} onSetup={onSetup} s={s} onClose={onClose} />;
+  if (which === 'ask') return <AskPanel crew={profile.crew} selected={person} lang={lang} gravity={profile.mission?.gravity ?? null} s={s} onClose={onClose} />;
   return (
     <EarthPanel messages={world.earthMessages} delaySeconds={profile.delayToEarthSeconds} crew={profile.crew} rooms={profile.rooms}
-      now={world.now} selected={person} lang={lang} s={s} onClose={onClose} />
+      now={world.now} selected={person} lang={lang} s={s} onClose={onClose} focus={earthFocus} />
   );
 }
 

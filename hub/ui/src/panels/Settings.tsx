@@ -13,8 +13,10 @@ import { hasString } from '../../../engine/strings.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import { changesOf } from '../../../engine/custom.ts';
 import type { Mission } from '../../../engine/mission.ts';
+import { soundOn, setSoundOn, testTone } from '../sound.ts';
 import { Sheet } from './Sheet.tsx';
 import { MissionEditor } from './MissionEditor.tsx';
+import { boardName } from '../onboarding/boardName.ts';
 import { HubSaid, call, delayShort, takeAfterRestart, usePoll, viewerOf } from './common.tsx';
 import type { ModelStatus, S } from './common.tsx';
 
@@ -49,20 +51,30 @@ export interface SettingsProps {
   world: World;
   lang: Lang;
   onLang: (lang: Lang) => void;
+  onSetup?: () => void;
   s: S;
   onClose: () => void;
 }
 
-export function SettingsPanel({ world, lang, onLang, s, onClose }: SettingsProps) {
+export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: SettingsProps) {
   const { viewer } = viewerOf();
   const crewScreen = viewer !== null;
   const list = usePoll<MissionList>(crewScreen ? null : '/api/missions');
   const model = usePoll<ModelStatus>('/api/ask/status', 5000);
   const demo = !crewScreen && list.data?.mode === 'demo';
+  // The real app: one mission, set up once. No list of places to switch between; one button erases everything.
+  const real = !crewScreen && list.data?.mode === 'production';
+  const reset = async () => {
+    if (sure !== 'reset') { setSure('reset'); return; }
+    setSure(null);
+    const r = await call('/api/reset', { method: 'POST', body: { confirm: 'erase everything' } });
+    if (!r.ok) setSaid({ error: r.error });
+  };
   const story = usePoll<StoryStatus>(demo ? '/api/scenario' : null, 3000);
   const [editing, setEditing] = useState<string | null>(null);
   const [said, setSaid] = useState<{ ok: string } | { error: string } | null>(null);
   const [sure, setSure] = useState<string | null>(null);
+  const [sound, setSound] = useState(soundOn);
   // Back after a restart this panel asked for: say how it went.
   useEffect(() => { const key = takeAfterRestart(); if (key) setSaid({ ok: s(key) }); }, []);
 
@@ -115,7 +127,7 @@ export function SettingsPanel({ world, lang, onLang, s, onClose }: SettingsProps
           onBack={() => { setEditing(null); list.reload(); }} onSaved={() => list.reload()} />
       ) : (
         <>
-          {!crewScreen && (
+          {!crewScreen && !real && (
             <div className="rule xplaces">
               <h3 className="label">{s('settings.place')}</h3>
               <p className="quiet xnote">{s('settings.placeNote')}</p>
@@ -177,6 +189,38 @@ export function SettingsPanel({ world, lang, onLang, s, onClose }: SettingsProps
           </div>
 
           <div className="rule">
+            <h3 className="label">{s('settings.sound')}</h3>
+            <div className="actions">
+              <label className="xswitch">
+                <input type="checkbox" role="switch" checked={sound} onChange={(e) => { setSoundOn(e.target.checked); setSound(e.target.checked); }} />
+                {' '}{s('settings.soundTones')}
+              </label>
+              <button type="button" className="btn" disabled={!sound} onClick={() => testTone('emergency')}>{s('settings.soundTestEmergency')}</button>
+              {' '}<button type="button" className="btn" disabled={!sound} onClick={() => testTone('earth')}>{s('settings.soundTestEarth')}</button>
+            </div>
+          </div>
+
+          {real && (
+            <div className="rule">
+              <h3 className="label">{s('reset.title')}</h3>
+              <p className="quiet">{s('reset.note')}</p>
+              <div aria-live="polite">{said && 'error' in said && <HubSaid error={said.error} s={s} />}</div>
+              <div className="actions">
+                <button type="button" className="btn" data-danger={sure === 'reset' ? '' : undefined} onClick={() => void reset()}>{s(sure === 'reset' ? 'reset.sure' : 'reset.button')}</button>
+                {sure === 'reset' && <>{' '}<button type="button" className="btn" onClick={() => setSure(null)}>{s('setup.cancel')}</button></>}
+              </div>
+            </div>
+          )}
+
+          {onSetup && !real && (
+            <div className="rule">
+              <h3 className="label">{s('setup.again.title')}</h3>
+              <p className="quiet">{s('setup.again.note')}</p>
+              <div className="actions"><button type="button" className="btn" onClick={onSetup}>{s('setup.again')}</button></div>
+            </div>
+          )}
+
+          <div className="rule">
             <h3 className="label">{s('top.link')}</h3>
             <p><span className="status-word" data-status={off ? 'off' : 'live'}>{s(off ? 'hub.offline' : status === 'replay' ? 'top.link.replay' : 'top.link.live')}</span></p>
             <dl className="xfacts-list">
@@ -186,6 +230,7 @@ export function SettingsPanel({ world, lang, onLang, s, onClose }: SettingsProps
                 <dd>
                   {boards.length === 0 ? s('settings.boardNone') : boards.map((b) => (
                     <span key={b.id} className="xboard">
+                      {world.profile && <>{boardName(b, world.sources, world.profile, s)} · </>}
                       <span className="status-word" data-status={b.connected ? 'live' : 'off'}>{s(b.connected ? 'source.connected' : 'source.disconnected')}</span>
                       {b.connected && <> · {b.missing.length ? s('source.missing', { list: b.missing.map((k) => s(`signal.${k}`)).join(', ') }) : s('settings.allAnswering')}</>}
                     </span>

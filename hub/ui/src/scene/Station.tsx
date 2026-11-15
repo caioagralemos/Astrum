@@ -14,6 +14,7 @@
 // in words as well as shown in colour. With reduced motion nothing bobs or
 // pulses and the camera jumps instead of gliding.
 
+import { destinationBody } from '../../../engine/mission.ts';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -319,7 +320,7 @@ export function Station(raw: StationProps) {
     const dir = new THREE.Vector3();
     const state: State = {
       ship, camera, controls, portrait: false, moved: false,
-      backdrop: createBackdrop(scene, renderer, camera, root, ship.stars, demo, mission.where),
+      backdrop: createBackdrop(scene, renderer, camera, root, ship.stars, demo, { ...mission.where, destination: destinationBody(mission.destination) }),
       goal: { position: new THREE.Vector3(), target: new THREE.Vector3(), active: false },
       aim: () => {},
       home: () => {},

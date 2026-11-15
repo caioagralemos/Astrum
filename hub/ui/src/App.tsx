@@ -25,6 +25,7 @@ import { Loading } from './Loading.tsx';
 import { Emergency } from './emergency/Emergency.tsx';
 import { Steps } from './emergency/Steps.tsx';
 import { Beat2Zoom } from './emergency/Beat2Zoom.tsx';
+import { useEarthReplyTone } from './sound.ts';
 import type { Alert } from '../../engine/alerts.ts';
 import { MainPanels, TopActions, isMainPanel, useStationMission } from './panels/MainPanels.tsx';
 import type { MainPanel } from './panels/MainPanels.tsx';
@@ -33,6 +34,7 @@ import { WEATHER_KINDS } from './scene/weather.ts';
 import type { Weather, WeatherKind } from './scene/weather.ts';
 import './app.css';
 import type { Lang } from '../../engine/strings.ts';
+import { Onboarding } from './onboarding/Onboarding.tsx';
 
 function startLang(): Lang {
   try {
@@ -72,6 +74,9 @@ export function App() {
     return next;
   });
   const [zoomHeight, setZoomHeight] = useState(0);
+  // The first-run setup (onboarding/): `?onboarding=1` opens it; a hub never set up opens it by itself; Settings opens it again.
+  const [setup, setSetup] = useState(() => new URLSearchParams(location.search).get('onboarding') === '1');
+  const setupForced = world.profile?.setupDone === false;
 
   const switchLang = () => {
     const next = lang === 'en' ? 'pt' : 'en';
@@ -85,7 +90,30 @@ export function App() {
   // A phone shows its owner what they are told. The hub's shared screen shows only what everyone
   // is told: a question for one person ("Are you OK?") goes to their phone, never the shared screen.
   const alerts = viewer ? visibleTo(world.alerts, viewer) : world.alerts.filter((a) => a.toldTo === 'everyone');
-  const active = [...world.alarms.map((a) => `alarm|${a.room}|${a.signal}`), ...alerts.filter((a) => !a.held).map((a) => `alert|${a.id}`)];
+  // Earth's replies (any: simulated, or a recorded story's) are informational items in the alerts list until this screen
+  // opens or marks them read. Kept in memory per screen. Every screen gets the same messages to Earth as the Earth panel.
+  // Read replies are remembered on this screen (localStorage), and a reply that was already there when the page
+  // opened is not news: only replies that arrive while the page is open show as unread.
+  const [earthRead, setEarthRead] = useState<ReadonlySet<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('astrum.earthRead') ?? '[]') as string[]); } catch { return new Set(); }
+  });
+  const earthSeeded = useRef(false);
+  useEffect(() => {
+    if (earthSeeded.current || world.profile === null) return;
+    earthSeeded.current = true;
+    const here = world.earthMessages.filter((m) => m.reply).map((m) => m.id);
+    if (here.length) setEarthRead((was) => new Set([...was, ...here]));
+  }, [world.profile, world.earthMessages]);
+  useEffect(() => {
+    try { localStorage.setItem('astrum.earthRead', JSON.stringify([...earthRead].slice(-200))); } catch { /* private window: memory only */ }
+  }, [earthRead]);
+  const [earthFocus, setEarthFocus] = useState<string | null>(null);
+  const unreadEarth = earthSeeded.current ? world.earthMessages.filter((m) => m.reply && !earthRead.has(m.id)).sort((a, b) => b.reply!.at - a.reply!.at) : [];
+  const readEarth = (id: string) => setEarthRead((was) => new Set([...was, id]));
+  const openEarth = (id: string | null) => { if (id) readEarth(id); setEarthFocus(id); setPanel('earth'); };
+  // A new reply (not one already here when the page got the hub's state): one soft tone (sound.ts).
+  useEarthReplyTone(world.earthMessages, world.profile !== null);
+  const active = [...world.alarms.map((a) => `alarm|${a.room}|${a.signal}`), ...alerts.filter((a) => !a.held).map((a) => `alert|${a.id}`), ...unreadEarth.map((m) => `earth|${m.id}`)];
 
   // Something new to see opens the alerts by itself.
   const seen = useRef(new Set<string>());
@@ -218,7 +246,7 @@ export function App() {
 
       {panel === 'alerts' && (
         <AlertsPanel world={world} alerts={alerts} rooms={profile.rooms} crew={profile.crew} now={now} viewer={viewer} lang={lang} s={s} onClose={() => setPanel(null)}
-          onSteps={openEmergencySteps} />
+          onSteps={openEmergencySteps} earthReplies={unreadEarth} onOpenEarth={openEarth} onReadEarth={readEarth} />
       )}
 
       {panel === 'link' && (
@@ -226,13 +254,13 @@ export function App() {
       )}
 
       {isMainPanel(panel) && (
-        <MainPanels which={panel} world={world} profile={profile} selected={selected} lang={lang} s={s} onClose={() => setPanel(null)}
-          onLang={(next) => { if (next !== lang) switchLang(); }} />
+        <MainPanels which={panel} world={world} profile={profile} selected={selected} lang={lang} s={s} onClose={() => setPanel(null)} earthFocus={earthFocus}
+          onLang={(next) => { if (next !== lang) switchLang(); }} onSetup={() => { setPanel(null); setSetup(true); }} />
       )}
 
       {!selected && !zoomed && (
         <StationDock world={world} profile={profile} values={values} where={where} lastSeen={lastPlace} roomStatus={roomStatuses} personStatus={personStatuses}
-          s={s} onSelect={setSelected} onAlerts={() => setPanel('alerts')} />
+          s={s} onSelect={setSelected} onAlerts={() => setPanel('alerts')} onEarth={openEarth} earthUnread={unreadEarth.length} />
       )}
 
       {!zoomed && selected?.kind === 'person' && (() => {
@@ -261,12 +289,16 @@ export function App() {
 
       {zoomed && (
         <Beat2Zoom key={occurrence(zoomed)} alert={zoomed} alarms={world.alarms} rooms={profile.rooms} crew={profile.crew} now={now} viewer={viewer} lang={lang} s={s}
-          reply={zoomReply} replyByAi={zoomEarth?.simulated === 'ai'} replyAt={zoomEarth?.replyAt ?? null} simulatedDelay={zoomEarth?.simulatedDelay === true} report={zoomEarth?.report ?? null} recorded={Boolean(world.scenario)} paused={Boolean(steps)} onContinue={openEmergencySteps} onHeight={setZoomHeight}
+          reply={zoomReply} replyLabel={zoomEarth?.simulated === 'ai' ? (zoomEarth.simulatedBy === 'fixed' ? 'earth.simulatedFixed' : 'earth.simulatedByAi') : null} replyAt={zoomEarth?.replyAt ?? null} simulatedDelay={zoomEarth?.simulatedDelay === true} report={zoomEarth?.report ?? null} recorded={Boolean(world.scenario)} paused={Boolean(steps)} onContinue={openEmergencySteps} onHeight={setZoomHeight}
           onRelease={() => take(zoomed, 'released')} />
       )}
 
       <Emergency alerts={alerts} rooms={profile.rooms} crew={profile.crew} s={s} onOpen={openEmergency}
         skip={(a) => isSettled(a) || occurrence(a) in taken} />
+
+      {(setup || setupForced) && !viewer && (
+        <Onboarding world={world} lang={lang} s={s} forced={setupForced} onLang={(next) => { if (next !== lang) switchLang(); }} onClose={() => setSetup(false)} />
+      )}
 
       {steps && (
         <Steps key={`${steps.card}|${steps.alert?.id ?? ''}`} alert={steps.alert} cardId={steps.card} gravity={profile.mission?.gravity ?? null}

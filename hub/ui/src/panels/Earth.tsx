@@ -28,9 +28,17 @@ export interface EarthProps {
   lang: Lang;
   s: S;
   onClose: () => void;
+  /** A message to show first (opened from an "Earth replied" item): scrolled into view and focused. */
+  focus?: string | null;
 }
 
-export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected, lang, s, onClose }: EarthProps) {
+export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected, lang, s, onClose, focus }: EarthProps) {
+  useEffect(() => {
+    if (!focus) return;
+    const el = document.querySelector<HTMLElement>(`[data-earth-id="${CSS.escape(focus)}"]`);
+    el?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    el?.focus({ preventScroll: true });
+  }, [focus]);
   const { viewer } = viewerOf();
   const [from, setFrom] = useState(viewer ?? (selected && crew.some((p) => p.id === selected) ? selected : crew[0]?.id ?? ''));
   const [text, setText] = useState('');
@@ -108,7 +116,7 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
             const total = Math.max(1, (m.replyAt - m.sentAt) / 1000);
             const delivered = m.delivered || arrive <= 0;
             return (
-              <li key={m.id} className="xmessage">
+              <li key={m.id} className="xmessage" data-earth-id={m.id} tabIndex={-1}>
                 <p className="xmessage-head">
                   <span>{m.kind === 'crew' ? s('earth.byPerson', { name: name(m.from) }) : s('earth.byHub')}</span>
                   <span className="quiet">{s('earth.sentAt', { time: timeOf(m.sentAt, lang) })}</span>
@@ -133,7 +141,7 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
                   <blockquote className="xreply">
                     <p>{m.reply.key ? s(m.reply.key, m.reply.vars) : m.reply.text}</p>
                     <footer className="quiet">
-                      {m.simulated === 'ai' && <><span className="kind" data-kind="simulated">{s('earth.simulatedByAi')}</span> · </>}
+                      {m.simulated === 'ai' && <><span className="kind" data-kind="simulated">{s(m.simulatedBy === 'fixed' ? 'earth.simulatedFixed' : 'earth.simulatedByAi')}</span> · </>}
                       {timeOf(m.reply.at, lang)}
                       {m.reply.simulated && m.simulated !== 'ai' && <> · <span className="kind" data-kind="simulated">{s('kind.simulated')}</span></>}
                     </footer>

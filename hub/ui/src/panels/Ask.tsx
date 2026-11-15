@@ -1,42 +1,49 @@
-// Ask Astra: a question to the hub's model (POST /api/ask), shown as an
-// instrument, not a person. While it works the panel says where the question
-// is; then the answer, who wrote it (Astra, the hub from the readings, or a
-// fixed text), the hub's facts each with its label, and NASA's words quoted
-// with their source. The urgent, card and crisis routes are said for what they are.
+// Ask Astra: a conversation with the hub's model (POST /api/ask), the same flow
+// as the phone's chat (phone AskThread / AskAnswerView): the crewmate's
+// messages on the right, Astra's on the left, a 2-second minimum before a reply
+// that is not urgent, typing dots while she works, the medical lead's questions
+// as reply chips, a card's "Start help" opening the hub's step-by-step screen,
+// the check-in after Done, and "Call for help" confirmed inline.
 //
-// On the hub's own screen anyone can ask, about anyone; on a crewmate's screen
-// (?person=) the one asking, and the one asked about, is that crewmate.
+// "Asking as" says who the questions are asked as. The shared screen (nobody
+// chosen) gets rooms and NASA's text only (POST /api/ask { shared: true }). Each
+// person's thread is kept in this page's memory only, never mixed, until Clear.
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { personWords } from '../../../engine/answer.ts';
-import type { FactItem, HubAnswer, QuotedPassage, Who } from '../../../engine/answer.ts';
+import type { FactItem, QuotedPassage, Who } from '../../../engine/answer.ts';
 import type { CardView } from '../../../engine/cards.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Person } from '../../../engine/types.ts';
+import type { AskResult as HubResult } from '../../../core/ai.ts';
 import { AstraMark } from '../AstraMark.tsx';
 import { hubAddress } from '../data.ts';
+import { Steps } from '../emergency/Steps.tsx';
 import { Sheet } from './Sheet.tsx';
 import { HubSaid, usePoll, viewerOf } from './common.tsx';
 import type { ModelStatus, S } from './common.tsx';
 
-interface AskResult {
-  type: 'result';
-  route: 'answer' | 'crisis' | 'card' | 'fixed' | 'unavailable' | 'fallback';
-  by: 'model' | 'hub' | 'fixed';
-  text: string;
-  key: string | null;
-  source: string | null;
-  passages: QuotedPassage[];
-  card: CardView | null;
-  urgent: boolean;
-  check: { discarded: boolean; reasons: string[] } | null;
-  facts: HubAnswer | null;
-  ms: number;
-}
-
+type AskResult = HubResult;
 type Progress = { state: 'sending' } | { state: 'queued'; position: number } | { state: 'working'; ms: number };
 
-const EXAMPLES = ['bench.ask.ex1', 'bench.ask.ex2', 'bench.ask.ex3'];
+/** "Asking as" nobody: rooms and NASA only. */
+const SHARED = '';
+/** The phone's minimum before a reply that is not urgent shows (AskThread.minimumReplyTime). */
+const MIN_REPLY_MS = 2000;
+/** The hub forgets a conversation after 30 minutes of quiet (THREAD_IDLE_MS); history items it takes (MAX_HISTORY). */
+const MEMORY_MS = 30 * 60_000;
+const MAX_HISTORY = 6;
+
+type Help = { state: 'confirm' } | { state: 'calling' } | { state: 'failed' } | { state: 'sent'; text: string };
+type Msg =
+  | { id: number; from: 'me'; text: string }
+  | { id: number; from: 'astra'; question: string | null; result: AskResult; at: number; stepsShown?: boolean; help?: Help }
+  | { id: number; from: 'error'; error: string };
+
+/** Every thread, by who asks (SHARED for the shared screen): this page's memory only. */
+const threads = new Map<string, Msg[]>();
+let nextId = 1;
 
 /** Uses a person word ({You}, {your}, ...)? The first such sentence names the person (engine/answer.ts). */
 const PERSON_BLANK = /\{(You|you|Your|your|them|Voce|voce|de_voce)\}/;
@@ -57,51 +64,72 @@ function factLines(items: FactItem[], who: Who, s: S): { text: string; labels: s
   });
 }
 
+const urgentReply = (r: AskResult) => r.urgent || r.card?.level === 'dangerous';
+
 export interface AskProps {
   crew: Person[];
-  /** The person selected on the station, if any: who asks, by default. */
+  /** The person selected on the station, if any. */
   selected: string | null;
   lang: Lang;
+  /** The place's gravity, for the steps screen. */
+  gravity: number | null;
   s: S;
   onClose: () => void;
 }
 
-export function AskPanel({ crew, selected, lang, s, onClose }: AskProps) {
+export function AskPanel({ crew, lang, gravity, s, onClose }: AskProps) {
   const { viewer } = viewerOf();
   const status = usePoll<ModelStatus>('/api/ask/status', 5000);
-  const first = viewer ?? (selected && crew.some((p) => p.id === selected) ? selected : crew[0]?.id ?? '');
-  const [asker, setAsker] = useState(first);
-  const [about, setAbout] = useState(first);
-  const [question, setQuestion] = useState('');
+  const signedIn = viewer && crew.some((p) => p.id === viewer) ? viewer : null;
+  const [asker, setAsker] = useState<string>(signedIn ?? SHARED);
+  const [msgs, setMsgs] = useState<Msg[]>(() => threads.get(asker) ?? []);
+  const [text, setText] = useState('');
   const [progress, setProgress] = useState<Progress | null>(null);
-  const [result, setResult] = useState<AskResult | null>(null);
-  const [asked, setAsked] = useState<{ person: string; about: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
+  const [picking, setPicking] = useState(false);
+  const [steps, setSteps] = useState<{ card: string; msg: number } | null>(null);
+  const [openSources, setOpenSources] = useState<Set<number>>(() => new Set());
+  const box = useRef<HTMLInputElement>(null);
+  const log = useRef<HTMLDivElement>(null);
+  const live = useRef(asker);
+  live.current = asker;
 
-  // "About" follows "Who is asking" until it is changed on its own.
-  const follow = useRef(true);
-  useEffect(() => { if (follow.current) setAbout(asker); }, [asker]);
+  // The thread on screen is the chosen person's; every change is kept under their id.
+  const update = (owner: string, fn: (m: Msg[]) => Msg[]) => {
+    const next = fn(threads.get(owner) ?? []);
+    threads.set(owner, next);
+    if (live.current === owner) setMsgs(next);
+  };
+  const choose = (id: string) => {
+    setPicking(false);
+    setAsker(id);
+    live.current = id;
+    setMsgs(threads.get(id) ?? []);
+    setProgress(null);
+    box.current?.focus();
+  };
 
-  const ask = async (text: string) => {
-    if (!text.trim()) { setError(s('bench.ask.empty')); box.current?.focus(); return; }
-    setError(null);
-    setResult(null);
+  useEffect(() => { const el = log.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs, progress]);
+
+  const nameOf = (id: string) => crew.find((p) => p.id === id)?.name ?? id;
+  const shared = asker === SHARED;
+  const busy = progress !== null;
+
+  /** One request to POST /api/ask, read to its result; at least 2 s unless the reply is urgent. */
+  const request = async (owner: string, body: Record<string, unknown>, question: string | null) => {
+    const started = Date.now();
     setProgress({ state: 'sending' });
-    setAsked({ person: asker, about });
     try {
-      const res = await fetch(`http://${hubAddress()}/api/ask`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ person: asker, about, question: text, lang }),
-      });
+      const res = await fetch(`http://${hubAddress()}/api/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok || !res.body) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? String(res.status));
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        update(owner, (m) => [...m, { id: nextId++, from: 'error', error: err?.error ?? String(res.status) }]);
         return;
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let held = '';
+      let result: AskResult | null = null;
+      let error: string | null = null;
       for (;;) {
         const { value, done } = await reader.read();
         held += decoder.decode(value, { stream: !done });
@@ -110,146 +138,308 @@ export function AskPanel({ crew, selected, lang, s, onClose }: AskProps) {
         for (const line of lines) {
           if (!line.trim()) continue;
           const msg = JSON.parse(line) as AskResult | { type: 'status'; state: 'queued'; position: number } | { type: 'status'; state: 'thinking'; ms: number } | { error: string };
-          if ('error' in msg) setError(msg.error);
-          else if (msg.type === 'status') setProgress(msg.state === 'queued' ? { state: 'queued', position: msg.position } : { state: 'working', ms: msg.ms });
-          else setResult(msg);
+          if ('error' in msg) error = msg.error;
+          else if (msg.type === 'status') { if (live.current === owner) setProgress(msg.state === 'queued' ? { state: 'queued', position: msg.position } : { state: 'working', ms: msg.ms }); }
+          else result = msg;
         }
         if (done) break;
       }
+      if (result && !urgentReply(result)) {
+        const wait = MIN_REPLY_MS - (Date.now() - started);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      }
+      const got = result;
+      if (got) update(owner, (m) => [...m, { id: nextId++, from: 'astra', question, result: got, at: Date.now() }]);
+      else update(owner, (m) => [...m, { id: nextId++, from: 'error', error: error ?? '' }]);
+      if (got?.choosePerson && live.current === owner) setPicking(true);
     } catch {
-      setError('');
+      update(owner, (m) => [...m, { id: nextId++, from: 'error', error: '' }]);
     } finally {
-      setProgress(null);
+      if (live.current === owner) setProgress(null);
       status.reload();
     }
   };
 
+  /** The hub's `history`: the answered exchanges it would still remember, oldest first (phone AskThread.history). */
+  const historyOf = (thread: Msg[]) => {
+    const out: { question: string; route?: string; card?: string; understoodAs?: string }[] = [];
+    let after = Date.now();
+    for (const m of [...thread].reverse()) {
+      if (m.from !== 'astra' || m.question === null) continue;
+      if (after - m.at > MEMORY_MS) break;
+      const item: (typeof out)[number] = { question: m.question.slice(0, 600), route: m.result.route };
+      if (m.result.card) item.card = m.result.card.id;
+      if (m.result.understoodAs) item.understoodAs = m.result.understoodAs.slice(0, 600);
+      out.push(item);
+      after = m.at;
+      if (out.length === MAX_HISTORY) break;
+    }
+    return out.reverse();
+  };
+
+  const send = (raw: string) => {
+    const question = raw.trim();
+    box.current?.focus();
+    if (!question || busy) return;
+    setText('');
+    const owner = asker;
+    const history = historyOf(threads.get(owner) ?? []);
+    update(owner, (m) => [...m, { id: nextId++, from: 'me', text: question }]);
+    void request(owner, owner === SHARED ? { shared: true, question, lang } : { person: owner, question, lang, history }, question);
+  };
+
+  /** Done on a card's steps, the first time: the hub's check-in follows ("Are you feeling better?"). */
+  const stepsDone = (msgId: number, card: string) => {
+    const owner = asker;
+    const first = (threads.get(owner) ?? []).some((m) => m.id === msgId && m.from === 'astra' && !m.stepsShown);
+    setSteps(null);
+    box.current?.focus();
+    if (!first || owner === SHARED) return;
+    update(owner, (m) => m.map((x) => (x.id === msgId && x.from === 'astra' ? { ...x, stepsShown: true } : x)));
+    void request(owner, { person: owner, stepsDone: card, lang }, null);
+  };
+
+  const setHelp = (owner: string, msgId: number, help: Help | undefined) =>
+    update(owner, (m) => m.map((x) => (x.id === msgId && x.from === 'astra' ? { ...x, help } : x)));
+  const callHelp = async (msgId: number) => {
+    const owner = asker;
+    setHelp(owner, msgId, { state: 'calling' });
+    try {
+      const res = await fetch(`http://${hubAddress()}/api/ask/help`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ person: owner, lang }) });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; text?: string } | null;
+      setHelp(owner, msgId, res.ok && body?.text ? { state: 'sent', text: body.text } : { state: 'failed' });
+    } catch {
+      setHelp(owner, msgId, { state: 'failed' });
+    }
+  };
+
+  const clear = () => {
+    threads.delete(asker);
+    setMsgs([]);
+    setOpenSources(new Set());
+    box.current?.focus();
+  };
+
   const st = status.data;
-  const nameOf = (id: string) => crew.find((p) => p.id === id)?.name ?? id;
-  const who: Who | null = result?.facts?.who ?? (asked ? { name: nameOf(asked.about), pronouns: 'they', self: asked.about === asked.person } : null);
-  const facts = result?.facts && who ? factLines(result.facts.items, who, s) : [];
-  const hubWrote = result?.by === 'hub' && facts.length > 0;
-  // A fixed text has a key in the string table; the hub's sentences are in the screen's language; Astra writes English.
-  // When the hub wrote the answer, its sentences are the facts below, each with its label: not said twice.
-  const answerText = !result ? '' : result.key ? s(result.key) : hubWrote ? '' : result.text;
-  const passages = result?.facts?.passages.length ? result.facts.passages : result?.passages ?? [];
-  const busy = progress !== null;
+  const stateWord = busy ? s('ask.mark.working').toLowerCase() : st ? s(`ask.state.${st.state}`) : s('settings.loading').toLowerCase();
+  const lastAstra = [...msgs].reverse().find((m) => m.from === 'astra')?.id;
+  const examples = shared ? ['ask.exShared1', 'ask.exShared2'] : ['bench.ask.ex1', 'bench.ask.ex2', 'bench.ask.ex3'];
 
-  return (
-    <Sheet id="ask" title="Astra" s={s} onClose={onClose} focus={box}
-      mark={<AstraMark size={64} activity={busy || st?.state === 'loading' ? 'working' : st?.state === 'ready' ? 'ready' : 'rest'} />}
-      sub={<span className="status-word astra-status" data-status={st?.state === 'ready' ? 'live' : st?.state === 'unavailable' ? 'off' : undefined}>
-        {busy ? s('ask.mark.working') : st ? s(`ask.mark.${st.state}`) : s('settings.loading')}
-        {st && st.waiting > 0 ? ` · ${s('bench.ask.waiting', { count: st.waiting })}` : ''}
-      </span>}>
-      {st?.reason && st.state !== 'ready' && <p className="quiet xhub" lang="en">{st.reason}</p>}
-
-      <form className="xform" onSubmit={(e) => { e.preventDefault(); void ask(question); }}>
-        {!viewer && (
-          <div className="xrow">
-            <label className="xfield">
-              <span className="label">{s('ask.who')}</span>
-              <select value={asker} onChange={(e) => setAsker(e.target.value)}>
-                {crew.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
-            <label className="xfield">
-              <span className="label">{s('ask.about')}</span>
-              <select value={about} onChange={(e) => { follow.current = e.target.value === asker; setAbout(e.target.value); }}>
-                {crew.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
+  const actions = (
+    <div className="ask-head-actions">
+      <div className="ask-as">
+        <button type="button" className="ask-as-btn" aria-haspopup="true" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
+          {s('ask.askingAsName', { name: shared ? s('ask.shared') : nameOf(asker) })} <span aria-hidden="true">▾</span>
+        </button>
+        {picking && (
+          <div className="ask-picker frame" role="group" aria-label={s('ask.askingAs')}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setPicking(false); box.current?.focus(); } }}>
+            <p className="ask-picker-title">{s('ask.askingAs')}</p>
+            <ul>
+              {crew.map((p) => (
+                <li key={p.id}>
+                  <button type="button" className="ask-pick" aria-pressed={asker === p.id} onClick={() => choose(p.id)}>
+                    <span className="ask-av" aria-hidden="true">{p.name.slice(0, 1)}</span>{p.name}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button type="button" className="ask-pick" aria-pressed={shared} onClick={() => choose(SHARED)}>
+                  {s('ask.shared')}<span className="ask-pick-note">{s('ask.sharedOnly')}</span>
+                </button>
+              </li>
+            </ul>
+            <p className="quiet">{s('ask.sharedNote')}</p>
           </div>
         )}
-        <label className="xfield">
-          <span className="label">{s('ask.question')}</span>
-          <textarea ref={box} rows={2} value={question} onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void ask(question); } }} />
-        </label>
-        <div className="actions">
-          <button type="submit" className="btn btn-solid" disabled={busy}>{s('ask.send')}</button>
-        </div>
+      </div>
+      {msgs.length > 0 && <button type="button" className="xlink ask-clear" onClick={clear}>{s('ask.clear')}</button>}
+    </div>
+  );
+
+  return (
+    <Sheet id="ask" title="Astra" s={s} onClose={onClose} focus={box} actions={actions}
+      mark={<AstraMark size={30} activity={busy || st?.state === 'loading' ? 'working' : st?.state === 'ready' ? 'ready' : 'rest'} />}
+      sub={<span className="status-word astra-status" data-status={st?.state === 'ready' ? 'live' : st?.state === 'unavailable' ? 'off' : undefined}>
+        {stateWord}{st && st.waiting > 0 ? ` · ${s('bench.ask.waiting', { count: st.waiting })}` : ''}
+      </span>}>
+      {!shared && asker !== signedIn && <p className="quiet ask-seen">{s('ask.seenByOthers')}</p>}
+      {st?.reason && st.state !== 'ready' && <p className="quiet ask-seen" lang="en">{st.reason}</p>}
+
+      <div ref={log} className="ask-log" role="log" aria-live="polite" aria-label={s('ask.thread')} aria-busy={busy}>
+        {msgs.length === 0 && (
+          <div className="ask-empty">
+            <div className="ask-chips" role="group" aria-label={s('ask.examples')}>
+              {examples.map((key) => <button key={key} type="button" className="ask-chip" disabled={busy} onClick={() => send(s(key))}>{s(key)}</button>)}
+            </div>
+            {lang === 'pt' && <p className="quiet">{s('bench.ask.englishNote')}</p>}
+          </div>
+        )}
+        {msgs.map((m) => {
+          if (m.from === 'me') return <p key={m.id} className="ask-msg" data-me=""><span className="visually-hidden">{s('ask.you')}: </span>{m.text}</p>;
+          if (m.from === 'error') return <div key={m.id} className="ask-msg"><HubSaid error={m.error} s={s} /></div>;
+          return (
+            <Reply key={m.id} m={m} newest={m.id === lastAstra && !busy} lang={lang} s={s} shared={shared}
+              sourcesOpen={openSources.has(m.id)}
+              onSources={() => setOpenSources((o) => { const n = new Set(o); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n; })}
+              onReply={send} onSteps={(card) => setSteps({ card: card.id, msg: m.id })}
+              onHelp={(h) => (h ? setHelp(asker, m.id, h) : setHelp(asker, m.id, undefined))} onCall={() => void callHelp(m.id)}
+              onChoose={() => setPicking(true)} />
+          );
+        })}
+        {progress && (
+          <div className="ask-msg ask-typing" role="status">
+            <span className="ask-dots" aria-hidden="true"><i /><i /><i /></span>
+            <span className="visually-hidden">
+              {progress.state === 'queued' ? s('ask.queued', { position: progress.position }) : s('ask.typing')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <form className="ask-input" onSubmit={(e) => { e.preventDefault(); send(text); }}>
+        <input ref={box} type="text" value={text} placeholder={s('ask.placeholder')} aria-label={s('ask.placeholder')}
+          enterKeyHint="send" autoComplete="off" onChange={(e) => setText(e.target.value)} />
+        <button type="submit" className="ask-send" aria-label={s('ask.sendLabel')} disabled={busy || !text.trim()}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+        </button>
       </form>
 
-      <div className="xexamples" role="group" aria-label={s('ask.examples')}>
-        <p className="label">{s('ask.examples')}</p>
-        {EXAMPLES.map((key) => (
-          <button key={key} type="button" className="xchip" disabled={busy} onClick={() => { setQuestion(s(key)); void ask(s(key)); }}>{s(key)}</button>
-        ))}
-      </div>
-      {lang === 'pt' && <p className="quiet">{s('bench.ask.englishNote')}</p>}
-
-      <div className="xlive" aria-live="polite" aria-busy={busy}>
-        {progress && (
-          <p className="xprogress" role="status">
-            {progress.state === 'sending' ? s('ask.sending')
-              : progress.state === 'queued' ? s('ask.queued', { position: progress.position })
-                : s('ask.working', { seconds: Math.round(progress.ms / 1000) })}
-          </p>
-        )}
-        {error !== null && <HubSaid error={error} s={s} />}
-        {result && (
-          <article className="rule xanswer" aria-labelledby="ask-answer">
-            <h3 id="ask-answer" className="visually-hidden">{s('ask.answer')}</h3>
-            <p className="xtags">
-              <span className="xtag" data-by={result.by}>{s(`ask.by.${result.by}`)}</span>
-              {result.urgent && <span className="xtag" data-urgent="">{s('bench.ask.urgent')}</span>}
-            </p>
-            {result.route !== 'answer' && <p className="quiet">{s(`bench.ask.route.${result.route}`)}</p>}
-            {answerText && <p className="xanswer-text" lang={result.key || hubWrote ? lang : 'en'}>{answerText}</p>}
-            {result.by === 'model' && lang === 'pt' && <p className="quiet">{s('ask.englishAnswer')}</p>}
-            {result.source && <p className="quiet">{s('bench.ask.cites', { source: result.source })}</p>}
-            {result.check?.discarded && <p className="quiet">{s('ask.discarded')}</p>}
-            {result.card ? <StepsCard card={result.card} s={s} /> : (result.route === 'card' || result.urgent) && <p className="quiet">{s('ask.noCard')}</p>}
-
-            {result.route !== 'crisis' && result.route !== 'card' && (
-              <>
-                <h4 className="label xsub">{s('bench.ask.facts')}</h4>
-                {facts.length ? (
-                  <ul className="xfacts">
-                    {facts.map((f, i) => (
-                      <li key={i}>
-                        {f.text}
-                        {f.labels.length > 0 && <span className="xfact-labels">{f.labels.map((l) => <span key={l} className="kind">{l}</span>)}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                ) : <p className="quiet">{s('bench.ask.noFacts')}</p>}
-
-                <h4 className="label xsub">{s('bench.ask.passages')}</h4>
-                {passages.length ? (
-                  <>
-                    <p className="quiet">{s('bench.ask.quotedEnglish')}</p>
-                    {passages.map((p, i) => (
-                      <figure key={i} className="xquote">
-                        <blockquote lang="en">{p.text}</blockquote>
-                        <figcaption>
-                          {s('bench.ask.passageFrom', { name: p.name })}
-                          {p.url && <> · <a href={p.url} target="_blank" rel="noreferrer">{s('bench.ask.open', { name: p.name })}</a></>}
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </>
-                ) : <p className="quiet">{s('bench.ask.noPassages')}</p>}
-              </>
-            )}
-            <p className="quiet">{s('bench.ask.took', { seconds: (result.ms / 1000).toFixed(1) })}</p>
-          </article>
-        )}
-      </div>
+      {steps && createPortal(
+        <Steps key={steps.card} alert={null} cardId={steps.card} gravity={gravity} lang={lang} s={s} onClose={() => stepsDone(steps.msg, steps.card)} />,
+        document.querySelector('main.hub') ?? document.body,
+      )}
     </Sheet>
   );
 }
 
-/** A steps card as the medical lead wrote it, in the language it has. */
-function StepsCard({ card, s }: { card: CardView; s: S }) {
+interface ReplyProps {
+  m: Extract<Msg, { from: 'astra' }>;
+  /** The newest reply, with nothing pending: its chips are live. */
+  newest: boolean;
+  lang: Lang;
+  s: S;
+  shared: boolean;
+  sourcesOpen: boolean;
+  onSources: () => void;
+  onReply: (text: string) => void;
+  onSteps: (card: CardView) => void;
+  onHelp: (help: Help | null) => void;
+  onCall: () => void;
+  onChoose: () => void;
+}
+
+/** One reply of Astra's: her bubble, the hub's facts and NASA's sources, the card's "Start help", and the reply chips. */
+function Reply({ m, newest, lang, s, shared, sourcesOpen, onSources, onReply, onSteps, onHelp, onCall, onChoose }: ReplyProps) {
+  const r = m.result;
+  const who: Who = r.facts?.who ?? { name: '', pronouns: 'they', self: true };
+  const facts = r.facts ? factLines(r.facts.items, who, s) : [];
+  const hubWrote = r.by === 'hub' && facts.length > 0;
+  // A fixed text has a key in the string table; the hub's sentences are in the screen's language; Astra writes English.
+  // When the hub wrote the answer, its first sentence (or her lead) is the bubble and the rest are the facts block.
+  const lead = hubWrote ? r.lead?.text ?? facts[0].text : null;
+  const bubble = r.key ? s(r.key) : hubWrote ? lead ?? '' : r.text;
+  const block = hubWrote ? (r.lead ? facts : facts.slice(1)) : r.route === 'crisis' || r.route === 'card' ? [] : facts;
+  const leadLabels = hubWrote && !r.lead ? facts[0].labels : [];
+  const passages: QuotedPassage[] = r.facts?.passages.length ? r.facts.passages : r.passages;
+  const showSources = r.route !== 'crisis' && passages.length > 0;
+  const pending = r.pendingQuestion;
+  const helpDone = m.help?.state === 'sent';
+  const options = pending ? (pending.options.length === 1 ? [{ value: 'yes', label: s('ask.yes') }, { value: 'no', label: s('ask.no') }] : pending.options) : [];
+  const meta = [
+    s(`ask.by.${r.by}`),
+    r.urgent ? s('bench.ask.urgent') : null,
+    r.route !== 'answer' && r.route !== 'fixed' ? s(`bench.ask.route.${r.route}`) : null,
+    s('bench.ask.took', { seconds: (r.ms / 1000).toFixed(1) }),
+  ].filter(Boolean).join(' · ');
+
+  const helpChip = (label: string) => (
+    <button type="button" className="ask-chip" disabled={!newest || !!m.help} onClick={() => onHelp({ state: 'confirm' })}>{label}</button>
+  );
+
   return (
-    <div className="xcard" lang={card.lang}>
-      <h4>{s('bench.card.title', { title: card.title })}</h4>
-      <ol>{card.steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
-      {card.doNot.length > 0 && <><p className="label">{s('bench.card.doNot')}</p><ul>{card.doNot.map((d, i) => <li key={i}>{d}</li>)}</ul></>}
-      {card.messageHouston && <p className="quiet">{s('bench.card.houston')}</p>}
-      {card.unverified.length > 0 && <p className="quiet">{s('bench.card.unverified')}</p>}
+    <div className="ask-reply" data-urgent={r.urgent ? '' : undefined}>
+      {bubble && (
+        <p className="ask-msg" lang={r.key || hubWrote ? lang : 'en'}>
+          <span className="visually-hidden">Astra: </span>{bubble}
+          {leadLabels.length > 0 && <span className="xfact-labels">{leadLabels.map((l) => <span key={l} className="kind">{l}</span>)}</span>}
+        </p>
+      )}
+      {r.aside && bubble !== r.text && <p className="quiet ask-aside">{r.aside}</p>}
+      {r.understoodAs && <p className="quiet ask-aside">{r.understoodAs}</p>}
+
+      {(block.length > 0 || showSources) && (
+        <div className="ask-facts">
+          {block.length > 0 && (
+            <ul className="ask-facts-list" aria-label={s('bench.ask.facts')}>
+              {block.map((f, i) => (
+                <li key={i}>{f.text}{f.labels.length > 0 && <span className="xfact-labels">{f.labels.map((l) => <span key={l} className="kind">{l}</span>)}</span>}</li>
+              ))}
+            </ul>
+          )}
+          {showSources && (
+            <>
+              <button type="button" className="ask-sources" aria-expanded={sourcesOpen} onClick={onSources}>
+                {passages.length === 1 ? s('ask.source') : s('ask.sources', { count: passages.length })}
+                {!sourcesOpen && ` · ${[...new Set(passages.map((p) => p.name))].join(', ')}`}
+              </button>
+              {sourcesOpen && (
+                <div className="ask-passages">
+                  <p className="quiet">{s('bench.ask.quotedEnglish')}</p>
+                  {passages.map((p, i) => (
+                    <figure key={i} className="xquote">
+                      <blockquote lang="en">{p.text}</blockquote>
+                      <figcaption>
+                        {s('bench.ask.passageFrom', { name: p.name })}
+                        {p.url && <> · <a href={p.url} target="_blank" rel="noreferrer">{s('bench.ask.open', { name: p.name })}</a></>}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {r.card ? (
+        <>
+          <p className="ask-msg" lang={r.card.lang}>{r.card.title}</p>
+          <div className="ask-chips">
+            {m.stepsShown
+              ? <button type="button" className="ask-steps-shown" onClick={() => r.card && onSteps(r.card)}>{s('ask.stepsShown')}</button>
+              : <button type="button" className="ask-chip" aria-label={s('ask.startHelpFor', { title: r.card.title })} onClick={() => r.card && onSteps(r.card)}>{s('ask.startHelp')}</button>}
+          </div>
+        </>
+      ) : (r.route === 'card' || r.urgent) && r.route !== 'crisis' && <p className="quiet ask-aside">{s('ask.noCard')}</p>}
+
+      {pending && options.length > 0 && !helpDone && (
+        <div className="ask-chips" role="group" aria-label={pending.text}>
+          {options.map((o) => (pending.purpose === 'offerHelp' && o.value === 'help'
+            ? <span key={o.value}>{helpChip(o.label)}</span>
+            : <button key={o.value} type="button" className="ask-chip" disabled={!newest} onClick={() => onReply(o.label)}>{o.label}</button>))}
+        </div>
+      )}
+      {r.offerHelp && !pending && !helpDone && <div className="ask-chips">{helpChip(s('ask.callHelp'))}</div>}
+      {m.help?.state === 'confirm' || m.help?.state === 'calling' ? (
+        <div className="ask-confirm" role="group" aria-label={s('ask.callConfirm')}>
+          <p className="ask-msg">{s('ask.callConfirm')}</p>
+          <div className="ask-chips">
+            <button type="button" className="ask-chip" disabled={m.help.state === 'calling'} onClick={() => onHelp(null)}>{s('ask.cancel')}</button>
+            <button type="button" className="ask-chip" data-solid="" disabled={m.help.state === 'calling'} onClick={onCall}>{s('ask.call')}</button>
+          </div>
+        </div>
+      ) : null}
+      {m.help?.state === 'sent' && <p className="ask-msg"><span className="visually-hidden">Astra: </span>{m.help.text}</p>}
+      {m.help?.state === 'failed' && <p className="quiet ask-aside">{s('ask.callFailed')}</p>}
+      {r.choosePerson && shared && <div className="ask-chips"><button type="button" className="ask-chip" onClick={onChoose}>{s('ask.askingAs')} ▾</button></div>}
+
+      <p className="ask-meta">
+        {meta}
+        {r.by === 'model' && lang === 'pt' && ` · ${s('ask.englishAnswer')}`}
+        {r.source && ` · ${s('bench.ask.cites', { source: r.source })}`}
+        {r.check?.discarded && ` · ${s('ask.discarded')}`}
+      </p>
     </div>
   );
 }

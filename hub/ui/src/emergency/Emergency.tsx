@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Alert } from '../../../engine/alerts.ts';
 import { NEEDS_SOMEONE } from '../../../engine/alerts.ts';
+import { useEmergencyTone } from '../sound.ts';
 import './emergency.css';
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
@@ -37,6 +38,8 @@ export function Emergency({ alerts, rooms, crew, s, onOpen, skip }: Props) {
     if (!before.current) before.current = document.activeElement;
     button.current?.focus({ preventScroll: true });
   }, [shownKey]);
+  // The tone, repeated until the tap that opens it (or the alert is settled or ends: the screen goes).
+  const soundLocked = useEmergencyTone(shownKey);
 
   if (!alert) return null;
 
@@ -67,7 +70,7 @@ export function Emergency({ alerts, rooms, crew, s, onOpen, skip }: Props) {
 
   return (
     <div className="emergency" role="alertdialog" aria-modal="true" aria-label={[drill, title, where].filter(Boolean).join(', ')}>
-      <button ref={button} type="button" className="emergency-frame frame" aria-label={`${[drill, title, where].filter(Boolean).join(', ')}. ${s('emergency.tap')}`}
+      <button ref={button} type="button" className="emergency-frame frame" aria-label={`${[drill, title, where].filter(Boolean).join(', ')}. ${s('emergency.tap')}${soundLocked ? `. ${s('emergency.soundLocked')}` : ''}`}
         onClick={open} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); open(); } }}>
         <span className="emergency-body" aria-hidden="true">
           <svg className="emergency-sign" viewBox="0 0 100 88" focusable="false">
@@ -79,7 +82,7 @@ export function Emergency({ alerts, rooms, crew, s, onOpen, skip }: Props) {
           <span className="emergency-title">{title}</span>
           <span className="emergency-where">{where}</span>
         </span>
-        <span className="emergency-tap" aria-hidden="true">{s('emergency.tap')}</span>
+        <span className="emergency-tap" aria-hidden="true">{s('emergency.tap')}{soundLocked && <span className="emergency-sound">{s('emergency.soundLocked')}</span>}</span>
       </button>
     </div>
   );

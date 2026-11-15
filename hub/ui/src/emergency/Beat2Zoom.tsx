@@ -34,8 +34,8 @@ interface Props {
   s: S;
   /** Earth's reply to this alert's message, once it is in. */
   reply: { text: string; key?: string; vars?: Record<string, string | number> } | null;
-  /** The reply was simulated by AI (demo mode): "Reply simulated by AI" shows beside it. */
-  replyByAi?: boolean;
+  /** The label beside a simulated reply (demo mode), by string key: "Reply simulated by AI", or "Simulated reply" for the hub's fixed sentence. */
+  replyLabel?: string | null;
   /** When the reply is due as the message to Earth lists it (the demo's shortened delay, when set), and whether that delay is simulated. */
   replyAt?: number | null;
   simulatedDelay?: boolean;
@@ -61,7 +61,7 @@ const autoSeconds = () => {
 };
 const reduceQuery = () => matchMedia('(prefers-reduced-motion: reduce)');
 
-export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, reply, replyByAi, replyAt, simulatedDelay, report, recorded, paused, onContinue, onHeight, onRelease }: Props) {
+export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, reply, replyLabel, replyAt, simulatedDelay, report, recorded, paused, onContinue, onHeight, onRelease }: Props) {
   const [card, setCard] = useState<{ title: string; first: string | null } | 'loading' | 'failed' | null>(alert.card ? 'loading' : null);
   const [seen, setSeen] = useState(false);
   const [asking, setAsking] = useState(false);
@@ -155,7 +155,11 @@ export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, re
     setSettleFailed(false);
     if (!alert.id.startsWith('demo-')) {
       try {
-        const res = await fetch(`http://${hubAddress()}/api/alerts/settle`, { method: 'POST', body: JSON.stringify(viewer ? { id: alert.id, by: viewer } : { id: alert.id }) });
+        // A declared event has its own end (core/events.ts), which wants a crew id: whoever is signed in here,
+        // or on the shared screen the crewmate who declared it. The hub does not record who ended it.
+        const res = alert.declared
+          ? await fetch(`http://${hubAddress()}/api/events/end`, { method: 'POST', body: JSON.stringify({ id: alert.id, by: viewer ?? alert.person }) })
+          : await fetch(`http://${hubAddress()}/api/alerts/settle`, { method: 'POST', body: JSON.stringify(viewer ? { id: alert.id, by: viewer } : { id: alert.id }) });
         if (!res.ok && res.status !== 404) { setSettleFailed(true); return; }
       } catch { setSettleFailed(true); return; }
     }
@@ -204,7 +208,7 @@ export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, re
         )}
         {report && <IncidentReport report={report} s={s} lang={lang} />}
         {replyText && (
-          <p className="beat2-reply"><span>{s('emergency.earthReplied')}</span> “{replyText}”{replyByAi && <> <span className="kind" data-kind="simulated">{s('earth.simulatedByAi')}</span></>}</p>
+          <p className="beat2-reply"><span>{s('emergency.earthReplied')}</span> “{replyText}”{replyLabel && <> <span className="kind" data-kind="simulated">{s(replyLabel)}</span></>}</p>
         )}
         <div className="beat2-row">
           {asking ? (
@@ -217,7 +221,7 @@ export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, re
             <>
               {viewer && !alert.seenAt && !seen && <button type="button" className="beat2-btn" onClick={markSeen}>{s('alert.seeIt')}</button>}
               {viewer && (alert.seenAt || seen) && <span className="beat2-quiet">{s('bench.al.seenSent')}</span>}
-              {!alert.declared && !recorded && (
+              {!recorded && (
                 <button ref={settleButton} type="button" className="beat2-btn beat2-quietbtn" onClick={() => setAsking(true)}>{s('emergency.settle')}</button>
               )}
               {earth && <span className="beat2-earth">{earth}</span>}

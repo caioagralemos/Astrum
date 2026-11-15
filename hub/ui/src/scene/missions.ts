@@ -23,9 +23,11 @@ export const MISSIONS: Record<MissionName, Mission> = {
  * somewhere else, and the hub's facts say where: the planet below and the
  * weightless poses follow them. Everything else (modules, view) is the file's.
  */
-export function placedAt(mission: Mission, facts: { where: Mission['where']; gravity: number } | undefined): Mission {
+export function placedAt(mission: Mission, facts: { where: Mission['where']; gravity: number; destination?: string } | undefined): Mission {
   if (!facts) return mission;
   const { where, gravity } = facts;
-  if (where.body === mission.where.body && where.situation === mission.where.situation && gravity === mission.gravity) return mission;
-  return { ...mission, where: { body: where.body, situation: where.situation }, gravity };
+  // Where a ship in transit is going (the setup's trip to the Moon or Mars) comes from the hub too.
+  const destination = facts.destination ?? mission.destination;
+  if (where.body === mission.where.body && where.situation === mission.where.situation && gravity === mission.gravity && destination === mission.destination) return mission;
+  return { ...mission, where: { body: where.body, situation: where.situation }, gravity, ...(destination ? { destination } : {}) };
 }

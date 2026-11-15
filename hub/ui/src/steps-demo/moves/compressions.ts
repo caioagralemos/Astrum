@@ -27,7 +27,8 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { track } from '../anim.ts';
 import { Character, plant, reach } from '../cast.ts';
 import type { Moves } from '../cast.ts';
-import { CHEST, COM_HEIGHT, FOREARM, STERNUM_Y, STERNUM_Z, THIGH_LEN, UPPER_ARM, restJoint } from '../rig.ts';
+import { CHEST, COM_HEIGHT, FOREARM, STERNUM_Y, STERNUM_Z, MISSES, THIGH_LEN, UPPER, UPPER_ARM, restJoint } from '../rig.ts';
+import type { Figure } from '../rig.ts';
 import { ACTOR, OTHER, tag } from '../step.ts';
 import type { Clip, Move } from '../step.ts';
 import { Contact } from '../world.ts';
@@ -94,12 +95,17 @@ const back = new THREE.Vector3(0, 0, 1);
 const floorUp = new THREE.Vector3(0, -1, 0);
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 const nod = new THREE.Quaternion();
+const tilt = new THREE.Quaternion();
+const untwist = new THREE.Quaternion();
+const acrossAxis = new THREE.Vector3(0, 0, 1);
 
 /** Where the knees and the tops of the feet rest, either side of the chest. */
 const KNEE_Z = 0.3;
 const KNEE_X = 0.16;
 const KNEE_Y = 0.058;
 const ARM = (UPPER_ARM + FOREARM) * 0.996;
+/** Shoulder to wrist with the elbow locked (just inside the solver's reach, so the hand still lands). */
+const STRAIGHT = (UPPER_ARM + FOREARM) * 0.9994;
 const HIP = restJoint(9);
 const SHOULDER = restJoint(3);
 const CHEST_PIVOT = restJoint(CHEST);
@@ -156,16 +162,44 @@ function kneel(c: Character, d: number, bend: number) {
   return contact;
 }
 
+/**
+ * Both elbows locked, both arms vertical over the hands. The top hand's wrist sits a hand's thickness
+ * above the lower one, so with level shoulders its elbow would bend: the shoulders roll that much
+ * (unseen from the side), and the body is moved so the shoulders' middle is right over the wrists'
+ * middle and each arm is at full straight length. A few corrections settle it.
+ */
+function lockArms(f: Figure, bend: number) {
+  let roll = 0;
+  const worst = MISSES.worst, bone = MISSES.bone;
+  for (let i = 0; i < 16; i++) {
+    // Rolled about the world's horizontal axis that runs from the rescuer to the person, so the
+    // shoulder line tilts in the plane across the body and neither shoulder swings ahead.
+    tilt.setFromAxisAngle(acrossAxis, roll).premultiply(untwist.copy(f.turn).invert()).multiply(f.turn);
+    f.chest.setFromEuler(euler.set(bend, 0, 0)).premultiply(tilt);
+    f.solve();
+    const s0 = f.at[UPPER(0)], s1 = f.at[UPPER(1)], w0 = f.arms[0].target, w1 = f.arms[1].target;
+    f.root.x -= (s0.x + s1.x - w0.x - w1.x) / 2;
+    f.root.z -= (s0.z + s1.z - w0.z - w1.z) / 2;
+    const d0 = s0.distanceTo(w0), d1 = s1.distanceTo(w1);
+    f.root.y -= (d0 + d1) / 2 - STRAIGHT;
+    roll += Math.asin(Math.max(-0.5, Math.min(0.5, (d1 - d0) / (2 * Math.abs(SHOULDER[0])))));
+  }
+  // The settling solves are not drawn: only the final one counts for contact misses.
+  MISSES.worst = worst;
+  MISSES.bone = bone;
+}
+
 function clip(world: World): Clip {
   return compressionsClip(world, RATE, COUNT);
 }
 
 /**
  * Chest compressions at `rate` a minute, `count` of them per loop (the loop is count × 60 / rate
- * seconds), `depth` metres deep (DEPTH, about 5 cm, unless the move gives its own). `gaugeText`
+ * seconds), `depth` metres deep (DEPTH, about 5 cm, unless the move gives its own), `glow` scales the
+ * contact glow's size and strength. `gaugeText`
  * labels the depth gauge in the viewer only (captures carry no text).
  */
-export function compressionsClip(world: World, rate: number, count: number, span = 2.9, depth = DEPTH, gaugeText = '5 cm'): Clip {
+export function compressionsClip(world: World, rate: number, count: number, span = 2.9, depth = DEPTH, gaugeText = '5 cm', glow = 1): Clip & { rescuer: Figure; patient: Figure } {
   const PERIOD = 60 / rate;
   const T = (count * 60) / rate;
   const pressAt = (u: number) => press(u, PERIOD);
@@ -216,6 +250,7 @@ export function compressionsClip(world: World, rate: number, count: number, span
     // Lower hand (the one on the person's feet side) on the chest; the upper one on top of it.
     reach(kneeling.fig, 0, w.copy(at).addScaledVector(fingers, 0.03), fingers, into.copy(down), 1);
     reach(kneeling.fig, 1, w.copy(at).addScaledVector(fingers, 0.035).setY(at.y + 0.088), fingersTop, into.copy(down), 1);
+    lockArms(kneeling.fig, 0.12 + 0.05 * c);
     kneeling.fig.solve();
     lying.fig.draw();
     kneeling.fig.draw();
@@ -223,6 +258,8 @@ export function compressionsClip(world: World, rate: number, count: number, span
   };
 
   return {
+    rescuer: kneeling.fig,
+    patient: lying.fig,
     duration: T,
     keys: [0, PERIOD / 2],
     ship: false,
@@ -230,10 +267,10 @@ export function compressionsClip(world: World, rate: number, count: number, span
     tags,
     frame(u, still) {
       const drift = still ? 0 : Math.sin((u / T) * Math.PI * 2);
-      world.frame(target, 2.15 + 0.025 * drift, 0.24 + 0.01 * drift, 1.75, 30, 0.0, span);
+      world.frame(target, 1.85 + 0.025 * drift, 0.2 + 0.01 * drift, 1.75, 30, 0.0, span);
       world.depth(1.5, 7);
       const c = pose(u);
-      onChest.show(contact, 0.075, 0.9, c);
+      onChest.show(contact, 0.075 * glow, 0.9 * glow, c);
       tags[0].at.set(gx, (top + bottom) / 2 + 0.06, gz - 0.02);
       tags[0].shown = 1;
     },

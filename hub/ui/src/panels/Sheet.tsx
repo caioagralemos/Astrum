@@ -16,6 +16,8 @@ export interface SheetProps {
   mark?: ReactNode;
   s: S;
   onClose: () => void;
+  /** Controls at the head's right, before the close button (Ask Astra's "Asking as" and "Clear"). */
+  actions?: ReactNode;
   /** What gets focus on opening; the sheet itself when absent. */
   focus?: RefObject<HTMLElement | null>;
   children: ReactNode;
@@ -23,7 +25,7 @@ export interface SheetProps {
 
 const SIDES = ['--scene-inset-right', '--scene-inset-bottom'] as const;
 
-export function Sheet({ id, title, sub, mark, s, onClose, focus, children }: SheetProps) {
+export function Sheet({ id, title, sub, mark, actions, s, onClose, focus, children }: SheetProps) {
   const node = useRef<HTMLElement>(null);
 
   // Focus in on open, back to the opener on close.
@@ -69,6 +71,7 @@ export function Sheet({ id, title, sub, mark, s, onClose, focus, children }: She
           <h2 id={`panel-${id}-title`}>{title}</h2>
           {sub && <div className="panel-sub">{sub}</div>}
         </div>
+        {actions}
         <button type="button" className="panel-close" aria-label={s('top.close')} onClick={onClose}>
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" /></svg>
         </button>

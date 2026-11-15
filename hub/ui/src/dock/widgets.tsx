@@ -16,8 +16,8 @@
 // The dock is a shared screen: it never shows mood, check-in answers, blood
 // values or level 1 alerts (those are for the person alone).
 
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
 import type { Status } from '../../../engine/status.ts';
 import { dayOf } from '../../../engine/mission.ts';
@@ -28,6 +28,9 @@ import { KindMark } from '../panels.tsx';
 import type { LastSeen } from '../../../engine/timeline.ts';
 import { timeOf } from '../panels/common.tsx';
 import { SignalIcon } from '../person/icons.tsx';
+import { boardName } from '../onboarding/boardName.ts';
+import { demoPortraits } from '../../../engine/portraits.ts';
+export { demoPortraits };
 
 export type S = (key: string, vars?: Record<string, string | number>) => string;
 export type Size = 'quarter' | 'third' | 'half' | 'full';
@@ -46,6 +49,10 @@ export interface DockContext {
   s: S;
   onSelect: (selection: Selection) => void;
   onAlerts: () => void;
+  /** Opens the Earth panel, at one message when given. */
+  onEarth?: (id: string | null) => void;
+  /** Earth replies this screen has not opened or marked read (App.tsx). */
+  earthUnread?: number;
 }
 
 export interface Widget {
@@ -72,7 +79,7 @@ const kinds = (rows: (Row | undefined)[]) => [...new Set(rows.filter((r): r is R
 const num = (v: number) => String(Number(v.toFixed(v < 10 ? 2 : 1)));
 const unitText = (unit: string) => (unit === 'raw' ? '' : unit === 'C' ? '°C' : unit);
 
-const ICON = {
+export const ICON = {
   crew: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.3a3.5 3.5 0 0 1 0 6.4M18 14.5a6.5 6.5 0 0 1 3.5 5.5',
   cabin: 'M3 9.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0M3 14.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0',
   co2: 'M5.2 12H9M15 12h3.8M5.2 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM23 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z',
@@ -116,6 +123,30 @@ function Stat({ icon, label, kind, s, children }: { icon?: ReactNode; label: str
   );
 }
 
+const CHEVRON = 'M9.5 6.5l5.5 5.5-5.5 5.5';
+
+/** Text that clamps to as many whole lines as fit its own height, ending in an ellipsis. */
+function FitLines({ className, children }: { className: string; children: ReactNode }) {
+  const node = useRef<HTMLSpanElement>(null);
+  const [lines, setLines] = useState(3);
+  useLayoutEffect(() => {
+    const el = node.current?.parentElement;
+    const text = node.current;
+    if (!el || !text) return;
+    const fit = () => {
+      const line = parseFloat(getComputedStyle(text).lineHeight) || 20;
+      // The room the text has: the button's height less what sits above the text.
+      const room = el.clientHeight - (text.offsetTop - el.offsetTop);
+      setLines(Math.max(1, Math.floor(room / line)));
+    };
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return <span ref={node} className={className} style={{ WebkitLineClamp: lines, lineClamp: lines } as CSSProperties}>{children}</span>;
+}
+
 interface FootItem { key: string; icon: string; text: ReactNode; className?: string }
 
 /** The footer under a hairline: one line per item, each with its glyph. */
@@ -152,32 +183,7 @@ export function Portrait({ src }: { src?: string }) {
   );
 }
 
-/**
- * Placeholder portraits for a simulated crew (public/crew, each marked "AI"): three of women, three of men.
- * A crewmate gets one from the set that goes with their pronouns or, for the names the hub picks
- * (engine/names.ts), with the name; anyone else keeps the line figure. Handed out in crew order.
- */
-const PORTRAITS = { she: ['crew/crew-2.jpg', 'crew/crew-1.jpg', 'crew/crew-3.jpg'], he: ['crew/crew-4.jpg', 'crew/crew-5.jpg', 'crew/crew-6.jpg'] };
-const NAMES_SHE = new Set(['Sally', 'Mae', 'Peggy', 'Christina', 'Jessica', 'Kathleen', 'Anne', 'Nicole', 'Kayla', 'Jasmin', 'Serena', 'Megan', 'Karen',
-  'Tracy', 'Ellen', 'Eileen', 'Mary', 'Joan', 'Shannon', 'Kate', 'Sunita', 'Kalpana', 'Valentina', 'Elena', 'Anna', 'Svetlana', 'Marina', 'Samantha',
-  'Sophie', 'Rosemary', 'Sara', 'Naoko', 'Chiaki', 'Yaping', 'Julie', 'Roberta', 'Jenni', 'Katya', 'Soyeon', 'Reyes', 'Okafor']);
-const NAMES_HE = new Set(['Marcos', 'Pedro', 'José', 'Fernando', 'Carlos', 'Victor', 'Raja', 'Michael', 'Scott', 'Mark', 'Robert', 'Warren', 'Frank',
-  'Franklin', 'Neil', 'Sidney', 'Reid', 'Yuri', 'Alexei', 'Sergei', 'Oleg', 'Gennady', 'Anton', 'Mikhail', 'Dmitri', 'Pyotr', 'Andrei', 'Nikolai', 'Ivan',
-  'Talgat', 'Leonid', 'Luca', 'Thomas', 'Alexander', 'Matthias', 'Tim', 'André', 'Andreas', 'Christer', 'Marcus', 'Pablo', 'Paolo', 'Umberto', 'Dirk',
-  'Franz', 'Bertalan', 'Tibor', 'Vladimír', 'Dumitru', 'Georgi', 'Mirosław', 'Raphaël', 'John', 'Koichi', 'Satoshi', 'Akihiko', 'Kimiya', 'Norishige',
-  'Soichi', 'Takuya', 'Mamoru', 'Makoto', 'Liwei', 'Haipeng', 'Zhigang', 'Haisheng', 'Chris', 'Marc', 'David', 'Jeremy', 'Joshua', 'Rakesh', 'Sultan',
-  'Ali', 'Mohammed', 'Rodolfo', 'Arnaldo', 'Abdul', 'Ilan', 'Eytan', 'Alper', 'Leo', 'Tanaka',
-  // Once in the list, and still saved on missions started then.
-  'Claude']);
-function demoPortraits(people: { id: string; name: string; pronouns?: string }[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  const used = { she: 0, he: 0 };
-  for (const p of people) {
-    const set = p.pronouns === 'she' ? 'she' : p.pronouns === 'he' ? 'he' : NAMES_SHE.has(p.name) ? 'she' : NAMES_HE.has(p.name) ? 'he' : null;
-    if (set) out[p.id] = PORTRAITS[set][used[set]++ % PORTRAITS[set].length];
-  }
-  return out;
-}
+// The default pairing of faces lives in engine/portraits.ts, shared with the hub's state and the setup.
 
 // ---------------------------------------------------------------- Crew
 
@@ -332,7 +338,8 @@ const alerts: Widget = {
           <span className="dw-stat-value">{open}</span>
           {!open && <span className="dw-sub">{c.s('dock.allQuiet')}</span>}
         </button>
-        <Foot items={[{ key: 'line', icon: open ? ICON.warn : ICON.home, text: line }]} />
+        <Foot items={[{ key: 'line', icon: open ? ICON.warn : ICON.home, text: line },
+          c.earthUnread ? { key: 'earth', icon: ICON.earth, text: c.s('earth.repliedCount', { count: c.earthUnread }) } : null]} />
       </>
     );
   },
@@ -360,8 +367,15 @@ const earth: Widget = {
         <Head icon={ICON.earth} title={c.s('dock.earth')} s={c.s} />
         {r?.reply ? (
           <>
-            <p className="dw-sub">{c.s('emergency.earthReplied')} “{r.reply.key ? c.s(r.reply.key, r.reply.vars) : r.reply.text}”</p>
-            <Foot items={[{ key: 'ai', icon: ICON.send, text: r.simulated === 'ai' ? c.s('earth.simulatedByAi') : c.s('kind.simulated') }]} />
+            {/* The whole widget opens the Earth panel, where the reply reads in full (the button's ::after covers the card). */}
+            <button type="button" className="dw-reply" onClick={() => c.onEarth?.(r.id)}>
+              <span className="dw-sub">{c.s('earth.replied')} · {timeOf(r.reply.at, 'en')}{r.simulatedDelay ? ` · ${c.s('earth.simulatedDelay')}` : ''}</span>
+              <FitLines className="dw-reply-text">{r.reply.key ? c.s(r.reply.key, r.reply.vars) : r.reply.text}</FitLines>
+            </button>
+            <Foot className="dw-reply-foot" items={[
+              { key: 'label', icon: ICON.send, text: r.simulated === 'ai' && r.simulatedBy !== 'fixed' ? c.s('earth.simulatedByAi') : r.simulated === 'ai' ? c.s('earth.simulatedFixed') : c.s('kind.simulated') },
+              { key: 'read', icon: CHEVRON, text: c.s('earth.read'), className: 'dw-foot-end dw-not-quarter' },
+            ]} />
           </>
         ) : delay < 60_000 && !m ? (
           <>
@@ -525,7 +539,7 @@ const board: Widget = {
     const rows = BOARD_SIGNALS.map((k) => c.values.find((r) => r.source === src.id && r.signal === k && r.value !== null)).filter((r): r is Row => Boolean(r));
     return (
       <>
-        <Head icon={ICON.board} title={`${c.s('dock.board')}${room ? `, ${roomName(c, room)}` : ''}`} s={c.s}
+        <Head icon={ICON.board} title={`${c.s('dock.board')}${room ? `, ${boardName(src, c.world.sources, c.profile, c.s)}` : ''}`} s={c.s}
           note={<span className={src.connected ? '' : 'dw-bad'}>{c.s(src.connected ? 'source.connected' : 'source.disconnected')}</span>} />
         <div className="dw-grid">
           {rows.map((r) => (

@@ -1,0 +1,215 @@
+/* The first-run setup: one Projection frame per step over the dark window (app.css tokens). */
+
+.ob { position: fixed; inset: 0; z-index: 60;
+  background: var(--bg); color: var(--text); transition: opacity 600ms var(--motion-ease); }
+.ob[data-leaving] { opacity: 0; }
+/* The one canvas the models are drawn on (models.ts): over the frames, catching nothing. */
+.ob-gl { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 61; pointer-events: none; }
+.ob:has([data-leaving]) ~ .ob-gl, .ob[data-leaving] ~ .ob-gl { opacity: 0; }
+
+/* One frame, inset from the window edges at every size (as the emergency screen); long steps scroll inside it. */
+.ob-step { position: absolute; inset: clamp(16px, 2.2vw, 32px); }
+.ob-frame { position: relative; height: 100%; box-sizing: border-box; overflow: auto; display: flex; flex-direction: column; gap: clamp(14px, 2.2vh, 26px);
+  padding: 18px clamp(20px, 3vw, 48px) clamp(20px, 3vh, 36px);
+  border-radius: var(--w-radius); background: var(--w-bg); box-shadow: inset 0 0 0 1px var(--frame-line); }
+.ob-frame > i::before, .ob-frame > i::after, .ob-frame::before, .ob-frame::after { content: ""; position: absolute; width: 18px; height: 18px; border: 2px solid var(--text); pointer-events: none; }
+.ob-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-top-left-radius: var(--w-radius); }
+.ob-frame::after { top: -1px; right: -1px; border-left: 0; border-bottom: 0; border-top-right-radius: var(--w-radius); }
+.ob-frame > i::before { bottom: -1px; left: -1px; border-right: 0; border-top: 0; border-bottom-left-radius: var(--w-radius); }
+.ob-frame > i::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-bottom-right-radius: var(--w-radius); }
+.ob-frame.center { align-items: center; text-align: center; }
+
+.ob-steps { display: flex; gap: 6px; width: 100%; flex: none; }
+.ob-steps span { height: 2px; flex: 1; border-radius: 1px; background: var(--hairline-strong); }
+.ob-steps span[data-done] { background: var(--text); }
+.ob-title { margin: 6px 0 0; font-size: clamp(28px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+.ob-title:focus { outline: none; }
+.ob-title:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 2px; }
+.ob-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ob-sp { flex: 1; min-height: 6px; }
+.ob-grow { flex: 1; }
+.ob-logo { width: min(460px, 70%); height: auto; display: block; margin: 0 auto; }
+.ob-lede { margin: 0; font-size: clamp(16px, 1.3vw, 19px); color: var(--text-muted); line-height: 1.45; }
+.ob-lede.left { text-align: left; }
+.ob-small { margin: 4px 0 0; font-size: 15px; color: var(--text-muted); line-height: 1.45; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.ob-nav { flex: none; display: flex; gap: 8px; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; }
+.ob-btn { height: 44px; padding: 0 22px; display: inline-flex; align-items: center; box-sizing: border-box; border-radius: var(--w-ctl-radius); border: 1.5px solid var(--text); background: none; color: var(--text);
+  font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ob-btn.fill { background: var(--text); color: var(--bg); }
+.ob-btn.quiet { border-color: var(--hairline-strong); color: var(--text-muted); font-weight: 500; }
+.ob-btn:disabled { opacity: 0.45; cursor: default; }
+.ob-btn:focus-visible, .ob-choice:focus-visible, .ob-face:focus-visible, .ob-seg button:focus-visible, .ob-thumb:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.ob-seg { display: inline-flex; border: 1px solid var(--hairline-strong); border-radius: var(--w-ctl-radius); overflow: hidden; align-self: flex-start; }
+.ob-seg button { background: none; border: 0; color: var(--text-muted); font: inherit; font-size: 15px; padding: 10px 16px; cursor: pointer; }
+.ob-seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 600; }
+
+.ob-choices { display: grid; gap: clamp(10px, 1.4vw, 20px); }
+.ob-choices.three { grid-template-columns: repeat(3, 1fr); }
+.ob-choices.two { grid-template-columns: repeat(2, 1fr); flex: 1; min-width: 0; align-self: stretch; }
+.ob-choice { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 12px 18px; border-radius: 8px; text-align: center;
+  border: 1px solid var(--hairline-strong); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.ob-choice.static { cursor: default; flex: 1; min-width: 0; align-self: stretch; }
+.ob-choice[aria-checked="true"] { border-color: var(--text); background: var(--fill); }
+.ob-choice b { font-size: clamp(17px, 1.4vw, 21px); font-weight: 600; }
+.ob-choice span { font-size: 15px; color: var(--text-muted); line-height: 1.35; }
+.ob-model { width: 100%; height: clamp(260px, 44vh, 620px); }
+.ob-model.sm { width: clamp(150px, 24vh, 300px); height: auto; aspect-ratio: 1; }
+.ob-choices.two .ob-model.sm, .ob-choice.static .ob-model.sm { width: min(100%, clamp(180px, 34vh, 420px)); }
+.ob-model.big { flex: 1; min-width: 0; height: clamp(300px, 58vh, 860px); }
+
+.ob-split { flex: 1; display: flex; gap: clamp(20px, 3vw, 48px); align-items: stretch; }
+.ob-fields { flex: 0 1 560px; min-width: 0; max-width: 560px; display: flex; flex-direction: column; gap: 18px; justify-content: center; }
+.ob-fields.row { flex-direction: row; gap: 16px; max-width: 900px; flex: none; width: 100%; align-self: center; }
+.ob-fields.row > * { flex: 1; min-width: 0; }
+.ob-field { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--text-muted); }
+.ob-field input:not([type="range"]), .ob-field select, .ob-room select { background: transparent; color: var(--text); border: 1px solid var(--hairline-strong); border-radius: var(--w-ctl-radius);
+  padding: 0 12px; height: 44px; box-sizing: border-box; font: inherit; font-size: 17px; color-scheme: dark; }
+.ob-field input:focus-visible, .ob-field select:focus-visible, .ob-room select:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.ob-field input[type="range"] { accent-color: var(--text); width: 100%; }
+.ob-range { display: flex; justify-content: space-between; font-size: 14px; }
+.ob-range b { color: var(--text); font-size: 18px; }
+
+.ob-route { flex: 1; display: grid; grid-template-columns: auto 1fr auto; gap: clamp(10px, 2vw, 32px); align-items: center; }
+.ob-end { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 18px; }
+.ob-arc { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 16px; color: var(--text-muted); }
+.ob-arc svg { width: 100%; height: auto; overflow: visible; }
+.ob-arc path { fill: none; stroke: var(--text); stroke-dasharray: 3 5; opacity: 0.6; }
+.ob-arc-dot { position: absolute; width: 0; height: 0; }
+.ob-onarc { position: absolute; width: clamp(120px, 18vh, 220px); height: clamp(120px, 18vh, 220px); top: calc(clamp(120px, 18vh, 220px) / -2); left: calc(clamp(120px, 18vh, 220px) / -2); }
+
+.ob-sum { flex: 1; display: flex; gap: clamp(20px, 3vw, 56px); align-items: center; }
+.ob-sum dl { margin: 0; display: flex; flex-direction: column; gap: 20px; flex: 0 1 560px; min-width: 0; }
+.ob-sum dt { font-size: 14px; color: var(--text-muted); }
+.ob-sum dd { margin: 2px 0 0; font-size: clamp(20px, 1.7vw, 26px); font-weight: 600; }
+.ob-sum small { display: block; font-size: 15px; font-weight: 400; color: var(--text-muted); margin-top: 2px; }
+
+.ob-who { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 13vw, 230px), 1fr)); gap: clamp(14px, 1.6vw, 26px); }
+.ob-face { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; padding: 0; text-align: center; }
+.ob-face img, .ob-initial, .ob-plus { width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--hairline-strong); filter: grayscale(1) contrast(1.05); font-size: 40px; font-weight: 300; }
+.ob-face[data-on] img, .ob-face[data-on] .ob-initial { border: 2px solid var(--text); }
+.ob-plus { border-style: dashed; color: var(--text-muted); filter: none; }
+.ob-face b { font-size: 17px; font-weight: 600; }
+.ob-face small { font-size: 14px; color: var(--text-muted); }
+.ob-badge { font-size: 13px; border: 1px solid var(--text); border-radius: 9px; padding: 1px 7px; font-weight: 600; }
+.ob-need { margin: 0; font-size: 16px; color: var(--text); }
+
+.ob-addrow { display: flex; gap: clamp(24px, 4vw, 64px); align-items: flex-start; justify-content: center; }
+.ob-photo { width: clamp(220px, 22vw, 320px); flex: none; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.ob-photo-big { width: 100%; aspect-ratio: 1; height: auto; border: 1px dashed var(--text-muted); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 300; color: var(--text-muted); }
+.ob-photo-big img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
+.ob-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; width: 100%; }
+.ob-thumb { aspect-ratio: 1; padding: 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--hairline-strong); background: none; cursor: pointer; color: var(--text-muted); font: inherit; font-size: 10px; }
+.ob-thumb img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); display: block; }
+.ob-thumb[aria-checked="true"] { border: 2px solid var(--text); }
+.ob-toggle { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; font-size: 17px; cursor: pointer; }
+.ob-toggle input { width: 36px; height: 20px; accent-color: var(--text); margin: 0; }
+.ob-toggle small { grid-column: 2; font-size: 14px; color: var(--text-muted); }
+
+.ob-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ob-list li { border-bottom: 1px solid var(--hairline); padding-bottom: 10px; }
+.ob-board { display: flex; align-items: center; gap: 12px; font-size: 18px; flex-wrap: wrap; }
+.ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text); flex: none; }
+.ob-dot[data-off] { background: transparent; border: 1px solid var(--text-muted); }
+.ob-room { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--text-muted); }
+
+.ob-address { margin: 12px 0 0; font-size: 18px; }
+.ob-confirm { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--hairline-strong); padding-top: 12px; }
+.ob-confirm p { margin: 0; font-size: 17px; }
+
+@media (max-width: 640px) {
+  .ob-frame { padding: 22px 16px 18px; }
+  .ob-split, .ob-addrow, .ob-sum { flex-direction: column; align-items: stretch; }
+  .ob-choices.two, .ob-choice.static { width: 100%; }
+  .ob-fields.row { flex-direction: column; }
+  .ob-route { grid-template-columns: 84px 1fr 84px; }
+  .ob-model.big { width: 180px; align-self: center; }
+}
+@media (prefers-reduced-motion: reduce) { .ob { transition: none; } }
+.ob-upload { position: relative; overflow: hidden; justify-content: center; width: 100%; }
+.ob-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ob-upload:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+.ob-list { width: 100%; }
+.ob-arc-track { position: relative; width: 100%; }
+.ob-arc-track svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ob-model.hero { width: 100%; height: clamp(320px, 56vh, 900px); }
+.ob-who.few { flex: 1; display: flex; flex-wrap: nowrap; justify-content: center; align-content: center; align-items: flex-start; margin: auto 0; }
+.ob-who.few > li { width: clamp(150px, 14vw, 240px); flex: none; }
+.ob-list { max-width: none; }
+.ob-list li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: clamp(16px, 3vw, 48px); align-items: center; }
+.ob-list li .ob-small { margin: 0; font-size: 16px; }
+@media (max-width: 760px) { .ob-list li { grid-template-columns: 1fr; } .ob-who.few { flex-wrap: wrap; } }
+.ob-logo { width: clamp(420px, 60%, 1100px); max-width: 100%; margin: 0 auto; }
+.ob-frame.center .ob-lede { font-size: clamp(20px, 1.6vw, 26px); color: var(--text); margin-top: clamp(12px, 2vh, 28px); }
+.ob-btn { height: 50px; padding: 0 26px; font-size: 17px; }
+.ob-frame.center .ob-seg button { height: 50px; padding: 0 22px; font-size: 17px; }
+.ob-frame.center .ob-nav { align-items: flex-end; }
+.ob-nav { align-items: flex-end; }
+.ob-model.hero { height: clamp(280px, 50vh, 820px); }
+.ob-who.few { align-items: center; }
+.ob-who.few ~ .ob-sp { flex: 0; min-height: 0; }
+.ob-who.few { margin: 0; padding-bottom: 6vh; }
+.ob-split.stack { flex-direction: column; gap: 18px; }
+.ob-split.stack .ob-model.hero { height: clamp(220px, 44vh, 760px); }
+.ob-split.stack .ob-fields.row { max-width: none; align-items: flex-start; }
+.ob-split.stack .ob-model.hero { height: clamp(190px, 36vh, 640px); }
+.ob-split.stack .ob-choice.static { padding: 8px 12px 10px; }
+.ob-split.stack .ob-model.hero { height: clamp(170px, 32vh, 640px); }
+.ob-phones-note { margin: 0; text-align: left; }
+.ob-sum dl { gap: 10px; }
+.ob-sum dd { font-size: clamp(18px, 1.5vw, 24px); }
+.ob-model.big { height: clamp(260px, 50vh, 820px); }
+.ob-confirm { gap: 8px; padding-top: 10px; }
+.ob-model.xs { width: 72px; height: 72px; }
+.ob-note { font-size: 12.5px; color: var(--text-muted); }
+.ob-split .ob-choice.static .ob-model.hero { height: clamp(280px, 50vh, 820px); width: 100%; }
+/* Every tile the same box: the medical officer is drawn with an inset ring, so nothing above the badge moves. */
+.ob-face[data-on] img, .ob-face[data-on] .ob-initial { border: 1px solid var(--hairline-strong); box-shadow: inset 0 0 0 2px var(--text); }
+.ob-face[data-on] img { outline: 2px solid var(--text); outline-offset: -2px; box-shadow: none; }
+.ob-who.few { align-items: flex-start; }
+.ob-face { justify-content: flex-start; }
+.ob-who.few { flex-wrap: wrap; align-content: center; }
+/* The trip's destination: the world at the arc's end, cross-faded, with its switch under it. */
+.ob-caption { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.ob-end .ob-seg { align-self: center; }
+/* The ISS card: the model takes all the space above its caption, and is kept off the card's rounded corners. */
+.ob-split .ob-choice.static { justify-content: flex-start; overflow: hidden; }
+.ob-split .ob-choice.static .ob-model.hero { flex: 1; height: auto; min-height: clamp(240px, 42vh, 760px); width: calc(100% - 4px); }
+.ob-centre { text-align: center; }
+/* The summary: two equal columns between the title and the buttons. Left, the model, whole and centred,
+   with no box round it; right, the six facts in two columns of three rows, centred against the card. */
+.ob-sum { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(20px, 3vw, 48px); align-items: stretch; }
+.ob-sum-card { display: flex; min-height: 0; }
+.ob-sum .ob-model.big { flex: 1; width: 100%; height: auto; min-height: 220px; }
+.ob-sum dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; column-gap: 24px; row-gap: 22px; align-content: center; align-self: center; max-width: none; flex: none; }
+.ob-sum dl > div { min-width: 0; }
+.ob-sum small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-nav .ob-phones-note { flex: 1; text-align: center; margin: 0 16px; align-self: center; }
+@media (max-width: 760px) {
+  .ob-sum { grid-template-columns: 1fr; }
+  .ob-nav .ob-phones-note { order: -1; flex-basis: 100%; margin: 0 0 8px; }
+}
+
+/* The trip step: the route and its fields are one group, centred between the title and the buttons; both worlds start on one line. */
+.ob-sp + .ob-route { flex: none; }
+.ob-sp + .ob-route .ob-end { align-self: start; }
+
+/* The sample portraits carry an "AI" mark in their bottom-left corner, which a square crop cuts off: the same mark is drawn over the crop. */
+.ob-pic { position: relative; display: block; width: 100%; }
+.ob-pic img { display: block; }
+.ob-pic[data-ai]::after, .ob-thumb[data-ai]::after { content: "AI"; position: absolute; left: 7px; bottom: 7px; padding: 2px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 12px; font-weight: 500; line-height: 1.3; letter-spacing: 0.02em; pointer-events: none; }
+.ob-thumb[data-ai] { position: relative; }
+.ob-thumb[data-ai]::after { left: 3px; bottom: 3px; padding: 0 3px; border-radius: 3px; font-size: 8px; }
+
+/* Every step's content sits in the middle of the space between the title and the buttons: a spacer above it
+   as well as below, and the content takes only the height it needs. */
+.ob-sp + .ob-split { flex: none; }
+.ob-who.few { padding-bottom: 0; }
+
+/* The frame's corner marks sit one pixel outside it, which made it scrollable by that pixel and drew scroll bars on
+   both edges. It still scrolls when a small window needs it; the bars are not drawn. */
+.ob-frame { scrollbar-width: none; overscroll-behavior: none; }
+.ob-frame::-webkit-scrollbar { display: none; }

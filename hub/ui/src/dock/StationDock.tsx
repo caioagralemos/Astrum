@@ -20,11 +20,13 @@ export interface StationDockProps {
   s: S;
   onSelect: (selection: Selection) => void;
   onAlerts: () => void;
+  onEarth?: (id: string | null) => void;
+  earthUnread?: number;
 }
 
-export function StationDock({ world, profile, values, where, lastSeen, roomStatus, personStatus, s, onSelect, onAlerts }: StationDockProps) {
+export function StationDock({ world, profile, values, where, lastSeen, roomStatus, personStatus, s, onSelect, onAlerts, onEarth, earthUnread }: StationDockProps) {
   return (
     <SmartDock
-      context={{ world, profile, values, where, lastSeen, roomStatus, personStatus, now: world.now, s, onSelect, onAlerts }} />
+      context={{ world, profile, values, where, lastSeen, roomStatus, personStatus, now: world.now, s, onSelect, onAlerts, onEarth, earthUnread }} />
   );
 }

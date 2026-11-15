@@ -1119,3 +1119,19 @@ button { font: inherit; }
 .report-table thead th { font-weight: 500; color: var(--text-muted); }
 .report-timeline { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
 .report-json { max-height: 40vh; overflow: auto; white-space: pre; padding: 8px; border: 1px solid var(--line); margin: 0; }
+
+/* Earth's reply in the dock's Earth widget: a small "Earth replied · time" line, the reply as the strong element filling
+   the height (FitLines clamps it to the lines that fit), and the label pinned under the usual hairline. The button's
+   ::after covers the whole card, so anywhere on it opens the Earth panel. */
+.dw-reply { position: static; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-shadow: inherit; text-align: left; cursor: pointer; width: 100%; overflow: hidden; }
+.dw-reply::after { content: ''; position: absolute; inset: 0; border-radius: var(--w-radius); }
+.dw-reply-text { flex: none; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; font-size: 1.125rem; font-weight: 500; line-height: 1.3; letter-spacing: -0.005em; color: rgb(var(--ink-hi)); }
+.dw-reply-foot { flex: none; margin-top: 0; }
+.dw-reply-foot .dw-foot-end { margin-left: auto; padding-left: 14px; border-left: 0; flex-direction: row-reverse; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+
+/* "Earth replied" in the alerts list: informational, quieter than an alert, with the Earth icon. */
+.alert-earth h3 { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-weight: 400; }
+.alert-earth h3 span:last-child { color: var(--text); }
+.alert-earth-icon { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.alert-earth > .alert-earth-text { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; color: var(--text-muted); }
+.xmessage:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
