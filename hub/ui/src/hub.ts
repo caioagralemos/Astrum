@@ -2,7 +2,7 @@
 // refresh. The live state itself always comes through data.ts.
 
 import { useEffect, useState } from 'react';
-import { hubAddress } from './data.ts';
+import { hubAddress, isReplay } from './data.ts';
 
 export type Load<T> = { state: 'loading' } | { state: 'ready'; value: T } | { state: 'failed' };
 
@@ -10,6 +10,8 @@ export function useHub<T>(path: string | null, every = 60_000): Load<T> {
   const [load, setLoad] = useState<Load<T>>({ state: 'loading' });
   useEffect(() => {
     if (!path) return;
+    // A recorded story has no hub to ask: say so at once (the views' own "needs the hub" state), never a spinner.
+    if (isReplay()) { setLoad({ state: 'failed' }); return; }
     let live = true;
     setLoad({ state: 'loading' });
     const get = () => fetch(`http://${hubAddress()}${path}`)

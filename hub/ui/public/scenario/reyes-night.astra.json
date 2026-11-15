@@ -1,0 +1,795 @@
+{
+  "about": "Asked on the live hub (demo mode, the ship, the real on-board model) during a drill of the same situation as \"Reyes's night\". The numbers are that run's. Written by hub/scripts/record-astra.ts.",
+  "recordedAt": "2026-11-15T20:17:38.257Z",
+  "model": null,
+  "answers": [
+    {
+      "question": "What is NASA's CO2 limit, and why does it matter?",
+      "person": "reyes",
+      "phase": "before",
+      "retried": false,
+      "secondsIntoDrill": null,
+      "hubState": "no drill; the hub has Reyes in galley, no alert for Reyes",
+      "drill": null,
+      "alarm": null,
+      "alert": null,
+      "response": {
+        "type": "result",
+        "source": null,
+        "passages": [
+          {
+            "id": "co2-limit",
+            "name": "NASA-STD-3001 CO2 Technical Brief",
+            "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf",
+            "heading": "Key Historical CO2 Concentrations",
+            "text": "Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg. Previous requirements accepted a larger range (3.8 to 7.5 mmHg) that has been lowered to 3 mmHg due to evidence from observed operational and research data.\nAnecdotal evidence from previous spaceflight missions have found the following associations between CO2 levels and symptomology:\n• Headaches at levels between 2.8-4.5 mmHg; worsening with increasing levels of CO2 accompanied by fatigue and malaise flushing.\n• Fatigue malaise, decreased sleep, and nausea reported at levels above 4.5 mmHg.\n• 5th cranial nerve dysesthesia at 4.5-5.0 mmHg.\n• Chronic cough, poor sleep, blurred vision, and frontal headaches reported at 3.5 mmHg."
+          },
+          {
+            "id": "co2-monitoring-2",
+            "name": "NASA-STD-3001 CO2 Technical Brief",
+            "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf",
+            "heading": "Referenced Technical Requirements (NASA-STD-3001 Volume 2)",
+            "text": "[V2 6108] Off-Nominal Vehicle/Habitat Atmospheric Ventilation The system shall control for ppO2, ppCO2, and relative humidity during off-nominal operations, such as temporary maintenance activities in areas not in the normal habitable volume.\n[V2 11034] Suited Atmospheric Data Recording Systems shall automatically record suit pressure, ppO2, and ppCO2.\n[V2 11035] Suited Atmospheric Data Displaying Suits shall display suit pressure, ppO2, and ppCO2 data to the suited crewmember.\n[V2 11036] Suited Atmospheric Monitoring and Alerting Suits shall monitor suit pressure, ppO2, and ppCO2 and alert the crewmember when they are outside safe limits.\n[V2 11037] EVA Suited Metabolic Rate Measurement The system shall measure or calculate metabolic rates of suited EVA crewmembers.\n[V2 11038] EVA Suited Metabolic Rate Display The system shall display metabolic data of suited EVA crewmembers to the crew.\n[V2 11039] Nominal Spacesuit Carbon Dioxide Levels The spacesuit shall limit the inspired CO2 partial pressure (PICO2) in accordance with Table 11.3-1—Spacesuit Inspired Partial Pressure of CO2 (PICO2) Limits."
+          }
+        ],
+        "readings": [
+          {
+            "line": "heart rate 116.5 bpm (simulated) (her usual about 111 bpm): about her usual.",
+            "label": "simulated"
+          },
+          {
+            "line": "cabin CO2 (replayed) 2.7 mmHg, 1-hour average: 0.3 mmHg below the NASA limit of 3 mmHg.",
+            "label": "replayed"
+          },
+          {
+            "line": "Detector: normal.",
+            "label": "detector"
+          }
+        ],
+        "check": {
+          "discarded": true,
+          "reasons": [
+            "it names \"V2 6004\", which was not sent"
+          ],
+          "dropped": []
+        },
+        "facts": {
+          "items": [
+            {
+              "key": "answer.lead.room",
+              "vars": {
+                "room": "Quarters 2"
+              },
+              "label": "hub"
+            },
+            {
+              "key": "answer.limitHere.under",
+              "vars": {
+                "signal": "CO2",
+                "value": 2.7,
+                "unit": "mmHg",
+                "window": "1-hour average",
+                "limit": 3,
+                "diff": 0.3,
+                "room": "Galley"
+              },
+              "label": "replayed"
+            },
+            {
+              "key": "answer.limit.under",
+              "vars": {
+                "signal": "CO2",
+                "value": 2.4,
+                "unit": "mmHg",
+                "window": "1-hour average",
+                "limit": 3,
+                "diff": 0.6,
+                "room": "Quarters 2"
+              },
+              "label": "replayed"
+            },
+            {
+              "key": "answer.unusual.none",
+              "vars": {},
+              "label": "simulated"
+            },
+            {
+              "key": "answer.exposure.standsOut",
+              "vars": {
+                "hours": 72,
+                "spent": 1.6,
+                "room": "Quarters 2",
+                "level": 2.8,
+                "others": 0
+              },
+              "label": "simulated",
+              "labels": [
+                {
+                  "what": "CO2",
+                  "kind": "replayed"
+                },
+                {
+                  "what": "location",
+                  "kind": "simulated"
+                }
+              ]
+            },
+            {
+              "key": "answer.exposure.aboveHourUnder",
+              "vars": {
+                "hours": 72,
+                "spent": 0.3,
+                "level": 3,
+                "max": 2.9,
+                "limit": 3
+              },
+              "label": "simulated",
+              "labels": [
+                {
+                  "what": "CO2",
+                  "kind": "replayed"
+                },
+                {
+                  "what": "location",
+                  "kind": "simulated"
+                }
+              ]
+            },
+            {
+              "key": "answer.reported.run",
+              "vars": {
+                "what": "headache",
+                "days": 3
+              },
+              "label": "simulated"
+            }
+          ],
+          "passages": [
+            {
+              "name": "NASA-STD-3001 CO2 Technical Brief",
+              "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf",
+              "text": "Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg. Previous requirements accepted a larger range (3.8 to 7.5 mmHg) that has been lowered to 3 mmHg due to evidence from observed operational and research data.\nAnecdotal evidence from previous spaceflight missions have found the following associations between CO2 levels and symptomology:\n• Headaches at levels between 2.8-4.5 mmHg; worsening with increasing levels of CO2 accompanied by fatigue and malaise flushing.\n• Fatigue malaise, decreased sleep, and nausea reported at levels above 4.5 mmHg.\n• 5th cranial nerve dysesthesia at 4.5-5.0 mmHg.\n• Chronic cough, poor sleep, blurred vision, and frontal headaches reported at 3.5 mmHg."
+            },
+            {
+              "name": "NASA-STD-3001 CO2 Technical Brief",
+              "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf",
+              "text": "[V2 6108] Off-Nominal Vehicle/Habitat Atmospheric Ventilation The system shall control for ppO2, ppCO2, and relative humidity during off-nominal operations, such as temporary maintenance activities in areas not in the normal habitable volume.\n[V2 11034] Suited Atmospheric Data Recording Systems shall automatically record suit pressure, ppO2, and ppCO2.\n[V2 11035] Suited Atmospheric Data Displaying Suits shall display suit pressure, ppO2, and ppCO2 data to the suited crewmember.\n[V2 11036] Suited Atmospheric Monitoring and Alerting Suits shall monitor suit pressure, ppO2, and ppCO2 and alert the crewmember when they are outside safe limits.\n[V2 11037] EVA Suited Metabolic Rate Measurement The system shall measure or calculate metabolic rates of suited EVA crewmembers.\n[V2 11038] EVA Suited Metabolic Rate Display The system shall display metabolic data of suited EVA crewmembers to the crew.\n[V2 11039] Nominal Spacesuit Carbon Dioxide Levels The spacesuit shall limit the inspired CO2 partial pressure (PICO2) in accordance with Table 11.3-1—Spacesuit Inspired Partial Pressure of CO2 (PICO2) Limits."
+            }
+          ],
+          "who": {
+            "name": "Reyes",
+            "pronouns": "she",
+            "self": true
+          },
+          "factsText": "From what the hub can see, this points to the room (Quarters 2), not to you. (hub) The CO2 in Galley, where you are now, reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed) The CO2 in your cabin reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed) None of your body readings is unusual for you right now. (simulated) In the last 72 hours you spent 1.6 hours in Quarters 2 with CO2 above 2.8 mmHg; none of your crewmates spent any time above it. (CO2 replayed; location simulated) In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated) You reported headache on 3 days in a row. (simulated)",
+          "text": "From what the hub can see, this points to the room (Quarters 2), not to you. (hub) The CO2 in Galley, where you are now, reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed) The CO2 in your cabin reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed) None of your body readings is unusual for you right now. (simulated) In the last 72 hours you spent 1.6 hours in Quarters 2 with CO2 above 2.8 mmHg; none of your crewmates spent any time above it. (CO2 replayed; location simulated) In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated) You reported headache on 3 days in a row. (simulated)\n\nNASA, NASA-STD-3001 CO2 Technical Brief: \"Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg. Previous requirements accepted a larger range (3.8 to 7.5 mmHg) that has been lowered to 3 mmHg due to evidence from observed operational and research data.\nAnecdotal evidence from previous spaceflight missions have found the following associations between CO2 levels and symptomology:\n• Headaches at levels between 2.8-4.5 mmHg; worsening with increasing levels of CO2 accompanied by fatigue and malaise flushing.\n• Fatigue malaise, decreased sleep, and nausea reported at levels above 4.5 mmHg.\n• 5th cranial nerve dysesthesia at 4.5-5.0 mmHg.\n• Chronic cough, poor sleep, blurred vision, and frontal headaches reported at 3.5 mmHg.\" (https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf)\n\nNASA, NASA-STD-3001 CO2 Technical Brief: \"[V2 6108] Off-Nominal Vehicle/Habitat Atmospheric Ventilation The system shall control for ppO2, ppCO2, and relative humidity during off-nominal operations, such as temporary maintenance activities in areas not in the normal habitable volume.\n[V2 11034] Suited Atmospheric Data Recording Systems shall automatically record suit pressure, ppO2, and ppCO2.\n[V2 11035] Suited Atmospheric Data Displaying Suits shall display suit pressure, ppO2, and ppCO2 data to the suited crewmember.\n[V2 11036] Suited Atmospheric Monitoring and Alerting Suits shall monitor suit pressure, ppO2, and ppCO2 and alert the crewmember when they are outside safe limits.\n[V2 11037] EVA Suited Metabolic Rate Measurement The system shall measure or calculate metabolic rates of suited EVA crewmembers.\n[V2 11038] EVA Suited Metabolic Rate Display The system shall display metabolic data of suited EVA crewmembers to the crew.\n[V2 11039] Nominal Spacesuit Carbon Dioxide Levels The spacesuit shall limit the inspired CO2 partial pressure (PICO2) in accordance with Table 11.3-1—Spacesuit Inspired Partial Pressure of CO2 (PICO2) Limits.\" (https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf)",
+          "relevant": true
+        },
+        "route": "answer",
+        "by": "hub",
+        "text": "The CO2 in Galley, where you are now, reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed) From what the hub can see, this points to the room (Quarters 2), not to you. (hub) In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated)\n\nNASA, NASA-STD-3001 CO2 Technical Brief: \"Current NASA-STD-3001 Volume 2 [V2 6004] limits the average 1-hour CO2 partial pressure (ppCO2) in the habitable volume to no more than 3 mmHg. Previous requirements accepted a larger range (3.8 to 7.5 mmHg) that has been lowered to 3 mmHg due to evidence from observed operational and research data.\nAnecdotal evidence from previous spaceflight missions have found the following associations between CO2 levels and symptomology:\n• Headaches at levels between 2.8-4.5 mmHg; worsening with increasing levels of CO2 accompanied by fatigue and malaise flushing.\n• Fatigue malaise, decreased sleep, and nausea reported at levels above 4.5 mmHg.\n• 5th cranial nerve dysesthesia at 4.5-5.0 mmHg.\n• Chronic cough, poor sleep, blurred vision, and frontal headaches reported at 3.5 mmHg.\" (https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf)\n\nNASA, NASA-STD-3001 CO2 Technical Brief: \"[V2 6108] Off-Nominal Vehicle/Habitat Atmospheric Ventilation The system shall control for ppO2, ppCO2, and relative humidity during off-nominal operations, such as temporary maintenance activities in areas not in the normal habitable volume.\n[V2 11034] Suited Atmospheric Data Recording Systems shall automatically record suit pressure, ppO2, and ppCO2.\n[V2 11035] Suited Atmospheric Data Displaying Suits shall display suit pressure, ppO2, and ppCO2 data to the suited crewmember.\n[V2 11036] Suited Atmospheric Monitoring and Alerting Suits shall monitor suit pressure, ppO2, and ppCO2 and alert the crewmember when they are outside safe limits.\n[V2 11037] EVA Suited Metabolic Rate Measurement The system shall measure or calculate metabolic rates of suited EVA crewmembers.\n[V2 11038] EVA Suited Metabolic Rate Display The system shall display metabolic data of suited EVA crewmembers to the crew.\n[V2 11039] Nominal Spacesuit Carbon Dioxide Levels The spacesuit shall limit the inspired CO2 partial pressure (PICO2) in accordance with Table 11.3-1—Spacesuit Inspired Partial Pressure of CO2 (PICO2) Limits.\" (https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf)",
+        "key": null,
+        "card": null,
+        "urgent": false,
+        "ms": 1627,
+        "lead": {
+          "text": "Let's look at the CO2 in your room.",
+          "by": "fixed"
+        },
+        "reason": "setAside"
+      }
+    },
+    {
+      "question": "I have a bad headache and I'm breathing fast.",
+      "person": "reyes",
+      "phase": "level-3",
+      "retried": false,
+      "secondsIntoDrill": 62,
+      "hubState": "drill running: simulated CO2 in quarters-2 at 4 mmHg, Quarters 2 CO2 alarm at 4 mmHg (1-hour average), Reyes's alert at level 3",
+      "drill": {
+        "id": "drill|reyes|1794773796490",
+        "person": "reyes",
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "unit": "mmHg",
+        "startedAt": 1794773796490,
+        "endsAt": 1794774396490
+      },
+      "alarm": {
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "over": 1,
+        "unit": "mmHg",
+        "limit": 3,
+        "limitSource": "NASA OCHMO-TB-004: the 1-hour average CO2 is to be \"no more than 3 mmHg\".",
+        "kind": "simulated",
+        "source": "drill",
+        "since": 1794773796490,
+        "acknowledged": false,
+        "stuck": false,
+        "stale": false,
+        "lastReading": {
+          "value": 4,
+          "t": 1794773796490
+        },
+        "drill": true
+      },
+      "alert": {
+        "id": "reyes|room-limit|quarters-2|co2",
+        "person": "reyes",
+        "level": 3,
+        "reason": "room-limit",
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "over": 1,
+        "unit": "mmHg",
+        "limit": 3,
+        "limitSource": "NASA OCHMO-TB-004: the 1-hour average CO2 is to be \"no more than 3 mmHg\".",
+        "direction": "high",
+        "kind": "simulated",
+        "since": 1794773796490,
+        "levelSince": 1794773857055,
+        "toldTo": "everyone",
+        "askedAt": 1794773796490,
+        "answerBy": 1794773856490,
+        "answer": null,
+        "askKey": "alert.areYouOk",
+        "held": false,
+        "card": "high-co2",
+        "earth": {
+          "sentAt": 1794773857055,
+          "arrivesAt": 1794775057055,
+          "replyAt": 1794776257055
+        },
+        "earthId": "earth|reyes|room-limit|quarters-2|co2|1794773857055",
+        "seenBy": null,
+        "seenAt": null,
+        "stationWide": false,
+        "lowestRoom": null,
+        "medicalTeam": [
+          "okafor"
+        ],
+        "notAlone": true,
+        "drill": true,
+        "alsoCard": "unknown-urgent",
+        "actWithinSeconds": null,
+        "earthInTime": null,
+        "cardViews": [
+          {
+            "id": "high-co2",
+            "lang": "en",
+            "title": "High CO2",
+            "level": "concerning",
+            "notify": "medical_officer",
+            "messageHouston": false,
+            "steps": [
+              "First, get out of the bad air. Go to a room where CO2 is below the limit. The screen shows which. Sit down, stay still and turn on a fan near your face.",
+              "Mild symptoms (headache, sleepiness, hand tremor, flushing, sweating): wait 10 to 15 minutes. If it does not improve, or if the room CO2 does not fall, put on the sealed mask.",
+              "Moderate symptoms or getting worse (confusion, shortness of breath, vomiting, heavy sleepiness): put on the mask now, with oxygen or clean air. The medical officer is notified. Do not stay alone.",
+              "Severe symptoms (deep sleep, seizure, not responding): everyone on board is notified. If the person has a seizure, move hard objects away and do not put anything in the mouth; when it stops, lay them on their side. If they do not respond and are not breathing normally, go to the cardiac arrest card. Use the bag-valve mask only with two people and with the person strapped down (no gravity)."
+            ],
+            "doNot": [
+              "Do not go back to the room with high CO2.",
+              "Do not use a nasal cannula: you keep breathing cabin air around it and through your mouth."
+            ],
+            "sources": [
+              {
+                "name": "Law & Alexander, NASA JSC, 2016: CO2 on the International Space Station: An Operations Update",
+                "url": "https://ntrs.nasa.gov/citations/20150019624",
+                "quote": "symptoms attributable to CO2 starting at 2.3 mmHg",
+                "is_nasa": true
+              },
+              {
+                "name": "Ryder et al., NASA, 2017: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+                "url": "https://ntrs.nasa.gov/citations/20160013696",
+                "quote": "control CO2 below 3 mm Hg",
+                "is_nasa": true
+              },
+              {
+                "name": "Scully et al., NASA, 2016: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+                "url": "https://ntrs.nasa.gov/citations/20150021777",
+                "quote": "10 mm Hg for 24-hour exposures",
+                "is_nasa": true
+              },
+              {
+                "name": "Law et al., 2014, J Occup Environ Med 56(5):477-483: Relationship between CO2 levels and reported headaches on the ISS (NASA JSC authors)",
+                "url": "https://doi.org/10.1097/JOM.0000000000000158",
+                "quote": "the odds of a crew member reporting a headache doubled",
+                "is_nasa": true
+              },
+              {
+                "name": "Scully et al., 2019, npj Microgravity 5:17: Effects of acute exposures to CO2 on decision making and cognition",
+                "url": "https://doi.org/10.1038/s41526-019-0071-6",
+                "quote": "no clear dose-response patterns",
+                "is_nasa": false
+              },
+              {
+                "name": "Evans, 2025, Aerosp Med Hum Perform 96(11):1024-1026: CO2 as a Multisystem Threat in Long Duration Spaceflight (short article, abstract read)",
+                "url": "https://doi.org/10.3357/AMHP.6716.2025",
+                "quote": "localized Pco2 \"pockets\" can form",
+                "is_nasa": false
+              }
+            ],
+            "unverified": [
+              "All steps are from the medical lead and from memory; no NASA document read gives crew response steps.",
+              "Mask logic (isolate from cabin air, sealed mask, high flow) and when to use it by level: medical lead's general guidance, 'not a protocol'.",
+              "Sign lists by severity are from the medical lead, no source.",
+              "Lithium hydroxide cartridges (removed from approved text): from the medical lead, not checked. CO2 pockets in microgravity: supported by Evans 2025 abstract.",
+              "Lay on side if consciousness is low: from memory.",
+              "10 to 15 minutes to re-check and the mask triggers: medical lead's working suggestion, no source."
+            ],
+            "approvedBy": "medical_lead"
+          },
+          {
+            "id": "unknown-urgent",
+            "lang": "en",
+            "title": "Urgent, no specific card",
+            "level": "dangerous",
+            "notify": "everyone",
+            "messageHouston": true,
+            "steps": [
+              "Call for help and stay with the person. Do not leave them alone.",
+              "X. Is there heavy bleeding? Press hard on the spot with a cloth. Do not let go.",
+              "A. Does the person answer when you speak? If not, look inside the mouth and remove anything blocking it. Anything else on the airway needs two people and the person strapped to the medical restraint.",
+              "B. Watch the chest for no more than 10 seconds. If the person does not respond and is not breathing normally: start chest compressions now and go to the cardiac arrest card. Breaths with the bag-valve mask come after, together with the compressions.",
+              "C. Not responding and not breathing, or breathing abnormally (gasps): this is cardiac arrest. Go to the cardiac arrest card.",
+              "D. Is the person awake, confused or very sleepy? Note the time and keep talking to them.",
+              "E. Look for injuries, then cover the person so they do not get cold. Check that the air around is safe."
+            ],
+            "doNot": [
+              "Do not give food or drink to a confused or sleepy person."
+            ],
+            "sources": [
+              {
+                "name": "Cardiopulmonary resuscitation (CPR) during spaceflight - guideline from DGLRM and ESAM-SMG, 2020",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7607644/",
+                "quote": "at least two rescuers are present and the patient has been restrained",
+                "is_nasa": false
+              },
+              {
+                "name": "StatPearls, trauma primary survey (xABCDE is from ATLS 11th edition, 2025; ACS manual not found)",
+                "url": "https://www.ncbi.nlm.nih.gov/books/NBK547757/",
+                "quote": "",
+                "is_nasa": false
+              }
+            ],
+            "unverified": [
+              "The lay wording and the XABCDE order were written from memory.",
+              "The xABCDE order comes from the ATLS 11th edition; only secondary summaries were found, not the ACS manual.",
+              "Rescue breathing with the ambu and the 10-second look at the chest are from memory; the microgravity guideline only gives the two-rescuer and restraint rule for the airway."
+            ],
+            "approvedBy": "medical_lead"
+          }
+        ]
+      },
+      "response": {
+        "type": "result",
+        "source": null,
+        "passages": [
+          {
+            "id": "risk-hypoxia-1",
+            "name": "NASA Risk of Hypoxia",
+            "url": "https://www.nasa.gov/reference/risk-of-hypoxia/",
+            "heading": "What are the top risks?",
+            "text": "Future missions to the Moon, Mars, and beyond will require more frequent spacewalks. But keeping astronauts safe and healthy during any spacewalk currently requires many hours of preparation and a large supply of pure oxygen. Astronauts must inhale pure oxygen over several hours prior to spacewalks to avoid decompression sickness, also known as “the bends.”\n\nTo help slash the pure oxygen needs for future frequent spacewalks, NASA’s spacecraft for deep-space missions will have astronauts live and work in a constant partial cabin depressurization (something that now only occurs in the airlock prior to spacewalks). This altered cabin environment will help reduce nitrogen in the body passively.\n\nYet that partial depressurization will simultaneously increase the risk of mild hypoxia — a condition that occurs when oxygen levels in body tissues become lower than normal. Mild hypoxia, if untreated, can cause confusion, headaches, vision impairment, and trouble sleeping."
+          },
+          {
+            "id": "co2-washout-1",
+            "name": "NASA-STD-3001 CO2 Technical Brief",
+            "url": "https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf",
+            "heading": "CO2 Washout System",
+            "text": "• Carbon Dioxide washout describes the process of removing CO2 in an enclosed space. For the purpose of this brief, we are discussing CO2 washout in a spacesuit and space helmet.\n• CO2 is a significant concern as the consequence of inadequate CO2 removal can result in hypercapnia and related symptoms ranging from headache and fatigue to impaired cognitive function and death.\n• CO2 removal in a space helmet is challenging as it is difficult to ensure the quantity of CO2 that is removed from the suit and not forming pockets in any area of the suit or helmet. It is also important to ensure when CO2 is purged, it does not disrupt the critical breathable oxygen balance."
+          }
+        ],
+        "readings": [
+          {
+            "line": "heart rate 116 bpm (simulated) (her usual about 111 bpm): about her usual.",
+            "label": "simulated"
+          },
+          {
+            "line": "cabin CO2 (replayed) 2.7 mmHg, 1-hour average: 0.3 mmHg below the NASA limit of 3 mmHg.",
+            "label": "replayed"
+          },
+          {
+            "line": "Detector: normal.",
+            "label": "detector"
+          }
+        ],
+        "check": null,
+        "facts": null,
+        "route": "card",
+        "by": "fixed",
+        "text": "Okay, I'll help you through it.",
+        "key": "ai.cardCalm",
+        "card": {
+          "id": "high-co2",
+          "lang": "en",
+          "title": "High CO2",
+          "level": "concerning",
+          "notify": "medical_officer",
+          "messageHouston": false,
+          "steps": [
+            "First, get out of the bad air. Go to a room where CO2 is below the limit. The screen shows which. Sit down, stay still and turn on a fan near your face.",
+            "Mild symptoms (headache, sleepiness, hand tremor, flushing, sweating): wait 10 to 15 minutes. If it does not improve, or if the room CO2 does not fall, put on the sealed mask.",
+            "Moderate symptoms or getting worse (confusion, shortness of breath, vomiting, heavy sleepiness): put on the mask now, with oxygen or clean air. The medical officer is notified. Do not stay alone.",
+            "Severe symptoms (deep sleep, seizure, not responding): everyone on board is notified. If the person has a seizure, move hard objects away and do not put anything in the mouth; when it stops, lay them on their side. If they do not respond and are not breathing normally, go to the cardiac arrest card. Use the bag-valve mask only with two people and with the person strapped down (no gravity)."
+          ],
+          "doNot": [
+            "Do not go back to the room with high CO2.",
+            "Do not use a nasal cannula: you keep breathing cabin air around it and through your mouth."
+          ],
+          "sources": [
+            {
+              "name": "Law & Alexander, NASA JSC, 2016: CO2 on the International Space Station: An Operations Update",
+              "url": "https://ntrs.nasa.gov/citations/20150019624",
+              "quote": "symptoms attributable to CO2 starting at 2.3 mmHg",
+              "is_nasa": true
+            },
+            {
+              "name": "Ryder et al., NASA, 2017: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+              "url": "https://ntrs.nasa.gov/citations/20160013696",
+              "quote": "control CO2 below 3 mm Hg",
+              "is_nasa": true
+            },
+            {
+              "name": "Scully et al., NASA, 2016: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+              "url": "https://ntrs.nasa.gov/citations/20150021777",
+              "quote": "10 mm Hg for 24-hour exposures",
+              "is_nasa": true
+            },
+            {
+              "name": "Law et al., 2014, J Occup Environ Med 56(5):477-483: Relationship between CO2 levels and reported headaches on the ISS (NASA JSC authors)",
+              "url": "https://doi.org/10.1097/JOM.0000000000000158",
+              "quote": "the odds of a crew member reporting a headache doubled",
+              "is_nasa": true
+            },
+            {
+              "name": "Scully et al., 2019, npj Microgravity 5:17: Effects of acute exposures to CO2 on decision making and cognition",
+              "url": "https://doi.org/10.1038/s41526-019-0071-6",
+              "quote": "no clear dose-response patterns",
+              "is_nasa": false
+            },
+            {
+              "name": "Evans, 2025, Aerosp Med Hum Perform 96(11):1024-1026: CO2 as a Multisystem Threat in Long Duration Spaceflight (short article, abstract read)",
+              "url": "https://doi.org/10.3357/AMHP.6716.2025",
+              "quote": "localized Pco2 \"pockets\" can form",
+              "is_nasa": false
+            }
+          ],
+          "unverified": [
+            "All steps are from the medical lead and from memory; no NASA document read gives crew response steps.",
+            "Mask logic (isolate from cabin air, sealed mask, high flow) and when to use it by level: medical lead's general guidance, 'not a protocol'.",
+            "Sign lists by severity are from the medical lead, no source.",
+            "Lithium hydroxide cartridges (removed from approved text): from the medical lead, not checked. CO2 pockets in microgravity: supported by Evans 2025 abstract.",
+            "Lay on side if consciousness is low: from memory.",
+            "10 to 15 minutes to re-check and the mask triggers: medical lead's working suggestion, no source."
+          ],
+          "approvedBy": "medical_lead"
+        },
+        "urgent": false,
+        "ms": 2,
+        "reason": "card"
+      }
+    },
+    {
+      "question": "Is this CO2 poisoning? How much ibuprofen should I take?",
+      "person": "reyes",
+      "phase": "level-3",
+      "retried": false,
+      "secondsIntoDrill": 62,
+      "hubState": "drill running: simulated CO2 in quarters-2 at 4 mmHg, Quarters 2 CO2 alarm at 4 mmHg (1-hour average), Reyes's alert at level 3",
+      "drill": {
+        "id": "drill|reyes|1794773796490",
+        "person": "reyes",
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "unit": "mmHg",
+        "startedAt": 1794773796490,
+        "endsAt": 1794774396490
+      },
+      "alarm": {
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "over": 1,
+        "unit": "mmHg",
+        "limit": 3,
+        "limitSource": "NASA OCHMO-TB-004: the 1-hour average CO2 is to be \"no more than 3 mmHg\".",
+        "kind": "simulated",
+        "source": "drill",
+        "since": 1794773796490,
+        "acknowledged": false,
+        "stuck": false,
+        "stale": false,
+        "lastReading": {
+          "value": 4,
+          "t": 1794773796490
+        },
+        "drill": true
+      },
+      "alert": {
+        "id": "reyes|room-limit|quarters-2|co2",
+        "person": "reyes",
+        "level": 3,
+        "reason": "room-limit",
+        "room": "quarters-2",
+        "signal": "co2",
+        "value": 4,
+        "over": 1,
+        "unit": "mmHg",
+        "limit": 3,
+        "limitSource": "NASA OCHMO-TB-004: the 1-hour average CO2 is to be \"no more than 3 mmHg\".",
+        "direction": "high",
+        "kind": "simulated",
+        "since": 1794773796490,
+        "levelSince": 1794773857055,
+        "toldTo": "everyone",
+        "askedAt": 1794773796490,
+        "answerBy": 1794773856490,
+        "answer": null,
+        "askKey": "alert.areYouOk",
+        "held": false,
+        "card": "high-co2",
+        "earth": {
+          "sentAt": 1794773857055,
+          "arrivesAt": 1794775057055,
+          "replyAt": 1794776257055
+        },
+        "earthId": "earth|reyes|room-limit|quarters-2|co2|1794773857055",
+        "seenBy": null,
+        "seenAt": null,
+        "stationWide": false,
+        "lowestRoom": null,
+        "medicalTeam": [
+          "okafor"
+        ],
+        "notAlone": true,
+        "drill": true,
+        "alsoCard": "unknown-urgent",
+        "actWithinSeconds": null,
+        "earthInTime": null,
+        "cardViews": [
+          {
+            "id": "high-co2",
+            "lang": "en",
+            "title": "High CO2",
+            "level": "concerning",
+            "notify": "medical_officer",
+            "messageHouston": false,
+            "steps": [
+              "First, get out of the bad air. Go to a room where CO2 is below the limit. The screen shows which. Sit down, stay still and turn on a fan near your face.",
+              "Mild symptoms (headache, sleepiness, hand tremor, flushing, sweating): wait 10 to 15 minutes. If it does not improve, or if the room CO2 does not fall, put on the sealed mask.",
+              "Moderate symptoms or getting worse (confusion, shortness of breath, vomiting, heavy sleepiness): put on the mask now, with oxygen or clean air. The medical officer is notified. Do not stay alone.",
+              "Severe symptoms (deep sleep, seizure, not responding): everyone on board is notified. If the person has a seizure, move hard objects away and do not put anything in the mouth; when it stops, lay them on their side. If they do not respond and are not breathing normally, go to the cardiac arrest card. Use the bag-valve mask only with two people and with the person strapped down (no gravity)."
+            ],
+            "doNot": [
+              "Do not go back to the room with high CO2.",
+              "Do not use a nasal cannula: you keep breathing cabin air around it and through your mouth."
+            ],
+            "sources": [
+              {
+                "name": "Law & Alexander, NASA JSC, 2016: CO2 on the International Space Station: An Operations Update",
+                "url": "https://ntrs.nasa.gov/citations/20150019624",
+                "quote": "symptoms attributable to CO2 starting at 2.3 mmHg",
+                "is_nasa": true
+              },
+              {
+                "name": "Ryder et al., NASA, 2017: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+                "url": "https://ntrs.nasa.gov/citations/20160013696",
+                "quote": "control CO2 below 3 mm Hg",
+                "is_nasa": true
+              },
+              {
+                "name": "Scully et al., NASA, 2016: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+                "url": "https://ntrs.nasa.gov/citations/20150021777",
+                "quote": "10 mm Hg for 24-hour exposures",
+                "is_nasa": true
+              },
+              {
+                "name": "Law et al., 2014, J Occup Environ Med 56(5):477-483: Relationship between CO2 levels and reported headaches on the ISS (NASA JSC authors)",
+                "url": "https://doi.org/10.1097/JOM.0000000000000158",
+                "quote": "the odds of a crew member reporting a headache doubled",
+                "is_nasa": true
+              },
+              {
+                "name": "Scully et al., 2019, npj Microgravity 5:17: Effects of acute exposures to CO2 on decision making and cognition",
+                "url": "https://doi.org/10.1038/s41526-019-0071-6",
+                "quote": "no clear dose-response patterns",
+                "is_nasa": false
+              },
+              {
+                "name": "Evans, 2025, Aerosp Med Hum Perform 96(11):1024-1026: CO2 as a Multisystem Threat in Long Duration Spaceflight (short article, abstract read)",
+                "url": "https://doi.org/10.3357/AMHP.6716.2025",
+                "quote": "localized Pco2 \"pockets\" can form",
+                "is_nasa": false
+              }
+            ],
+            "unverified": [
+              "All steps are from the medical lead and from memory; no NASA document read gives crew response steps.",
+              "Mask logic (isolate from cabin air, sealed mask, high flow) and when to use it by level: medical lead's general guidance, 'not a protocol'.",
+              "Sign lists by severity are from the medical lead, no source.",
+              "Lithium hydroxide cartridges (removed from approved text): from the medical lead, not checked. CO2 pockets in microgravity: supported by Evans 2025 abstract.",
+              "Lay on side if consciousness is low: from memory.",
+              "10 to 15 minutes to re-check and the mask triggers: medical lead's working suggestion, no source."
+            ],
+            "approvedBy": "medical_lead"
+          },
+          {
+            "id": "unknown-urgent",
+            "lang": "en",
+            "title": "Urgent, no specific card",
+            "level": "dangerous",
+            "notify": "everyone",
+            "messageHouston": true,
+            "steps": [
+              "Call for help and stay with the person. Do not leave them alone.",
+              "X. Is there heavy bleeding? Press hard on the spot with a cloth. Do not let go.",
+              "A. Does the person answer when you speak? If not, look inside the mouth and remove anything blocking it. Anything else on the airway needs two people and the person strapped to the medical restraint.",
+              "B. Watch the chest for no more than 10 seconds. If the person does not respond and is not breathing normally: start chest compressions now and go to the cardiac arrest card. Breaths with the bag-valve mask come after, together with the compressions.",
+              "C. Not responding and not breathing, or breathing abnormally (gasps): this is cardiac arrest. Go to the cardiac arrest card.",
+              "D. Is the person awake, confused or very sleepy? Note the time and keep talking to them.",
+              "E. Look for injuries, then cover the person so they do not get cold. Check that the air around is safe."
+            ],
+            "doNot": [
+              "Do not give food or drink to a confused or sleepy person."
+            ],
+            "sources": [
+              {
+                "name": "Cardiopulmonary resuscitation (CPR) during spaceflight - guideline from DGLRM and ESAM-SMG, 2020",
+                "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7607644/",
+                "quote": "at least two rescuers are present and the patient has been restrained",
+                "is_nasa": false
+              },
+              {
+                "name": "StatPearls, trauma primary survey (xABCDE is from ATLS 11th edition, 2025; ACS manual not found)",
+                "url": "https://www.ncbi.nlm.nih.gov/books/NBK547757/",
+                "quote": "",
+                "is_nasa": false
+              }
+            ],
+            "unverified": [
+              "The lay wording and the XABCDE order were written from memory.",
+              "The xABCDE order comes from the ATLS 11th edition; only secondary summaries were found, not the ACS manual.",
+              "Rescue breathing with the ambu and the 10-second look at the chest are from memory; the microgravity guideline only gives the two-rescuer and restraint rule for the airway."
+            ],
+            "approvedBy": "medical_lead"
+          }
+        ]
+      },
+      "response": {
+        "type": "result",
+        "source": null,
+        "passages": [],
+        "readings": [
+          {
+            "line": "heart rate 116 bpm (simulated) (her usual about 111 bpm): about her usual.",
+            "label": "simulated"
+          },
+          {
+            "line": "cabin CO2 (replayed) 2.7 mmHg, 1-hour average: 0.3 mmHg below the NASA limit of 3 mmHg.",
+            "label": "replayed"
+          },
+          {
+            "line": "Detector: normal.",
+            "label": "detector"
+          }
+        ],
+        "check": null,
+        "facts": {
+          "items": [
+            {
+              "key": "answer.lead.room",
+              "vars": {
+                "room": "Quarters 2"
+              },
+              "label": "hub"
+            },
+            {
+              "key": "answer.limitHere.under",
+              "vars": {
+                "signal": "CO2",
+                "value": 2.7,
+                "unit": "mmHg",
+                "window": "1-hour average",
+                "limit": 3,
+                "diff": 0.3,
+                "room": "Galley"
+              },
+              "label": "replayed"
+            },
+            {
+              "key": "answer.limit.under",
+              "vars": {
+                "signal": "CO2",
+                "value": 2.4,
+                "unit": "mmHg",
+                "window": "1-hour average",
+                "limit": 3,
+                "diff": 0.6,
+                "room": "Quarters 2"
+              },
+              "label": "replayed"
+            },
+            {
+              "key": "answer.unusual.none",
+              "vars": {},
+              "label": "simulated"
+            },
+            {
+              "key": "answer.exposure.standsOut",
+              "vars": {
+                "hours": 72,
+                "spent": 1.6,
+                "room": "Quarters 2",
+                "level": 2.8,
+                "others": 0
+              },
+              "label": "simulated",
+              "labels": [
+                {
+                  "what": "CO2",
+                  "kind": "replayed"
+                },
+                {
+                  "what": "location",
+                  "kind": "simulated"
+                }
+              ]
+            },
+            {
+              "key": "answer.exposure.aboveHourUnder",
+              "vars": {
+                "hours": 72,
+                "spent": 0.3,
+                "level": 3,
+                "max": 2.9,
+                "limit": 3
+              },
+              "label": "simulated",
+              "labels": [
+                {
+                  "what": "CO2",
+                  "kind": "replayed"
+                },
+                {
+                  "what": "location",
+                  "kind": "simulated"
+                }
+              ]
+            },
+            {
+              "key": "answer.reported.run",
+              "vars": {
+                "what": "headache",
+                "days": 3
+              },
+              "label": "simulated"
+            }
+          ],
+          "passages": [],
+          "who": {
+            "name": "Reyes",
+            "pronouns": "she",
+            "self": true
+          },
+          "factsText": "From what the hub can see, this points to the room (Quarters 2), not to you. (hub) The CO2 in Galley, where you are now, reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed) The CO2 in your cabin reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed) None of your body readings is unusual for you right now. (simulated) In the last 72 hours you spent 1.6 hours in Quarters 2 with CO2 above 2.8 mmHg; none of your crewmates spent any time above it. (CO2 replayed; location simulated) In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated) You reported headache on 3 days in a row. (simulated)",
+          "text": "From what the hub can see, this points to the room (Quarters 2), not to you. (hub) The CO2 in Galley, where you are now, reads 2.7 mmHg (1-hour average), 0.3 mmHg below NASA's limit of 3 mmHg. (replayed) The CO2 in your cabin reads 2.4 mmHg (1-hour average), 0.6 mmHg below NASA's limit of 3 mmHg. (replayed) None of your body readings is unusual for you right now. (simulated) In the last 72 hours you spent 1.6 hours in Quarters 2 with CO2 above 2.8 mmHg; none of your crewmates spent any time above it. (CO2 replayed; location simulated) In the same 72 hours you spent 0.3 hours with single CO2 readings above 3 mmHg, but the 1-hour average, which is what NASA's limit of 3 mmHg applies to, stayed under it; the highest was 2.9 mmHg. (CO2 replayed; location simulated) You reported headache on 3 days in a row. (simulated)",
+          "relevant": true
+        },
+        "route": "fixed",
+        "by": "fixed",
+        "text": "That's one I can't answer from your readings or NASA's text, and I won't guess at it. Tap Contact Earth and your question goes to your flight surgeon.",
+        "key": "ai.refusal",
+        "card": null,
+        "urgent": false,
+        "ms": 3,
+        "reason": "fixed"
+      }
+    }
+  ],
+  "left out": "Two more questions were recorded in the same run and are not shown in the web demo: 'How is the air in my quarters?' and 'Is the air in my quarters safe right now?'. The hub answered both about the Galley, where that run had Reyes, which reads as wrong beside a story that has her in Quarters 2."
+}

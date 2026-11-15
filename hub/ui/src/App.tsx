@@ -17,7 +17,7 @@ import { personStatus, roomStatus } from '../../engine/status.ts';
 import { dayOf } from '../../engine/mission.ts';
 import { Station } from './scene/Station.tsx';
 import { PersonView } from './person/PersonView.tsx';
-import { AlertsPanel, ConnectionPanel } from './panels.tsx';
+import { AlertsPanel, ConnectionPanel, forgetSilenced } from './panels.tsx';
 import { RoomView } from './room/RoomView.tsx';
 import { StationDock } from './dock/StationDock.tsx';
 import { useMockAlert } from './demo/mockAlert.ts';
@@ -268,7 +268,7 @@ export function App() {
         return person ? (
           <PersonView person={person} rooms={profile.rooms} crew={profile.crew} latest={values} room={where[person.id] ?? null} lastSeen={lastPlace[person.id] ?? null}
             now={now} s={s} lang={lang} own={viewer === person.id} alerts={alerts.filter((a) => a.person === person.id && !a.held)}
-            dose={world.dose?.[person.id] ?? null} followUp={viewer === person.id ? world.followUp ?? null : null} recorded={Boolean(world.scenario)} body={body} />
+            dose={world.dose?.[person.id] ?? null} followUp={viewer === person.id ? world.followUp ?? null : null} recorded={Boolean(world.scenario)} body={body} recordedEvidence={world.evidence?.[person.id] ?? null} />
         ) : null;
       })()}
 
@@ -283,7 +283,7 @@ export function App() {
       {world.scenario && (
         <p ref={story} className="story">
           {s(world.scenario.label)}
-          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => source.restart()}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button></>}
+          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => { forgetSilenced(); source.restart(); }}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button> <a className="btn" href="../">{s('scenario.back')}</a></>}
         </p>
       )}
 

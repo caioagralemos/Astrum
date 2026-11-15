@@ -15,7 +15,7 @@ import type { Alert } from '../../../engine/alerts.ts';
 import { NEEDS_SOMEONE } from '../../../engine/alerts.ts';
 import type { RoomAlarm } from '../../../engine/cabin.ts';
 import type { Lang } from '../../../engine/strings.ts';
-import { hubAddress } from '../data.ts';
+import { hubAddress, isReplay } from '../data.ts';
 import { KindChip } from '../panels.tsx';
 import { loadCard, sentences } from './Steps.tsx';
 import './beat2zoom.css';
@@ -153,7 +153,7 @@ export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, re
   useEffect(() => { if (asking) settleYes.current?.focus({ preventScroll: true }); }, [asking]);
   const settle = async () => {
     setSettleFailed(false);
-    if (!alert.id.startsWith('demo-')) {
+    if (!alert.id.startsWith('demo-') && !isReplay()) {
       try {
         // A declared event has its own end (core/events.ts), which wants a crew id: whoever is signed in here,
         // or on the shared screen the crewmate who declared it. The hub does not record who ended it.
@@ -168,7 +168,7 @@ export function Beat2Zoom({ alert, alarms, rooms, crew, now, viewer, lang, s, re
 
   const markSeen = () => {
     setSeen(true);
-    if (alert.id.startsWith('demo-')) return; // the mock is never sent to the hub
+    if (alert.id.startsWith('demo-') || isReplay()) return; // the mock and a recorded story are never sent to the hub
     void fetch(`http://${hubAddress()}/api/alerts/acknowledge`, { method: 'POST', body: JSON.stringify({ id: alert.id, by: viewer }) });
   };
 

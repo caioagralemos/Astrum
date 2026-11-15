@@ -18,6 +18,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useHub } from '../hub.ts';
+import type { Load } from '../hub.ts';
+import { isReplay } from '../data.ts';
 import { isCurrentReading, personSummary } from '../../../engine/baseline.ts';
 import type { Judged, SignalBaseline } from '../../../engine/baseline.ts';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
@@ -86,16 +88,19 @@ export interface PersonViewProps {
   followUp: FollowUpAsk | null;
   /** A recorded story is playing: nothing can be answered. */
   recorded: boolean;
+  /** Their evidence card as the recording carries it; used in a browser replay, which has no hub to ask. */
+  recordedEvidence?: Evidence | null;
 }
 
-export function PersonView({ person, rooms, crew, latest, room, lastSeen = null, now, s, lang, own, alerts, dose, followUp, recorded, body }: PersonViewProps) {
+export function PersonView({ person, rooms, crew, latest, room, lastSeen = null, now, s, lang, own, alerts, dose, followUp, recorded, body, recordedEvidence = null }: PersonViewProps) {
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [person.id]);
 
   // Asked once a minute; the minute in the address keeps the request stable in between.
   const minute = Math.floor(now / 60_000) * 60_000;
   const history = useHub<{ rows: Row[] }>(`/api/rows?person=${person.id}&from=${minute - DAILY_WINDOW - DAY}&limit=50000`);
-  const evidence = useHub<Evidence>(`/api/evidence?person=${person.id}`);
+  const asked = useHub<Evidence>(`/api/evidence?person=${person.id}`);
+  const evidence: Load<Evidence> = isReplay() && recordedEvidence ? { state: 'ready', value: recordedEvidence } : asked;
   // The most serious alert on them, if any: its room is the air that matters.
   const alert = [...alerts].sort((a, b) => b.level - a.level)[0];
   const airRoom = alert?.room ?? room ?? (evidence.state === 'ready' ? evidence.value.focusRoom : null);

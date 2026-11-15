@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { hubAddress } from './data.ts';
+import { hubAddress, isReplay } from './data.ts';
 import { closeIn, noteCount, openedWith } from './panels/autoClose.ts';
 import { DeclareEvent, DeclaredAlert } from './panels/Events.tsx';
 import type { World } from './data.ts';
@@ -34,7 +34,11 @@ function clock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-const post = (path: string, body: unknown) => void fetch(`http://${hubAddress()}${path}`, { method: 'POST', body: JSON.stringify(body) });
+const post = (path: string, body: unknown) => { if (!isReplay()) void fetch(`http://${hubAddress()}${path}`, { method: 'POST', body: JSON.stringify(body) }); };
+/** Room alarms the visitor silenced during a recorded story: kept on this screen only, nothing is sent. */
+const silencedHere = new Set<string>();
+/** The story plays again from the start: its alarms are fresh. */
+export const forgetSilenced = () => silencedHere.clear();
 
 /** How a reading came to exist, always written out. */
 export function KindChip({ kind, s }: { kind: Kind; s: S }) {
@@ -247,6 +251,7 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, 
   const count = world.alarms.length + declared.length + wide.length + single.length + others.length + (followUp ? 1 : 0) + earthReplies.length;
   const recorded = Boolean(world.scenario);
   const [declaring, setDeclaring] = useState(false);
+  const [, setSilenced] = useState(0);
 
   const node = useRef<HTMLElement>(null);
   const closing = useAutoClose(count, node, onClose, declaring && !recorded);
@@ -282,9 +287,11 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, 
           <h3><StatusWord status="over" text={s('status.over')} /> <span>{roomName(alarm.room)}</span></h3>
           <p>{s('alarm.over', { room: roomName(alarm.room), signal: s(`signal.${alarm.signal}`), value: alarm.value, unit: alarm.unit, limit: alarm.limit })}</p>
           <p className="quiet"><KindChip kind={alarm.kind} s={s} /></p>
-          {alarm.acknowledged
+          {alarm.acknowledged || (isReplay() && silencedHere.has(alarm.room))
             ? <p className="quiet">{s('alarm.acknowledged')}</p>
-            : <div className="actions"><button type="button" className="btn btn-solid" onClick={() => post('/api/alarms/acknowledge', { room: alarm.room })}>{s('alarm.acknowledge')}</button></div>}
+            : <div className="actions"><button type="button" className="btn btn-solid" onClick={() => {
+              if (isReplay()) { silencedHere.add(alarm.room); setSilenced((n) => n + 1); } else post('/api/alarms/acknowledge', { room: alarm.room });
+            }}>{s('alarm.acknowledge')}</button></div>}
         </article>
       ))}
 

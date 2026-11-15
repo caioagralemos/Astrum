@@ -213,3 +213,12 @@
    both edges. It still scrolls when a small window needs it; the bars are not drawn. */
 .ob-frame { scrollbar-width: none; overscroll-behavior: none; }
 .ob-frame::-webkit-scrollbar { display: none; }
+/* The big preview shares .ob-pic for the "AI" mark but keeps its own centring (the "+" or initial when there is no picture). */
+.ob-photo-big.ob-pic { display: flex; }
+
+/* No photo: the same line figure the crew card draws (dock/widgets.tsx Portrait), square here. */
+.ob-figure { display: block; width: 100%; }
+.ob-figure .dw-portrait { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--hairline-strong); box-shadow: none; }
+.ob-photo-big .ob-figure { height: 100%; }
+.ob-photo-big .ob-figure .dw-portrait { height: 100%; border: 0; border-radius: 0; }
+.ob-face[data-on] .ob-figure .dw-portrait { outline: 2px solid var(--text); outline-offset: -2px; }

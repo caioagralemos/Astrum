@@ -214,8 +214,13 @@ export function Station(raw: StationProps) {
   const shown = withDemo(raw, demo);
   // Where each figure is drawn: the live place, or else the last one seen (`ghost`), so nobody vanishes.
   const ghost = Object.fromEntries(Object.entries(raw.lastSeen ?? {}).filter(([id, last]) => !shown.where[id] && shown.rooms.some((r) => r.id === last.room)));
-  const seat = { ...Object.fromEntries(Object.entries(ghost).map(([id, last]) => [id, last.room])), ...shown.where };
-  const props = { ...shown, ghost, seat };
+  // Someone the hub has never placed (no phone near a board yet) is still drawn, standing in the common room,
+  // faint like a last-seen figure and labelled "Location unknown": never hidden, never claimed to be there.
+  const common = shown.rooms.find((r) => /commons|galley|node|unity|harmony/i.test(r.id)) ?? shown.rooms[0];
+  const unknown: Record<string, true> = {};
+  if (common) for (const p of shown.crew) if (!shown.where[p.id] && !ghost[p.id]) unknown[p.id] = true;
+  const seat = { ...Object.fromEntries(Object.keys(unknown).map((id) => [id, common!.id])), ...Object.fromEntries(Object.entries(ghost).map(([id, last]) => [id, last.room])), ...shown.where };
+  const props = { ...shown, ghost, seat, unknown };
   const { rooms, crew, where, roomStatus, personStatus, doing, s, selected, onSelect } = props;
   const holder = useRef<HTMLDivElement>(null);
   const built = useRef<State | null>(null);
@@ -1162,7 +1167,7 @@ export function Station(raw: StationProps) {
   }, [places, crewKey, mission]);
 
   // Status colours, strength and where people are, whenever the data changes.
-  const statusKey = JSON.stringify([where, ghost, roomStatus, personStatus, doing, selected, props.alarmRoom ?? null]);
+  const statusKey = JSON.stringify([where, ghost, unknown, roomStatus, personStatus, doing, selected, props.alarmRoom ?? null]);
   useEffect(() => {
     const state = built.current;
     if (!state) return;
@@ -1229,7 +1234,7 @@ export function Station(raw: StationProps) {
       const free = { exercising: activitySpots(place, 'exercising'), eating: activitySpots(place, 'eating') };
       const neutral: string[] = [];
       for (const id of ids) {
-        if (ghost[id]) { neutral.push(id); continue; }
+        if (ghost[id] || unknown[id]) { neutral.push(id); continue; }
         if (sleeping(id, place)) continue;
         const what = (personStatus[id] ?? 'ok') === 'over' ? 'none' : doing[id];
         const spot = what === 'exercising' || what === 'eating' ? free[what].shift() : undefined;
@@ -1244,7 +1249,7 @@ export function Station(raw: StationProps) {
       if (!figure) continue;
       const place = places.find((p) => p.id === seat[person.id]);
       figure.holder.visible = Boolean(place);
-      figure.ghost = Boolean(ghost[person.id]);
+      figure.ghost = Boolean(ghost[person.id] || unknown[person.id]);
       if (!place) {
         figure.placed = false;
         continue;
@@ -1377,17 +1382,19 @@ export function Station(raw: StationProps) {
         const pressed = selected?.kind === 'person' && selected.id === person.id;
         const dim = selected !== null && !pressed && !(selected.kind === 'room' && selected.id === seat[person.id]);
         const last = ghost[person.id];
-        const place = last
+        const lost = Boolean(unknown[person.id]);
+        const place = lost ? `${person.name}, ${s('person.whereUnknown')}` : last
           ? `${person.name}, ${s('person.lastSeen', { room: roomName(last.room), time: timeOf(last.at, 'en') })}, ${s(`kind.${last.kind}`)}`
           : s('scene.in', { name: person.name, room: roomName(where[person.id]) });
         return (
           <button key={person.id} ref={keep(`person:${person.id}`)} type="button" className="tag tag-person" data-status={status}
-            data-dim={dim ? '' : undefined} data-ghost={last ? '' : undefined}
+            data-dim={dim ? '' : undefined} data-ghost={last || lost ? '' : undefined}
             aria-label={place + (status === 'ok' ? '' : `. ${s(`status.${status}`)}`)}
             aria-pressed={pressed} onClick={() => toggle({ kind: 'person', id: person.id })}>
             <span className="tag-pill">
               {person.name}
               {last && <span className="tag-status"> · {s('scene.lastSeen', { time: timeOf(last.at, 'en') })}</span>}
+              {lost && <span className="tag-status"> · {s('person.whereUnknown')}</span>}
               {(status === 'watch' || status === 'over') && <span className="tag-status"> · {s(`status.${status}`)}</span>}
             </span>
           </button>

@@ -10,7 +10,7 @@ import type { KeyboardEvent } from 'react';
 import type { Alert } from '../../../engine/alerts.ts';
 import type { CardView } from '../../../engine/cards.ts';
 import type { Lang } from '../../../engine/strings.ts';
-import { hubAddress } from '../data.ts';
+import { hubAddress, isReplay } from '../data.ts';
 import { createStage } from '../steps-demo/stage.ts';
 import type { Stage } from '../steps-demo/stage.ts';
 import { MOVES, movesReady } from '../steps-demo/moves/index.ts';
@@ -34,6 +34,7 @@ interface Props {
 /** The card as the hub sends it; from the bundled file when the hub cannot be reached (a recorded story). */
 export async function loadCard(id: string, lang: Lang): Promise<CardView | null> {
   try {
+    if (isReplay()) throw new Error('no hub');
     const res = await fetch(`http://${hubAddress()}/api/cards?lang=${lang}`);
     if (res.ok) {
       const body = (await res.json()) as { cards: CardView[] };
@@ -230,9 +231,10 @@ export function Steps({ alert, cardId, gravity, lang, s, onClose }: Props) {
         <div className="steps-art" data-shown={showArt ? '' : undefined} aria-hidden="true">
           <div ref={art} className="steps-canvas" />
         </div>
-        {showArt && (
+        {/* The web demo leaves the review caption out (the owner's decision, 15 Nov); the app itself always shows it. */}
+        {showArt && (!isReplay() || (reduce && !playing)) && (
           <p className="steps-caption">
-            {s('steps.caption')}
+            {!isReplay() && s('steps.caption')}
             {reduce && !playing && <> <button type="button" className="steps-play" onClick={() => setPlaying(true)}>{s('steps.playOnce')}</button></>}
           </p>
         )}

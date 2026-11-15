@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import type { World } from '../data.ts';
-import { hubAddress } from '../data.ts';
+import { hubAddress, isReplay } from '../data.ts';
 import { hasString } from '../../../engine/strings.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import { changesOf } from '../../../engine/custom.ts';
@@ -59,8 +59,11 @@ export interface SettingsProps {
 export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: SettingsProps) {
   const { viewer } = viewerOf();
   const crewScreen = viewer !== null;
+  // A recorded story in the browser: no hub to switch places, set up, reset or report on. Language and sound stay.
+  const replay = isReplay();
   const list = usePoll<MissionList>(crewScreen ? null : '/api/missions');
   const model = usePoll<ModelStatus>('/api/ask/status', 5000);
+  // Until the hub has said which mode it is in, neither mode's sections show: the real app must not flash the demo's.
   const demo = !crewScreen && list.data?.mode === 'demo';
   // The real app: one mission, set up once. No list of places to switch between; one button erases everything.
   const real = !crewScreen && list.data?.mode === 'production';
@@ -127,7 +130,7 @@ export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: Sett
           onBack={() => { setEditing(null); list.reload(); }} onSaved={() => list.reload()} />
       ) : (
         <>
-          {!crewScreen && !real && (
+          {demo && !replay && (
             <div className="rule xplaces">
               <h3 className="label">{s('settings.place')}</h3>
               <p className="quiet xnote">{s('settings.placeNote')}</p>
@@ -212,7 +215,7 @@ export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: Sett
             </div>
           )}
 
-          {onSetup && !real && (
+          {onSetup && (crewScreen || demo) && !replay && (
             <div className="rule">
               <h3 className="label">{s('setup.again.title')}</h3>
               <p className="quiet">{s('setup.again.note')}</p>
@@ -223,7 +226,7 @@ export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: Sett
           <div className="rule">
             <h3 className="label">{s('top.link')}</h3>
             <p><span className="status-word" data-status={off ? 'off' : 'live'}>{s(off ? 'hub.offline' : status === 'replay' ? 'top.link.replay' : 'top.link.live')}</span></p>
-            <dl className="xfacts-list">
+            {!replay && <dl className="xfacts-list">
               <div><dt>{s('settings.address')}</dt><dd className="mono">{hubAddress()}</dd></div>
               <div>
                 <dt>{s('settings.board')}</dt>
@@ -248,7 +251,7 @@ export function SettingsPanel({ world, lang, onLang, onSetup, s, onClose }: Sett
                   ) : s('settings.loading')}
                 </dd>
               </div>
-            </dl>
+            </dl>}
           </div>
 
           {demo && (

@@ -131,6 +131,11 @@ function applyOne(world: World, message: HubMessage): World {
   }
 }
 
+/** A recorded story playing in the browser (`?replay=`): there is no hub, so nothing is asked of one or sent to one. */
+export function isReplay(): boolean {
+  return new URLSearchParams(location.search).has('replay');
+}
+
 /** Where the hub is. The interface served by the hub talks to the address it came from. */
 export function hubAddress(): string {
   const forced = new URLSearchParams(location.search).get('hub') ?? import.meta.env.VITE_HUB;

@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { EarthMessage } from '../../../engine/alerts.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Person, Room } from '../../../engine/types.ts';
+import { isReplay } from '../data.ts';
 import { Sheet } from './Sheet.tsx';
 import { IncidentReport } from './IncidentReport.tsx';
 import { HubSaid, call, clock, delayText, timeOf, viewerOf } from './common.tsx';
@@ -84,7 +85,8 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
         <p className="xearth-then">{two.about ? s('earth.replyAbout', { time: two.text }) : s('earth.replyIn', { time: two.text })}</p>
       </div>
 
-      <form className="xform rule" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+      {/* A recorded story has no hub to carry a message: its own messages are listed, nothing new is sent. */}
+      {!isReplay() && <form className="xform rule" onSubmit={(e) => { e.preventDefault(); void send(); }}>
         {!viewer && (
           <label className="xfield">
             <span className="label">{s('earth.from')}</span>
@@ -103,7 +105,7 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
         <div aria-live="polite">
           {said && ('error' in said ? <HubSaid error={said.error} s={s} /> : <p className="xsaid">{said.text}</p>)}
         </div>
-      </form>
+      </form>}
       <p className="visually-hidden" aria-live="polite">{news}</p>
 
       <div className="rule">

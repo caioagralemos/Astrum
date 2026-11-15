@@ -21,7 +21,7 @@ import type { Person } from '../../../engine/types.ts';
 import { MISSIONS } from '../scene/missions.ts';
 import { useModel } from './models.ts';
 import type { ModelName } from './models.ts';
-import { demoPortraits } from '../dock/widgets.tsx';
+import { Portrait, demoPortraits } from '../dock/widgets.tsx';
 import { LogoLight } from './LogoLight.tsx';
 import { setupDefaults, todayOn } from './defaults.ts';
 import './onboarding.css';
@@ -323,7 +323,7 @@ export function Onboarding({ world, lang, s, onLang, forced, onClose }: {
               <li key={p.key}>
                 <button type="button" className="ob-face" data-on={p.medicalOfficer ? '' : undefined} onClick={() => setEditing(p)}
                   aria-label={`${p.name}, ${s(p.role)}${p.medicalOfficer ? `, ${s('setup.mo.badge')}` : ''}. ${s('setup.mate.editHint')}`}>
-                  {p.photo || p.portrait ? <span className="ob-pic" data-ai={!p.photo && p.portrait ? '' : undefined}><img src={p.photo ?? p.portrait ?? ''} alt="" /></span> : <span className="ob-initial" aria-hidden="true">{p.name.trim().charAt(0).toUpperCase() || '?'}</span>}
+                  {p.photo || p.portrait ? <span className="ob-pic" data-ai={!p.photo && p.portrait ? '' : undefined}><img src={p.photo ?? p.portrait ?? ''} alt="" /></span> : <span className="ob-figure"><Portrait /></span>}
                   <b>{p.name}</b><small>{s(p.role)}</small>
                   {p.medicalOfficer && <span className="ob-badge">{s('setup.mo.badge')}</span>}
                 </button>
@@ -463,7 +463,7 @@ function MateEditor({ mate, s, samples, onCancel, onSave, onRemove }: { mate: Ma
     <>
       <div className="ob-addrow">
         <div className="ob-photo">
-          <div className="ob-photo-big ob-pic" data-ai={!m.photo && m.portrait ? '' : undefined} aria-hidden="true">{m.photo || m.portrait ? <img src={m.photo ?? m.portrait ?? ''} alt="" /> : <span>{m.name.trim().charAt(0).toUpperCase() || '+'}</span>}</div>
+          <div className="ob-photo-big ob-pic" data-ai={!m.photo && m.portrait ? '' : undefined} aria-hidden="true">{m.photo || m.portrait ? <img src={m.photo ?? m.portrait ?? ''} alt="" /> : <span className="ob-figure"><Portrait /></span>}</div>
           <label className="ob-btn quiet ob-upload">
             {s('setup.mate.addPhoto')}
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {

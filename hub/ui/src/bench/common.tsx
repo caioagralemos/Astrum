@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { hubAddress } from '../data.ts';
+import { hubAddress, isReplay } from '../data.ts';
 import type { World } from '../data.ts';
 import { hasString, t } from '../../../engine/strings.ts';
 import type { Lang } from '../../../engine/strings.ts';
@@ -33,6 +33,8 @@ export type Reply<T> = { ok: true; data: T } | { ok: false; error: string; body?
 
 /** One request to the hub. Never throws: a failure comes back as words. */
 export async function call<T>(path: string, init?: { method?: string; body?: unknown }): Promise<Reply<T>> {
+  // A recorded story has no hub: nothing is asked or sent (the controls that need one are not offered).
+  if (isReplay()) return { ok: false, error: 'replay' };
   try {
     const res = await fetch(api(path), {
       method: init?.method ?? 'GET',
@@ -59,7 +61,7 @@ export function usePoll<T>(path: string | null, everyMs = 0): { data: T | null; 
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((n) => n + 1), []);
   useEffect(() => {
-    if (!path) return;
+    if (!path || isReplay()) return;
     let live = true;
     const load = () => void call<T>(path).then((r) => {
       if (!live) return;

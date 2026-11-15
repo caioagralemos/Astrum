@@ -18,7 +18,7 @@ import type { Lang } from '../../../engine/strings.ts';
 import type { Person } from '../../../engine/types.ts';
 import type { AskResult as HubResult } from '../../../core/ai.ts';
 import { AstraMark } from '../AstraMark.tsx';
-import { hubAddress } from '../data.ts';
+import { hubAddress, isReplay } from '../data.ts';
 import { Steps } from '../emergency/Steps.tsx';
 import { Sheet } from './Sheet.tsx';
 import { HubSaid, usePoll, viewerOf } from './common.tsx';
@@ -77,7 +77,72 @@ export interface AskProps {
   onClose: () => void;
 }
 
-export function AskPanel({ crew, lang, gravity, s, onClose }: AskProps) {
+export function AskPanel(props: AskProps) {
+  // The model lives on the hub's computer; a recorded story in the browser has none: it shows answers recorded on a hub.
+  if (isReplay()) return <AskReplay {...props} />;
+  return <AskWithHub {...props} />;
+}
+
+/** One answer recorded on a live hub (hub/scripts/record-astra.ts): the hub's response, untouched. */
+interface Recorded { question: string; person: string; response: AskResult }
+
+/** The recorded answers beside the story: "x.json" → "x.astra.json". Null if there are none. */
+function useRecorded(): Recorded[] | null | undefined {
+  const [answers, setAnswers] = useState<Recorded[] | null | undefined>(undefined);
+  useEffect(() => {
+    const story = new URLSearchParams(location.search).get('replay') ?? '';
+    if (!story.endsWith('.json')) { setAnswers(null); return; }
+    let live = true;
+    fetch(`${story.slice(0, -5)}.astra.json`).then((res) => (res.ok ? res.json() : null))
+      .then((f: { answers?: Recorded[] } | null) => { if (live) setAnswers(f?.answers?.length ? f.answers : null); })
+      .catch(() => { if (live) setAnswers(null); });
+    return () => { live = false; };
+  }, []);
+  return answers;
+}
+
+/** The replay's sheet: the recorded questions as choices; a choice shows its answer as the live sheet renders it. */
+function AskReplay({ lang, gravity, s, onClose }: AskProps) {
+  const answers = useRecorded();
+  const [shown, setShown] = useState<number | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [steps, setSteps] = useState<string | null>(null);
+  const pick = (i: number) => { setShown(i); setSourcesOpen(false); };
+  const chosen = shown !== null && answers ? answers[shown] : null;
+
+  return (
+    <Sheet id="ask" title="Astra" s={s} onClose={onClose} mark={<AstraMark size={30} activity="rest" />}>
+      {answers === null && <p className="quiet">{s('ask.notOnWeb')}</p>}
+      {answers && (
+        <>
+          <div className="ask-chips" role="group" aria-label={s('ask.recordedChoose')}>
+            {answers.map((a, i) => (
+              <button key={i} type="button" className="ask-chip" lang="en" aria-pressed={shown === i} onClick={() => pick(i)}>{a.question}</button>
+            ))}
+          </div>
+          {chosen && (
+            <div className="ask-log" role="log" aria-live="polite" aria-label={s('ask.thread')}>
+              <p className="ask-seen">{s('ask.recorded')}</p>
+              <p className="quiet ask-seen">{s('ask.recordedNote')}</p>
+              <p className="ask-msg" data-me="" lang="en"><span className="visually-hidden">{s('ask.you')}: </span>{chosen.question}</p>
+              <Reply key={shown} m={{ id: shown ?? 0, from: 'astra', question: chosen.question, result: chosen.response, at: 0 }} newest={false}
+                lang={lang} s={s} shared={false} sourcesOpen={sourcesOpen} onSources={() => setSourcesOpen((o) => !o)}
+                onReply={() => {}} onSteps={(card) => setSteps(card.id)} onHelp={() => {}} onCall={() => {}} onChoose={() => {}} />
+            </div>
+          )}
+          {lang === 'pt' && <p className="quiet">{s('bench.ask.englishNote')}</p>}
+          <p className="quiet">{s('ask.typingNeedsHub')}</p>
+        </>
+      )}
+      {steps && createPortal(
+        <Steps key={steps} alert={null} cardId={steps} gravity={gravity} lang={lang} s={s} onClose={() => setSteps(null)} />,
+        document.querySelector('main.hub') ?? document.body,
+      )}
+    </Sheet>
+  );
+}
+
+function AskWithHub({ crew, lang, gravity, s, onClose }: AskProps) {
   const { viewer } = viewerOf();
   const status = usePoll<ModelStatus>('/api/ask/status', 5000);
   const signedIn = viewer && crew.some((p) => p.id === viewer) ? viewer : null;
