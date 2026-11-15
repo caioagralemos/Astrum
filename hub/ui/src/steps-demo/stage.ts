@@ -27,7 +27,7 @@ export interface Stage {
   dispose(): void;
 }
 
-export function createStage(element: HTMLElement, options: { ratio?: number; labels?: boolean } = {}): Stage {
+export function createStage(element: HTMLElement, options: { ratio?: number; labels?: boolean; transparent?: boolean } = {}): Stage {
   const labels = options.labels !== false;
   if (getComputedStyle(element).position === 'static') element.style.position = 'relative';
   element.style.overflow = 'hidden';
@@ -41,7 +41,7 @@ export function createStage(element: HTMLElement, options: { ratio?: number; lab
   note.className = 'stage-note';
   Object.assign(note.style, { position: 'absolute', left: '12px', bottom: '10px', right: '12px', font: '12px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif', color: '#9aa0a8', pointerEvents: 'none' });
   element.append(canvas, tagsEl, note);
-  const world = new World(canvas, options.ratio ?? Math.min(devicePixelRatio, 2));
+  const world = new World(canvas, options.ratio ?? Math.min(devicePixelRatio, 2), { transparent: options.transparent });
   const clips = new Map<string, Clip>();
   let clip: Clip | null = null;
   let tagEls: HTMLElement[] = [];

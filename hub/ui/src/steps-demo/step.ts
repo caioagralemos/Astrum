@@ -65,9 +65,6 @@ export interface Move {
   questions?: string[];
 }
 
-/** The caption the host screen shows under every move (the hackathon requires a visible mark). */
-export const CAPTION = 'AI-generated illustration';
-
 /** A step on a card: the move to show, its parameters, and the instruction text (the medical lead's). */
 export interface CardStep {
   move: string;

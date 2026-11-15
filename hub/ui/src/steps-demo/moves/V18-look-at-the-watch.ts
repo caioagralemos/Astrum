@@ -1,6 +1,6 @@
 // V18 look at the watch. Her description: "Lifts the wrist and looks at the
-// watch." A wrist watch on the left forearm, face on the back of the wrist.
-// The figure lifts the left forearm across the front of the chest, the head
+// watch." A wrist watch on the right forearm (arm 0, the figure's -x side), face on the back of the wrist.
+// The figure lifts the right forearm (arm 0, the figure's -x side) across the front of the chest, the head
 // turns down to it and stays on it a moment, then the arm goes back.
 //
 // Weightless: the figure floats, arms drifting forward. With gravity:
@@ -27,7 +27,7 @@ function watch(world: World): Prop {
 
 function person(gravity: Gravity): Moves {
   const floating = gravity === 'weightless';
-  // The left wrist: down (or drifting forward), then up across the chest, held, and back.
+  // The right wrist: down (or drifting forward), then up across the chest, held, and back.
   const down: [number, number, number] = floating ? [-0.3, 0.08, 0.25] : [-0.24, -0.16, 0.05];
   const up: [number, number, number] = [0.05, 0.34, 0.33];
   const near: [number, number, number] = [0.04, 0.35, 0.34];

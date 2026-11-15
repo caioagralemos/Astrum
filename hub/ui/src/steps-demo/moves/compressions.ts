@@ -162,9 +162,10 @@ function clip(world: World): Clip {
 
 /**
  * Chest compressions at `rate` a minute, `count` of them per loop (the loop is count × 60 / rate
- * seconds). Depth is fixed at DEPTH (about 5 cm, ILCOR 2020).
+ * seconds), `depth` metres deep (DEPTH, about 5 cm, unless the move gives its own). `gaugeText`
+ * labels the depth gauge in the viewer only (captures carry no text).
  */
-export function compressionsClip(world: World, rate: number, count: number, span = 2.9): Clip {
+export function compressionsClip(world: World, rate: number, count: number, span = 2.9, depth = DEPTH, gaugeText = '5 cm'): Clip {
   const PERIOD = 60 / rate;
   const T = (count * 60) / rate;
   const pressAt = (u: number) => press(u, PERIOD);
@@ -177,7 +178,7 @@ export function compressionsClip(world: World, rate: number, count: number, span
   lying.fig.style(OTHER.strength, OTHER.width);
   kneeling.fig.style(ACTOR.strength, ACTOR.width);
   const onChest = new Contact(world, group);
-  const tags = [tag('5 cm', 'room')];
+  const tags = [tag(gaugeText, 'room')];
 
   // The floor: a quiet slab with a few boards' lines, wide enough to ground both people.
   const floor = new LineSegmentsGeometry();
@@ -188,10 +189,10 @@ export function compressionsClip(world: World, rate: number, count: number, span
   floor.setPositions(p);
   const floorLines = new LineSegments2(floor, world.line(1.25, 0.24));
   group.add(floorLines);
-  // A short depth gauge beside the chest: the chest's top at rest, and 5 cm below it.
+  // A short depth gauge beside the chest: the chest's top at rest, and the depth below it.
   const gauge = new LineSegmentsGeometry();
   const gx = -0.02, gz = -0.27;
-  const top = STERNUM.y, bottom = STERNUM.y - DEPTH;
+  const top = STERNUM.y, bottom = STERNUM.y - depth;
   gauge.setPositions([gx, top, gz, gx, bottom, gz, gx - 0.03, top, gz, gx + 0.03, top, gz, gx - 0.03, bottom, gz, gx + 0.03, bottom, gz]);
   const gaugeLines = new LineSegments2(gauge, world.line(1.5, 0.75));
   group.add(gaugeLines);
@@ -201,7 +202,7 @@ export function compressionsClip(world: World, rate: number, count: number, span
 
   const pose = (u: number) => {
     const c = pressAt(u);
-    const d = DEPTH * c;
+    const d = depth * c;
     lying.pose(u);
     // The head nods a little with each push, a beat late (the body takes the push, the head follows).
     const late = pressAt(u - 0.09);
@@ -211,7 +212,7 @@ export function compressionsClip(world: World, rate: number, count: number, span
     kneeling.pose(u);
     const at = kneel(kneeling, d, 0.12 + 0.05 * c);
     // Head: looks down at the hands, and dips a touch with the push.
-    kneeling.fig.head.setFromEuler(euler.set(-0.12 + 0.05 * pressAt(u - 0.05), 0, 0));
+    kneeling.fig.head.setFromEuler(euler.set(0.22 + 0.05 * pressAt(u - 0.05), 0, 0));
     // Lower hand (the one on the person's feet side) on the chest; the upper one on top of it.
     reach(kneeling.fig, 0, w.copy(at).addScaledVector(fingers, 0.03), fingers, into.copy(down), 1);
     reach(kneeling.fig, 1, w.copy(at).addScaledVector(fingers, 0.035).setY(at.y + 0.088), fingersTop, into.copy(down), 1);

@@ -183,10 +183,11 @@ export class World {
   stage: Stage = { x: 0, y: 0, w: 1, h: 1 };
   private readonly target = new THREE.Vector3();
 
-  constructor(canvas: HTMLCanvasElement, ratio: number) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+  /** `transparent`: no sky and a clear canvas, for a host screen that draws its own backdrop. */
+  constructor(canvas: HTMLCanvasElement, ratio: number, options: { transparent?: boolean } = {}) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: options.transparent === true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(ratio);
-    this.renderer.setClearColor(this.bg, 1);
+    this.renderer.setClearColor(this.bg, options.transparent ? 0 : 1);
     this.fog = new THREE.Fog(this.bg, 10, 40);
     this.scene.fog = this.fog;
 
@@ -202,6 +203,7 @@ export class World {
     const sky = new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3)), this.sky);
     sky.frustumCulled = false;
     sky.renderOrder = -10;
+    sky.visible = options.transparent !== true;
     this.scene.add(sky);
 
     // The ship, drawn as on the hub (no crew of its own: the steps bring theirs).

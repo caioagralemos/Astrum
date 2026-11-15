@@ -10,7 +10,7 @@ The interface you write against is `gesture.ts`. Import everything from there. I
 
 Animate only what her one-line description says, plus what anatomy forces. Some details matter medically and she did not specify them: where pads go, hand position, depth, head tilt, which side, how a mask seals. Take those from a named public guideline, cited in the move's `source`, or leave them out and add a line to the move's `questions` and to `~/Desktop/NASA/steps-demo/QUESTIONS-FOR-MEDICAL-LEAD.md`. Keep each question short, concrete and translatable. One move fewer is better than a wrong gesture.
 
-Every move has `reviewed: false` until she approves it. The host screen shows the caption `CAPTION` ("AI-generated illustration") under every move. Never draw text inside the animation.
+Every move has `reviewed: false` until she approves it. The viewer shows whether the move is reviewed by the medical lead under every move. Never draw text inside the animation.
 
 ## Coordinates and the figure
 
@@ -210,7 +210,7 @@ Read the PNGs and check:
 - the frame at T − 1/60 leads into the frame at 0;
 - it still reads at `--w 240 --h 240`.
 
-Add `--permiss` to print every frame where a contact missed, with its time. The script also prints `library {moves, broken}`: the moves that registered, and any `V*.ts` file that failed to load, with the error. A broken file is skipped and does not break the others, but it must be fixed.
+Add `--permiss` to print every frame where a contact missed, with its time. With `--permiss` the misses are reset before each frame, so the closing `contact misses` line then covers only the last frame: the check is that no `miss at` line was printed. The script also prints `library {moves, broken}`: the moves that registered, and any `V*.ts` file that failed to load, with the error. A broken file is skipped and does not break the others, but it must be fixed.
 
 The second-to-last line is the **contact check**, `contact misses {"worst": …}`. It is the furthest any hand or foot in contact fell short of its target over the frames captured. To check the whole loop, capture it with `--from 0 --to end --fps 20`. **It must be 0.** If it isn't, bring the body closer, or move the contact point.
 
@@ -225,9 +225,12 @@ node capture.mjs --url "http://127.0.0.1:<PORT>/steps-demo.html?capture=1&move=<
 /opt/homebrew/bin/ffmpeg -y -i $D/f00090.png -vf "scale=720:720:flags=lanczos" ~/Desktop/NASA/steps-demo/loops/<name>.png
 ```
 
-`--to end` captures exactly one loop, so the mp4 loops without a seam. For a move with both gravities, name the files `<name>-gravity.mp4` and `<name>-no-gravity.mp4`.
+`--to end` captures exactly one loop, so the mp4 loops without a seam. For a move with both gravities, name the files `<name>-with-gravity.mp4` and `<name>-no-gravity.mp4` (and the stills the same way); a move with one variant keeps her file name as it is.
 
 ## Notes
+
+- `&cam=yaw,pitch[,extent[,x,y,z]]` (viewer and capture) looks at a `gesture()` move from another angle, closer, or at another target, without editing the move: for checking a contact from the side, or that a hand is not through a body. Example: `&cam=2.45,0.6,0.8,0,0.15,0` looks closely at a lying person's chest. Never use it for a loop that ships.
+- The private build can also be served with `python3 -m http.server`; a Vite dev server reloads the page whenever any move file is saved, which spoils a long capture while other authors are working, so capture loops from a build.
 
 - `?capture=1&move=<name>` captures without any text: no name labels and no not-reviewed note, by her rule of no text inside the animation. Add `&labels=1` to keep them.
 - `&gravity=weightless|gravity` picks the variant. Without it, the first variant the move defines is used.

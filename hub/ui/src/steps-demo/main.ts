@@ -12,15 +12,18 @@ import './style.css';
 import { createStage } from './stage.ts';
 import { BROKEN, MOVES, movesReady } from './moves/index.ts';
 import { CARDS } from './cards.ts';
-import { CAPTION } from './step.ts';
 import type { CardStep, Gravity } from './step.ts';
 import { MISSES } from './rig.ts';
+import { CAMERA_OVERRIDE } from './gesture.ts';
 
 const params = new URLSearchParams(location.search);
 const capture = params.get('capture') === '1';
 const film = params.get('film') === '1';
 const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 const still = () => params.get('still') === '1' || reduce.matches;
+// &cam=yaw,pitch[,extent[,x,y,z]]: look at a gesture() move from another side, or closer, while authoring.
+const cam = params.get('cam')?.split(',').map(Number);
+if (cam) Object.assign(CAMERA_OVERRIDE, { yaw: cam[0], pitch: cam[1], extent: cam[2], target: cam.length >= 6 ? [cam[3], cam[4], cam[5]] : undefined });
 
 const root = document.getElementById('root')!;
 root.innerHTML = `
@@ -75,7 +78,7 @@ function pick(name: string, gravity?: Gravity) {
   const step = STEPS.find((s) => s.move === name);
   stage.show(name, g, step?.params ?? {});
   key = 0;
-  statusEl.textContent = `${CAPTION} · ${move.reviewed ? 'reviewed by the medical lead' : 'not yet reviewed by the medical lead'}${move.questions?.length ? ` · ${move.questions.length} open question${move.questions.length > 1 ? 's' : ''}` : ''}`;
+  statusEl.textContent = `${move.reviewed ? 'Reviewed by the medical lead' : 'Not yet reviewed by the medical lead'}${move.questions?.length ? ` · ${move.questions.length} open question${move.questions.length > 1 ? 's' : ''}` : ''}`;
 }
 
 let key = 0;

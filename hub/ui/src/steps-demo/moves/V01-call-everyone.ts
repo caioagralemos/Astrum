@@ -1,15 +1,16 @@
 // V01 call everyone (her description: "Raises one arm and waves to call the
 // others, then points to the side (defibrillator or restraint)").
 //
-// One figure. The right arm goes up, waves twice above the head, then comes
-// down into a straight arm pointing to the figure's right, the head following
+// One figure. The left arm (arm 1, the figure's +x side) goes up, waves twice
+// above the head, then comes down into a straight arm pointing to the figure's
+// left, the head following
 // it; it holds the point, then the arm comes back down and the loop closes.
 // What is pointed at is off screen and not drawn (her line names two possible
 // things; see questions).
 //
 // With gravity: standing, feet planted; the weight goes a little onto the
-// left foot as the arm goes up, and the body turns slightly towards the point.
-// Weightless: the left hand holds a rail (the only prop) so the body has
+// right foot as the arm goes up, and the body turns slightly towards the point.
+// Weightless: the right hand holds a rail (the only prop) so the body has
 // something to react against; the knees float up in the neutral posture and
 // the body sways a little against the waving arm, about its centre of mass.
 

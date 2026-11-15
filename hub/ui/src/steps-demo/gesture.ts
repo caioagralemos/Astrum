@@ -123,6 +123,12 @@ export interface GestureSpec {
 
 const target = new THREE.Vector3();
 
+/**
+ * For inspecting a move from other sides while authoring (the viewer's `&cam=yaw,pitch[,extent[,x,y,z]]`):
+ * replaces the move's camera angle, and its extent and target when given. Never used for a loop that ships.
+ */
+export const CAMERA_OVERRIDE: { yaw?: number; pitch?: number; extent?: number; target?: V3 } = {};
+
 export function gesture(world: World, spec: GestureSpec): Clip {
   const group = new THREE.Group();
   const stage = new THREE.Group();
@@ -177,9 +183,13 @@ export function gesture(world: World, spec: GestureSpec): Clip {
     tags: [],
     frame(u, still) {
       const wave = Math.sin((u / T) * Math.PI * 2);
-      const { target: tg, yaw, pitch, extent, span } = spec.camera;
+      const { span } = spec.camera;
+      const tg = CAMERA_OVERRIDE.target ?? spec.camera.target;
+      const yaw = CAMERA_OVERRIDE.yaw ?? spec.camera.yaw;
+      const pitch = CAMERA_OVERRIDE.pitch ?? spec.camera.pitch;
+      const extent = CAMERA_OVERRIDE.extent ?? spec.camera.extent;
       target.set(tg[0], tg[1], tg[2]);
-      world.frame(target, yaw + (still ? 0 : 0.02 * wave), pitch, extent, 30, 0, span ?? extent);
+      world.frame(target, yaw + (still ? 0 : 0.02 * wave), pitch, extent, 30, 0, CAMERA_OVERRIDE.extent ?? span ?? extent);
       world.depth(3, 12);
       // Weightless: the whole scene drifts a little, on a path that closes every loop.
       if (spec.gravity === 'weightless' && spec.drift !== false && !still) {

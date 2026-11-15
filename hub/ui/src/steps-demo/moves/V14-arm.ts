@@ -1,5 +1,6 @@
-// Shared by V14, V16 and V29: a "sore spot" on the left forearm, held still in
-// front of the body, with the right hand working on it. The medical lead did
+// Shared by V14 and V08 (and later V16, V29): a "sore spot" on the right forearm
+// (arm 0, the figure's -x side), held still out in front of the body, bent at
+// the elbow, with the left hand (arm 1) working on it. The medical lead did
 // not say which part of the body; the forearm is a neutral placeholder until
 // she does (see each move's questions).
 //
@@ -31,7 +32,7 @@ export function forearmSpot(f: Figure, out: Spot, shift = 0): Spot {
   f.bodyDir(0, 1, 0, out.up);
   out.up.addScaledVector(out.along, -out.up.dot(out.along)).normalize();
   out.across.crossVectors(out.up, out.along).normalize();
-  // Make `across` point to the body's -x (the figure's left), whichever way the cross product came out.
+  // Make `across` point to the body's -x (the figure's right), whichever way the cross product came out.
   f.bodyDir(-1, 0, 0, e);
   if (out.across.dot(e) < 0) out.across.negate();
   out.at.addScaledVector(out.up, RADIUS);
@@ -39,7 +40,7 @@ export function forearmSpot(f: Figure, out: Spot, shift = 0): Spot {
 }
 
 /**
- * The figure: the left forearm held still in front of the body, the right arm free for the move
+ * The figure: the right forearm held still out in front of the body, the left arm free for the move
  * to drive (its hand is placed by `reach` in `act`, so the track here is only where it starts from).
  * The head looks down at the spot.
  */
@@ -47,15 +48,15 @@ export function armMoves(gravity: Gravity, T: number, right: { hand: Track; elbo
   const floating = gravity === 'weightless';
   return {
     root: floating ? floatRoot(T) : standRoot(T),
-    turn: cycle([[0, [0.05, 0.02, 0]], [T / 2, [0.06, 0.025, 0]]], T),
-    chest: cycle([[0, [0.12, 0.05, 0]], [T / 2, [0.13, 0.05, 0]]], T),
-    head: head ?? cycle([[0, [0.42, -0.05, 0]], [T / 2, [0.45, -0.04, 0]]], T),
-    hands: [cycle([[0, [-0.02, 0.17, 0.36]], [T / 2, [-0.02, 0.172, 0.362]]], T), right.hand],
-    elbows: [cycle([[0, [-1, -0.7, -0.2]]], T), right.elbow ?? cycle([[0, [1, -0.6, -0.4]]], T)],
+    turn: cycle([[0, [0.04, 0.03, 0]], [T / 2, [0.045, 0.03, 0]]], T),
+    chest: cycle([[0, [0.1, 0.06, 0]], [T / 2, [0.11, 0.06, 0]]], T),
+    head: head ?? cycle([[0, [0.45, -0.12, 0]], [T / 2, [0.47, -0.12, 0]]], T),
+    hands: [cycle([[0, [-0.07, 0.11, 0.43]], [T / 2, [-0.07, 0.112, 0.432]]], T), right.hand],
+    elbows: [cycle([[0, [-0.7, -1, -0.2]]], T), right.elbow ?? cycle([[0, [1, -0.5, -0.3]]], T)],
     wrists: [cycle([[0, [0, 0, 0]]], T), null],
     overlap: 0.3,
   };
 }
 
-/** The camera for these: from the front and the right, above, close on the forearm and the head. */
-export const ARM_CAMERA = { target: [0.02, 1.32, 0.2] as [number, number, number], yaw: 0.55, pitch: 0.38, extent: 0.82, span: 0.82 };
+/** The camera for these: from the figure's right side, a little above, the forearm sticking out towards the viewer's right. */
+export const ARM_CAMERA = { target: [-0.06, 1.33, 0.27] as [number, number, number], yaw: -1.3, pitch: 0.3, extent: 0.92, span: 0.92 };

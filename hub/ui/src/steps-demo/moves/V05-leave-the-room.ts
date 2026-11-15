@@ -69,7 +69,7 @@ function walk(f: Figure, t: number) {
   const x = along(t);
   // A little sway towards the leg that is standing (leg 0's side at its mid-stance).
   const sway = 0.018 * Math.cos(2 * PI * (t / C - STANCE / 2));
-  f.root.set(x, 0.948 + 0.017 * bob, sway * (FOOT_Z[0] > 0 ? 1 : -1));
+  f.root.set(x, 0.942 + 0.017 * bob, sway * (FOOT_Z[0] > 0 ? 1 : -1));
   // The pelvis turns with the stride (the forward leg's hip goes forward); the chest turns back.
   const twist = 0.07 * Math.sin(2 * PI * p0);
   f.turn.setFromEuler(euler.set(0.03, PI / 2 + twist, 0));
@@ -129,8 +129,8 @@ const W = 1.6; // the bulkhead's half size (past the edges of the view)
 /** Gliding speed before the pull, and how much the pull on the hatch adds. */
 const V0 = 0.8;
 const DV = 0.16;
-const PULL_A = 1.05;
-const PULL_B = 1.75;
+const PULL_A = 0.5;
+const PULL_B = 1.1;
 const XW0 = -1.05;
 
 /** Where the centre of mass is: a glide, a small pull while the hand holds the hatch, a faster glide. */
@@ -153,7 +153,7 @@ const floater: Moves = {
   head: track([[0, [-0.5, 0, 0]], [1.6, [-0.42, 0, 0]], [TW, [-0.45, 0, 0]]]),
   hands: [
     // The near hand reaches ahead for the hatch; after letting go it comes forward again.
-    track([[0, [-0.17, 1.0, 0.08], 'still'], [0.6, [-0.24, 0.98, 0.1]], [2.0, [-0.3, -0.05, 0.22]], [2.6, [-0.24, 0.7, 0.16]], [TW, [-0.2, 0.95, 0.14], 'still']]),
+    track([[-0.6, [-0.17, 1.0, 0.08], 'still'], [0.05, [-0.22, 0.98, 0.1]], [1.55, [-0.27, -0.28, 0.07]], [2.35, [-0.26, 0.45, 0.16]], [TW, [-0.2, 0.95, 0.14], 'still']]),
     // The far hand rides along the body.
     track([[0, [0.24, -0.16, 0.06]], [1.4, [0.25, -0.12, 0.08]], [TW, [0.24, -0.16, 0.06]]]),
   ],
@@ -210,7 +210,7 @@ export const v05: Move = {
       marks: { contacts: 1 },
       act: (t, [f], _props, marks) => {
         // The near hand holds the hatch's near edge, on its far face, and pulls a little as the body slides past.
-        const hold = ramp(t, PULL_A - 0.25, PULL_A) * (1 - ramp(t, PULL_B, PULL_B + 0.25));
+        const hold = ramp(t, PULL_A - 0.3, PULL_A) * (1 - ramp(t, PULL_B, PULL_B + 0.2));
         grip.set(0.075, HY - 0.04, HATCH + 0.05);
         reach(f, 0, grip, fingers, into, hold);
         if (marks) marks.contacts[0].show(ring.copy(grip), 0.06, 0.8 * ramp(t, PULL_A - 0.05, PULL_A + 0.1) * (1 - ramp(t, PULL_B - 0.1, PULL_B + 0.05)));
@@ -242,7 +242,7 @@ export const v05: Move = {
         ];
       },
       act: (t, [f]) => walk(f, t),
-      camera: { target: [0, 1.0, 0], yaw: 0.32, pitch: 0.14, extent: 2.5, span: 3.3 },
+      camera: { target: [0, 1.0, 0], yaw: 0.6, pitch: 0.14, extent: 2.5, span: 3.3 },
       keys: [0.3, 1.6, 2.8],
     }),
   },

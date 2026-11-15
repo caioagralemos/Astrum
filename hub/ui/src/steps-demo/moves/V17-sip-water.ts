@@ -1,5 +1,5 @@
 // V17 sip water. Her description: "Drinks from a pouch with a straw, small
-// sips." One figure holds a drink pouch in the right hand, brings it up until
+// sips." One figure holds a drink pouch in the left hand (arm 1), brings it up until
 // the straw is at the mouth, takes one small sip, lowers it a little and
 // swallows; the loop repeats the sip. The pouch never leaves the hand, and no
 // liquid is drawn.
@@ -85,7 +85,7 @@ function clip(world: World, gravity: Gravity) {
       at.addScaledVector(fwd, 0.035 * Math.sin(Math.PI * k));
       p.object.position.copy(at);
       p.object.quaternion.copy(q);
-      // The right hand holds it by its outer face, fingers along it.
+      // The left hand holds it by its outer face, fingers along it.
       grip.set(W, -0.012, 0.004).applyQuaternion(q).add(at);
       into.set(-1, 0, 0).applyQuaternion(q);
       fingers.set(0, -0.15, 1).applyQuaternion(q);

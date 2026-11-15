@@ -1,9 +1,9 @@
 // V14 cold or warm cloth. Her description: "Puts a cloth on the sore spot."
-// The right hand brings a folded cloth down onto a sore spot, holds it there
+// The left hand brings a folded cloth down onto a sore spot, holds it there
 // with the palm flat, then lifts it again; the loop repeats the placing.
 //
 // Not stated, so kept neutral and asked (questions): which part of the body
-// (the left forearm here is a placeholder), and whether the hand stays on the
+// (the right forearm here is a placeholder), and whether the hand stays on the
 // cloth. Weightless, a cloth let go of would drift off, so the hand never lets
 // go in either variant; nothing about cold or warm is drawn.
 
@@ -62,9 +62,9 @@ function clip(world: World, gravity: Gravity) {
       q.multiply(tip.setFromAxisAngle(zAxis, -2.2 * h));
       c.object.position.copy(at);
       c.object.quaternion.copy(q);
-      // The palm flat on top of the cloth, fingers across the arm.
+      // The palm flat on top of the cloth, fingers along the arm towards the wrist.
       palm.set(0, TH + 0.002, 0).applyQuaternion(q).add(at);
-      fingers.set(-1, 0, 0.25).applyQuaternion(q);
+      fingers.set(-0.2, 0, 1).applyQuaternion(q);
       into.set(0, -1, 0).applyQuaternion(q);
       reach(f, 1, palm, fingers, into, 1);
       if (marks) {
