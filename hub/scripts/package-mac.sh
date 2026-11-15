@@ -49,6 +49,7 @@ FINAL="$OUT/Astrum.app"
 ZIP="$OUT/Astrum-$VERSION-mac$([ "$WITH_MODEL" = 0 ] && echo -no-model || true).zip"
 MODEL_NAME="LFM3-1.7B-Q8_0.gguf"
 MODEL_SRC="${ASTRUM_MODEL:-$HOME/Desktop/NASA/astrum-model-test/gguf/$MODEL_NAME}"
+MODEL_LICENCE="$(dirname "$MODEL_SRC")/LFM-Open-License-v1.0.txt"
 BREW="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
 NODE_BIN="$(realpath "$(command -v node)")"
 LLAMA_BIN="$(realpath "$(command -v llama-server)")"
@@ -62,6 +63,7 @@ command -v cargo >/dev/null || fail "cargo is missing (rustup.rs)"
 command -v rsvg-convert >/dev/null || fail "rsvg-convert is missing (brew install librsvg)"
 [ -d "$HUB/node_modules" ] || fail "run npm install in hub/ first"
 [ "$WITH_MODEL" = 0 ] || [ -f "$MODEL_SRC" ] || fail "the model is not at $MODEL_SRC (set ASTRUM_MODEL, or use --no-model)"
+[ "$WITH_MODEL" = 0 ] || [ -f "$MODEL_LICENCE" ] || fail "the model's licence text is not at $MODEL_LICENCE (from the LICENSE file of LiquidAI/LFM3-1.7B-GGUF on Hugging Face)"
 
 rm -rf "$OUT/.stage" "$FINAL" "$OUT"/Astrum-*-mac*.zip
 mkdir -p "$OUT" "$STAGE/hub" "$STAGE/runtime/bin" "$STAGE/runtime/lib" "$STAGE/icons"
@@ -173,6 +175,8 @@ if [ "$WITH_MODEL" = 1 ]; then
   mkdir -p "$RES/model"
   # A copy-on-write clone when the disk allows it (instant), a plain copy otherwise.
   cp -c "$MODEL_SRC" "$RES/model/$MODEL_NAME" 2>/dev/null || cp "$MODEL_SRC" "$RES/model/$MODEL_NAME"
+  # The model's licence (LFM Open License v1.0) asks that every copy of the model comes with the licence text.
+  cp "$MODEL_LICENCE" "$RES/model/LFM-Open-License-v1.0.txt"
 fi
 
 # ---------------------------------------------------------------------------
@@ -210,8 +214,7 @@ licence_of() { # a folder -> the licence named in its LICENSE/COPYING file
   done | sort -u
   echo
   echo "The model (Contents/Resources/model, or Application Support/Astrum/models with --no-model)"
-  echo "  $MODEL_NAME (LFM3 1.7B, Q8_0 GGUF): NO LICENCE FILE was found beside it on the build Mac."
-  echo "  Its licence must be checked at the model's source before this app is distributed."
+  echo "  $MODEL_NAME (LFM3 1.7B, Q8_0 GGUF, Liquid AI): LFM Open License v1.0. Its text is beside the model, in model/LFM-Open-License-v1.0.txt."
   echo
   echo "npm packages (Contents/Resources/hub/node_modules)"
   node -e '

@@ -21,8 +21,9 @@
 # Settings: %APPDATA%\Astrum\launch.env (KEY=VALUE lines, as on the Mac). Log:
 # %LOCALAPPDATA%\Astrum\Logs\hub.log. Production mode by default. No key or secret is bundled.
 #
-# llama.cpp's DLLs need the Microsoft Visual C++ Redistributable (x64), which this folder does
-# not carry: without it the window and hub work, and the AI says it is off.
+# llama.cpp's DLLs need Microsoft's Visual C++ runtime. The folder carries those three DLLs beside
+# llama-server (taken from Microsoft's own redistributable installer, which allows shipping them
+# this way), so nothing has to be installed on the Windows PC. Needs cabextract (brew install cabextract).
 #
 # Needs: cargo with the x86_64-pc-windows-msvc target, cargo-xwin (cargo install cargo-xwin;
 # it downloads Microsoft's CRT and SDK and accepts their licence), clang-cl and lld-link on PATH
@@ -53,6 +54,7 @@ SUFFIX="$([ "$WITH_MODEL" = 0 ] && echo -no-model || true)"
 ZIP_NAME="Astrum-$VERSION-win-x64$SUFFIX.zip"
 MODEL_NAME="LFM3-1.7B-Q8_0.gguf"
 MODEL_SRC="${ASTRUM_MODEL:-$HOME/Desktop/NASA/astrum-model-test/gguf/$MODEL_NAME}"
+MODEL_LICENCE="$(dirname "$MODEL_SRC")/LFM-Open-License-v1.0.txt"
 TARGET="x86_64-pc-windows-msvc"
 [ -d "$HOME/.swiftly/bin" ] && PATH="$PATH:$HOME/.swiftly/bin"
 
@@ -67,6 +69,7 @@ command -v rsvg-convert >/dev/null || fail "rsvg-convert is missing (brew instal
 command -v llvm-objdump >/dev/null || fail "llvm-objdump is missing (any LLVM toolchain)"
 [ -d "$HUB/node_modules" ] || fail "run npm install in hub/ first"
 [ "$WITH_MODEL" = 0 ] || [ -f "$MODEL_SRC" ] || fail "the model is not at $MODEL_SRC (set ASTRUM_MODEL, or use --no-model)"
+[ "$WITH_MODEL" = 0 ] || [ -f "$MODEL_LICENCE" ] || fail "the model's licence text is not at $MODEL_LICENCE (from the LICENSE file of LiquidAI/LFM3-1.7B-GGUF on Hugging Face)"
 
 mkdir -p "$CACHE" "$STAGE/hub" "$APP/runtime/bin" "$STAGE/icons"
 
@@ -126,6 +129,20 @@ for f in "$WORK"/llama/*.dll; do
   case "$(basename "$f")" in *-impl.dll) [ "$(basename "$f")" = llama-server-impl.dll ] || continue ;; esac
   cp "$f" "$APP/runtime/bin/"
 done
+# Microsoft's Visual C++ runtime, beside llama-server: unpacked once from Microsoft's installer and kept in the cache.
+VC="$CACHE/vcredist-x64"
+if [ ! -f "$VC/vcruntime140.dll" ] || [ ! -f "$VC/vcruntime140_1.dll" ] || [ ! -f "$VC/msvcp140.dll" ]; then
+  command -v cabextract >/dev/null || fail "cabextract is needed to unpack Microsoft's Visual C++ runtime (brew install cabextract)"
+  rm -rf "$WORK/vc" && mkdir -p "$WORK/vc/outer" "$WORK/vc/inner" "$VC"
+  curl -fsSL -o "$WORK/vc/vc_redist.x64.exe" https://aka.ms/vs/17/release/vc_redist.x64.exe
+  cabextract -q -d "$WORK/vc/outer" "$WORK/vc/vc_redist.x64.exe"
+  for c in "$WORK"/vc/outer/*; do cabextract -q -d "$WORK/vc/inner" "$c" 2>/dev/null || true; done
+  for d in vcruntime140 vcruntime140_1 msvcp140; do
+    [ -f "$WORK/vc/inner/$d.dll_amd64" ] || fail "Microsoft's installer did not contain $d.dll for x64"
+    cp "$WORK/vc/inner/$d.dll_amd64" "$VC/$d.dll"
+  done
+fi
+cp "$VC/vcruntime140.dll" "$VC/vcruntime140_1.dll" "$VC/msvcp140.dll" "$APP/runtime/bin/"
 echo "Node $NODE_VERSION, llama.cpp $LLAMA_TAG, $(ls "$APP/runtime/bin" | wc -l | tr -d ' ') files in runtime/bin"
 
 # ---------------------------------------------------------------------------
@@ -157,7 +174,13 @@ ditto "$STAGE/hub" "$APP/hub"
 if [ "$WITH_MODEL" = 1 ]; then
   mkdir -p "$APP/model"
   cp -c "$MODEL_SRC" "$APP/model/$MODEL_NAME" 2>/dev/null || cp "$MODEL_SRC" "$APP/model/$MODEL_NAME"
+  # The model's licence (LFM Open License v1.0) asks that every copy of the model comes with the licence text.
+  cp "$MODEL_LICENCE" "$APP/model/LFM-Open-License-v1.0.txt"
 fi
+
+# The cabin board's USB driver (Silicon Labs CP210x) is NOT bundled. Its licence (SLAB_License_Agreement_VCP_Windows.txt,
+# read 15 Nov 2026) allows redistribution only by a vendor shipping its own modified INF to customers who accept an
+# end-user licence, and not to the public as it is. The release notes point the user to Silicon Labs' download instead.
 
 # ---------------------------------------------------------------------------
 step "4/4 Checks, THIRD-PARTY.txt and the zip"
@@ -208,14 +231,13 @@ licence_of() { # a folder -> the licence named in its LICENSE/COPYING file
   echo "  Node.js $NODE_VERSION (official win-x64 build, nodejs.org): $(licence_of "$WORK/node/node-$NODE_VERSION-win-x64")"
   echo "  llama.cpp / llama-server $LLAMA_TAG and ggml (official Windows CPU x64 release, github.com/ggml-org/llama.cpp): MIT"
   echo "  libomp.dll (LLVM OpenMP, shipped with that release): Apache License 2.0 with LLVM Exceptions"
-  echo "  Needs the Microsoft Visual C++ Redistributable (x64), installed separately:$VC_NEEDED"
+  echo "  vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll (Microsoft Visual C++ runtime, from Microsoft's redistributable installer): Microsoft Software License Terms, redistributable files"
   echo
   echo "The window (Astrum.exe): Tauri 2 and its Rust crates (MIT or Apache-2.0), statically linked;"
   echo "  the Microsoft C runtime and Windows SDK import libraries fetched by cargo-xwin."
   echo
   echo "The model (model/, or %APPDATA%\\Astrum\\models with --no-model)"
-  echo "  $MODEL_NAME (LFM3 1.7B, Q8_0 GGUF): NO LICENCE FILE was found beside it on the build Mac."
-  echo "  Its licence must be checked at the model's source before this folder is distributed."
+  echo "  $MODEL_NAME (LFM3 1.7B, Q8_0 GGUF, Liquid AI): LFM Open License v1.0. Its text is beside the model, in model/LFM-Open-License-v1.0.txt."
   echo
   echo "npm packages (hub/node_modules)"
   node -e '
@@ -245,4 +267,3 @@ cp "$WORK/$ZIP_NAME" "$OUT/"
 step "Done"
 echo "$OUT/Astrum  $(du -sh "$OUT/Astrum" | cut -f1)$([ "$WITH_MODEL" = 0 ] && echo ', without the model' || true)"
 echo "$OUT/$ZIP_NAME  $(du -sh "$OUT/$ZIP_NAME" | cut -f1)"
-[ -z "$VC_NEEDED" ] || echo "On Windows, install the Microsoft Visual C++ Redistributable (x64) first (llama-server needs$VC_NEEDED)."

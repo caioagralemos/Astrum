@@ -82,9 +82,27 @@ fn status(window: &WebviewWindow, text: &str) {
     let _ = window.eval(format!("window.astrumStatus && window.astrumStatus({})", js_string(text)));
 }
 
+/// Windows hands back "verbatim" paths (`\\?\C:\…`, `\\?\UNC\server\share\…`). Node cannot open a script given
+/// that way from a network share (it fails on "UNC"), so they are turned back into ordinary paths.
+#[cfg(windows)]
+fn plain_path(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{rest}"))
+    } else if let Some(rest) = text.strip_prefix(r"\\?\") {
+        PathBuf::from(rest.to_string())
+    } else {
+        path
+    }
+}
+#[cfg(not(windows))]
+fn plain_path(path: PathBuf) -> PathBuf {
+    path
+}
+
 /// Starts the bundled hub, if this is the packaged app. Returns None when run from the project.
 fn start_hub(app: &AppHandle) -> Option<Hub> {
-    let resources = app.path().resource_dir().ok()?;
+    let resources = plain_path(app.path().resource_dir().ok()?);
     let hub_dir = resources.join("hub");
     let runtime = resources.join("runtime").join("bin");
     if !hub_dir.join("core").join("run.ts").exists() {
