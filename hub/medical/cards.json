@@ -1,0 +1,4092 @@
+[
+  {
+    "id": "high-co2",
+    "title": {
+      "en": "High CO2",
+      "pt": "CO₂ alto"
+    },
+    "level": "concerning",
+    "notify": "medical_officer",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "cabin_co2",
+          "direction": "high",
+          "basis": "nasa_limit",
+          "threshold": 3.0,
+          "unit": "mmHg",
+          "note": "1-hour average above 3 mmHg triggers the room alarm (project decision). Level rises with the signs below."
+        },
+        {
+          "signal": "heart_rate",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "Tachycardia is a moderate sign."
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you have a headache, drowsiness, hand tremor, flushing or sweating?",
+          "answer": "yes (mild)"
+        },
+        {
+          "question": "Are you confused, agitated or short of breath?",
+          "answer": "yes (moderate)"
+        },
+        {
+          "question": "Are you deeply drowsy, having a seizure, or not responding?",
+          "answer": "yes (severe)"
+        }
+      ],
+      "words": {
+        "en": [
+          "headache",
+          "drowsy",
+          "can't breathe"
+        ],
+        "pt": [
+          "dor de cabeça",
+          "sonolência",
+          "falta de ar"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "First, get out of the bad air. Go to a room where CO2 is below the limit. The screen shows which. Sit down, stay still and turn on a fan near your face.",
+        "pt": "Primeiro, saia do ar ruim. Vá para um cômodo com CO₂ abaixo do limite. A tela mostra qual. Sente-se, fique parado e ligue o ventilador perto do rosto."
+      },
+      {
+        "en": "Mild symptoms (headache, sleepiness, hand tremor, flushing, sweating): wait 10 to 15 minutes. If it does not improve, or if the room CO2 does not fall, put on the sealed mask.",
+        "pt": "Sintomas leves (dor de cabeça, sono, tremor nas mãos, rubor, suor): espere 10 a 15 minutos. Se não melhorar, ou se o CO₂ do cômodo não cair, coloque a máscara vedada."
+      },
+      {
+        "en": "Moderate symptoms or getting worse (confusion, shortness of breath, vomiting, heavy sleepiness): put on the mask now, with oxygen or clean air. The medical officer is notified. Do not stay alone.",
+        "pt": "Sintomas moderados ou piora (confusão, falta de ar, vômito, muito sono): coloque a máscara agora, com oxigênio ou ar limpo. O responsável médico é avisado. Não fique sozinho."
+      },
+      {
+        "en": "Severe symptoms (deep sleep, seizure, not responding): everyone on board is notified. If the person has a seizure, move hard objects away and do not put anything in the mouth; when it stops, lay them on their side. If they do not respond and are not breathing normally, go to the cardiac arrest card. Use the bag-valve mask only with two people and with the person strapped down (no gravity).",
+        "pt": "Sintomas graves (sono profundo, convulsão, não responde): todos a bordo são avisados. Se a pessoa convulsiona, afaste objetos duros e não ponha nada na boca; quando parar, deite de lado. Se não responde e não respira normalmente, vá para o cartão de parada. A ventilação com o ambu só com duas pessoas e a pessoa presa (sem gravidade)."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not go back to the room with high CO2.",
+        "pt": "Não volte ao cômodo com CO₂ alto."
+      },
+      {
+        "en": "Do not use a nasal cannula: you keep breathing cabin air around it and through your mouth.",
+        "pt": "Não use cateter nasal: você continua respirando o ar da cabine pelos lados e pela boca."
+      }
+    ],
+    "sources": [
+      {
+        "name": "Law & Alexander, NASA JSC, 2016: CO2 on the International Space Station: An Operations Update",
+        "url": "https://ntrs.nasa.gov/citations/20150019624",
+        "quote": "symptoms attributable to CO2 starting at 2.3 mmHg",
+        "is_nasa": true
+      },
+      {
+        "name": "Ryder et al., NASA, 2017: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+        "url": "https://ntrs.nasa.gov/citations/20160013696",
+        "quote": "control CO2 below 3 mm Hg",
+        "is_nasa": true
+      },
+      {
+        "name": "Scully et al., NASA, 2016: Effects of Acute Exposures to CO2 upon Cognitive Functions",
+        "url": "https://ntrs.nasa.gov/citations/20150021777",
+        "quote": "10 mm Hg for 24-hour exposures",
+        "is_nasa": true
+      },
+      {
+        "name": "Law et al., 2014, J Occup Environ Med 56(5):477-483: Relationship between CO2 levels and reported headaches on the ISS (NASA JSC authors)",
+        "url": "https://doi.org/10.1097/JOM.0000000000000158",
+        "quote": "the odds of a crew member reporting a headache doubled",
+        "is_nasa": true
+      },
+      {
+        "name": "Scully et al., 2019, npj Microgravity 5:17: Effects of acute exposures to CO2 on decision making and cognition",
+        "url": "https://doi.org/10.1038/s41526-019-0071-6",
+        "quote": "no clear dose-response patterns",
+        "is_nasa": false
+      },
+      {
+        "name": "Evans, 2025, Aerosp Med Hum Perform 96(11):1024-1026: CO2 as a Multisystem Threat in Long Duration Spaceflight (short article, abstract read)",
+        "url": "https://doi.org/10.3357/AMHP.6716.2025",
+        "quote": "localized Pco2 \"pockets\" can form",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps are from the medical lead and from memory; no NASA document read gives crew response steps.",
+      "Mask logic (isolate from cabin air, sealed mask, high flow) and when to use it by level: medical lead's general guidance, 'not a protocol'.",
+      "Sign lists by severity are from the medical lead, no source.",
+      "Lithium hydroxide cartridges (removed from approved text): from the medical lead, not checked. CO2 pockets in microgravity: supported by Evans 2025 abstract.",
+      "Lay on side if consciousness is low: from memory.",
+      "10 to 15 minutes to re-check and the mask triggers: medical lead's working suggestion, no source."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "APPROVED by the medical lead (pt) on 14 Nov. English is a translation, not checked (en_checked: false). Level depends on signs: no signs = unusual, self (fix cabin CO2); mild = unusual, self; moderate = concerning, medical_officer; severe (deep drowsiness, seizure, coma, respiratory arrest) = dangerous, everyone. Blood gas (arterial pCO2: 35-45 normal, 46-60 mild-moderate, >60 important, >80-90 narcosis/coma) is a separate idea sent to Caio; arterial values only. Insulin/potassium are NOT part of this card. SpO2 oxygen target removed: oxygen/mask works by isolating from cabin CO2, not by treating hypoxemia. Symptom sources: NASA abstract says 2.3-2.7 mmHg fatigue and full-headedness, 2.7-3.0 missed steps, above 3.0-3.4 headaches. Removed from the approved text on purpose: crew fixes the source (scrubbers, lithium hydroxide cartridges). SOURCE CHECK 14 Nov (second round): CONFIRMED in abstracts: Law 2014 (odds of headache double per 1 mmHg; 7-day average below 2.5 mmHg to keep risk under 1%; an earlier news summary said 2 mmHg, the abstract says 2.5), Scully 2019 (no clear dose-response, 600-5000 ppm), Evans 2025 (CO2 pockets in microgravity; a short commentary, not a protocol). NOT USED: Sampige 2024 (dry eye only), Rochwerg ERS/ATS 2017 NIV guideline (about noninvasive ventilation in respiratory failure, not about CO2 exposure or the sealed-mask logic). No document found gives crew response steps. The approved Portuguese text was not changed. CHANGED 14 Nov (after Caio's check against the DGLRM/ESAM 2020 microgravity CPR guideline and the NHS, item 4, medical lead chose A): step 4 no longer says another person ventilates with the bag-valve mask; for a seizure nothing goes in the mouth and the person is laid on the side when it stops; no response and not breathing normally goes to the cardiac arrest card; bag-valve mask breaths only with two people and the person strapped (no gravity)."
+  },
+  {
+    "id": "unknown-urgent",
+    "title": {
+      "en": "Urgent, no specific card",
+      "pt": "Urgência sem cartão específico"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": true,
+    "signs": {
+      "readings": [],
+      "answers": [],
+      "words": {
+        "en": [],
+        "pt": []
+      }
+    },
+    "steps": [
+      {
+        "en": "Call for help and stay with the person. Do not leave them alone.",
+        "pt": "Peça ajuda e fique com a pessoa. Não a deixe sozinha."
+      },
+      {
+        "en": "X. Is there heavy bleeding? Press hard on the spot with a cloth. Do not let go.",
+        "pt": "X. Tem sangramento forte? Aperte o local com força, com um pano. Não solte."
+      },
+      {
+        "en": "A. Does the person answer when you speak? If not, look inside the mouth and remove anything blocking it. Anything else on the airway needs two people and the person strapped to the medical restraint.",
+        "pt": "A. A pessoa responde quando você fala? Se não, olhe dentro da boca e tire o que estiver bloqueando. Qualquer outra coisa na via aérea precisa de duas pessoas e da pessoa presa na maca de restrição."
+      },
+      {
+        "en": "B. Watch the chest for no more than 10 seconds. If the person does not respond and is not breathing normally: start chest compressions now and go to the cardiac arrest card. Breaths with the bag-valve mask come after, together with the compressions.",
+        "pt": "B. Olhe o peito por no máximo 10 segundos. Se a pessoa não responde e não respira normalmente: comece as compressões já e vá para o cartão de parada. A respiração com o ambu vem depois, junto com as compressões."
+      },
+      {
+        "en": "C. Not responding and not breathing, or breathing abnormally (gasps): this is cardiac arrest. Go to the cardiac arrest card.",
+        "pt": "C. Não responde e não respira, ou respira de forma anormal (suspiros): é parada cardiorrespiratória. Vá para o cartão de parada."
+      },
+      {
+        "en": "D. Is the person awake, confused or very sleepy? Note the time and keep talking to them.",
+        "pt": "D. A pessoa está acordada, confusa ou com muito sono? Anote a hora e continue falando com ela."
+      },
+      {
+        "en": "E. Look for injuries, then cover the person so they do not get cold. Check that the air around is safe.",
+        "pt": "E. Procure ferimentos e depois cubra a pessoa para ela não esfriar. Veja se o ar ao redor está seguro."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not give food or drink to a confused or sleepy person.",
+        "pt": "Não dê comida nem bebida a uma pessoa confusa ou com sono."
+      }
+    ],
+    "sources": [
+      {
+        "name": "Cardiopulmonary resuscitation (CPR) during spaceflight - guideline from DGLRM and ESAM-SMG, 2020",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7607644/",
+        "quote": "at least two rescuers are present and the patient has been restrained",
+        "is_nasa": false
+      },
+      {
+        "name": "StatPearls, trauma primary survey (xABCDE is from ATLS 11th edition, 2025; ACS manual not found)",
+        "url": "https://www.ncbi.nlm.nih.gov/books/NBK547757/",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "The lay wording and the XABCDE order were written from memory.",
+      "The xABCDE order comes from the ATLS 11th edition; only secondary summaries were found, not the ACS manual.",
+      "Rescue breathing with the ambu and the 10-second look at the chest are from memory; the microgravity guideline only gives the two-rescuer and restraint rule for the airway."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Base card shown to everyone whenever the alert is 'everyone', plus a specific card when one exists. A specific card goes first when the cause changes the first step (example: high CO2, leave the bad air first). Proposed by the medical lead, 14 Nov. Revised 14 Nov: step C now points to the cardiac arrest card (to be written); airway steps follow the microgravity guideline (two rescuers, patient restrained). Sources are not from NASA. CHANGED 14 Nov (after Caio's check against ERC 2025, item 1, medical lead chose A): step C also counts abnormal breathing (gasps) as arrest. CHANGED 14 Nov (after Caio's check against ERC 2025, item 2, medical lead chose A): step B no longer sends rescue breaths first; compressions start at once and breaths come after."
+  },
+  {
+    "id": "cardiac-arrest",
+    "title": {
+      "en": "Cardiac arrest",
+      "pt": "Parada cardiorrespiratória"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": true,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Does the person respond when you speak?",
+          "answer": "no"
+        },
+        {
+          "question": "Is the person breathing normally?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "not breathing",
+          "not responding",
+          "stopped breathing",
+          "gasping",
+          "snoring breaths",
+          "not breathing normally"
+        ],
+        "pt": [
+          "não respira",
+          "não responde",
+          "parou de respirar",
+          "suspiros",
+          "respiração estranha",
+          "não respira direito"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Not responding and not breathing normally (or only gasping): this is cardiac arrest. Call everyone. Ask for the defibrillator and the medical restraint.",
+        "pt": "Não responde e não respira normalmente (ou só dá suspiros): é parada. Chame todos. Peça o desfibrilador e a maca de restrição."
+      },
+      {
+        "en": "While the person is not strapped down, hold their body with your legs (left leg over their right shoulder, right leg around their chest, ankles crossed behind their back). Press the middle of the chest hard and fast, about 2 times per second. If the leg hold does not give strong presses, hug the person's chest from behind and press.",
+        "pt": "Com a pessoa solta, prenda o corpo dela com as pernas (perna esquerda sobre o ombro direito dela, perna direita em volta do peito, tornozelos cruzados nas costas dela). Aperte o centro do peito forte e rápido, cerca de 2 vezes por segundo. Se as pernas não derem apertos fortes, abrace o peito da pessoa por trás e aperte."
+      },
+      {
+        "en": "Strap the person on their back to the medical restraint. Put your feet on the opposite wall and keep pressing the chest with both hands.",
+        "pt": "Prenda a pessoa de costas na maca de restrição. Apoie os pés na parede oposta e continue apertando o peito com as duas mãos."
+      },
+      {
+        "en": "A second person gives rescue breaths with the ambu: 2 breaths after every 30 presses.",
+        "pt": "Uma segunda pessoa faz a respiração de resgate com o ambu: 2 respirações a cada 30 apertos."
+      },
+      {
+        "en": "Defibrillator, only with the person strapped to a safe surface: stick the pads on, follow the voice of the device, and everyone stays away during the shock.",
+        "pt": "Desfibrilador, só com a pessoa presa numa superfície segura: cole as pás, siga a voz do aparelho e todos se afastam durante o choque."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stop until the person breathes or the medical officer says to stop.",
+        "pt": "Não pare até a pessoa respirar ou o oficial médico mandar parar."
+      },
+      {
+        "en": "Do not use the defibrillator on a person who is not strapped down.",
+        "pt": "Não use o desfibrilador numa pessoa solta."
+      },
+      {
+        "en": "Do not touch the person during the shock.",
+        "pt": "Não encoste na pessoa durante o choque."
+      }
+    ],
+    "sources": [
+      {
+        "name": "Cardiopulmonary resuscitation (CPR) during spaceflight - guideline from DGLRM and ESAM-SMG, 2020",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7607644/",
+        "quote": "defibrillator SHOULD only be used on a patient that is restrained",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "Source supports: Evetts-Russomano method while loose, handstand once restrained, defibrillator only on a restrained patient on an isolated safe surface, airway only with two rescuers, stop decided by the most medically qualified crewmember.",
+      "From memory, not in the guideline text read: 30 presses to 2 breaths; about 2 presses per second; the lay wording; 'do not touch during the shock'.",
+      "The guideline gives no way to recognize arrest; the signs (not responding, not breathing) were proposed in the draft.",
+      "Reserve line (reverse bear hug): the guideline only says it is a modified Heimlich maneuver with the rescuer enclosing the chest from behind; arm and hand placement not in the source. It is the weakest of the three methods in depth and rate and cannot be used on a patient strapped to the restraint."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Drafted 14 Nov at the medical lead's request, after the XABCDE card step C. Telemedicine is impractical during CPR near Mars (delay 3-23 min per the guideline), so the crew decides. Handstand needs the spacecraft dimensions to allow it; the guideline also lists standing or straddling positions. Cut to 5 steps on 14 Nov at the medical lead's request, so each step can have a short looping video later (idea parked on the project page, her priority is this card). VIDEO PER STEP (medical lead's priority, 14 Nov): a loop of about 3 seconds each, everyone in black clothes on a white background. Step 1: Person points and calls everyone, then points to the defibrillator and the restraint. Step 2: Rescuer floats beside the person and holds their body with the legs (left leg over right shoulder, right leg around the chest, ankles crossed behind the back), pressing the chest. Step 3: Person strapped on their back to the restraint, rescuer with feet on the opposite wall pressing the chest. Step 4: Second person puts the ambu on the face and squeezes twice. Step 5: Stick the pads on the chest, then everyone floats away from the person. Reserve line added to step 2 on 14 Nov at the medical lead's request; no video can be made for it until the gesture is known. CHANGED 14 Nov (after Caio's check against ERC 2025, item 1, medical lead chose A): arrest is also recognized when the person breathes abnormally (agonal gasping), not only when not breathing."
+  },
+  {
+    "id": "cardiac-arrest-gravity",
+    "title": {
+      "en": "Cardiac arrest (gravity on)",
+      "pt": "Parada cardiorrespiratória (com gravidade)"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": true,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Does the person respond when you speak?",
+          "answer": "no"
+        },
+        {
+          "question": "Is the person breathing normally?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "not breathing",
+          "not responding",
+          "stopped breathing",
+          "gasping",
+          "snoring breaths",
+          "not breathing normally"
+        ],
+        "pt": [
+          "não respira",
+          "não responde",
+          "parou de respirar",
+          "suspiros",
+          "respiração estranha",
+          "não respira direito"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Not responding and not breathing normally (or only gasping): this is cardiac arrest. Call everyone. Ask for the defibrillator.",
+        "pt": "Não responde e não respira normalmente (ou só dá suspiros): é parada. Chame todos. Peça o desfibrilador."
+      },
+      {
+        "en": "Lay the person on their back on the floor, on a firm surface. Kneel beside them.",
+        "pt": "Deite a pessoa de costas no chão, numa superfície firme. Ajoelhe ao lado dela."
+      },
+      {
+        "en": "Put both hands, one on top of the other, on the middle of the chest. Press hard and fast, 5 to 6 cm deep, about 2 times per second. Do not stop.",
+        "pt": "Apoie as duas mãos, uma sobre a outra, no centro do peito. Aperte forte e rápido, afundando de 5 a 6 cm, cerca de 2 vezes por segundo. Não pare."
+      },
+      {
+        "en": "A second person gives rescue breaths with the ambu: 2 breaths after every 30 presses.",
+        "pt": "Uma segunda pessoa faz a respiração de resgate com o ambu: 2 respirações a cada 30 apertos."
+      },
+      {
+        "en": "Defibrillator: stick the pads on, follow the voice of the device, and everyone stays away during the shock.",
+        "pt": "Desfibrilador: cole as pás, siga a voz do aparelho e todos se afastam durante o choque."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stop until the person breathes or the medical officer says to stop.",
+        "pt": "Não pare até a pessoa respirar ou o oficial médico mandar parar."
+      },
+      {
+        "en": "Do not stop to wait for help.",
+        "pt": "Não pare para esperar ajuda."
+      },
+      {
+        "en": "Do not touch the person during the shock.",
+        "pt": "Não encoste na pessoa durante o choque."
+      }
+    ],
+    "sources": [],
+    "unverified": [
+      "No source for any step: written from memory from Earth CPR practice.",
+      "The microgravity guideline read (DGLRM/ESAM-SMG 2020) does not cover the gravity-on case; it only refers to AHA/ERC for the basics, which was not read.",
+      "5 cm depth, about 2 presses per second and 30 presses to 2 breaths are from memory.",
+      "The signs (not responding, not breathing) were proposed in the draft."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Requested by Caio, 14 Nov: the ship can turn gravity on and the system knows when it is on, so no question is asked; this card is used when gravity is on, 'cardiac-arrest' when it is off. The lay version of normal CPR, 5 steps so each can get a short video later. VIDEO PER STEP (medical lead's priority, 14 Nov): a loop of about 3 seconds each, everyone in black clothes on a white background. Step 1: Person points and calls everyone, then points to the defibrillator. Step 2: Lay the person on their back on the floor, kneel beside them. Step 3: Both hands stacked on the middle of the chest, pressing in a steady rhythm. Step 4: Second person puts the ambu on the face and squeezes twice. Step 5: Stick the pads on the chest, then everyone lifts their hands away. CHANGED 14 Nov (after Caio's check against ERC 2025, item 1, medical lead chose A): arrest is also recognized when the person breathes abnormally (agonal gasping), not only when not breathing. CHANGED 14 Nov (after Caio's check against ERC 2025, item 3, medical lead chose A): depth is 5 to 6 cm, not about 5 cm."
+  },
+  {
+    "id": "low-oxygen",
+    "title": {
+      "en": "Shortness of breath or low blood oxygen",
+      "pt": "Falta de ar ou oxigênio baixo no sangue"
+    },
+    "level": "concerning",
+    "notify": "medical_officer",
+    "message_houston": true,
+    "signs": {
+      "readings": [
+        {
+          "signal": "blood_oxygen",
+          "direction": "low",
+          "basis": "reference_range",
+          "threshold": 95,
+          "unit": "%",
+          "note": "90-94 unusual (self, ask about shortness of breath); below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone)"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Are you short of breath?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "short of breath",
+          "can't breathe",
+          "no air"
+        ],
+        "pt": [
+          "falta de ar",
+          "não consigo respirar",
+          "sem ar"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit down and stay still. Breathe slowly.",
+        "pt": "Sente-se e fique parada. Respire devagar."
+      },
+      {
+        "en": "Check the screen: is the air in the room bad (high CO2 or low oxygen)? If it is, go to a room with good air.",
+        "pt": "Veja na tela se o ar do cômodo está ruim (CO2 alto ou pouco oxigênio). Se estiver, vá para um cômodo com o ar bom."
+      },
+      {
+        "en": "If you are still short of breath, put on the sealed mask with oxygen.",
+        "pt": "Se a falta de ar continuar, coloque a máscara vedada com oxigênio."
+      },
+      {
+        "en": "Wait 5 minutes and look at the reading on the watch.",
+        "pt": "Espere 5 minutos e olhe a leitura do relógio."
+      },
+      {
+        "en": "If it gets worse (blue lips or fingertips, confusion, strong sleepiness), follow the urgent card.",
+        "pt": "Se piorar (lábios ou pontas dos dedos azulados, confusão, muito sono), siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stay alone.",
+        "pt": "Não fique sozinha."
+      },
+      {
+        "en": "Do not exercise or make effort.",
+        "pt": "Não faça esforço nem exercício."
+      }
+    ],
+    "sources": [],
+    "unverified": [
+      "All steps written from memory, no source.",
+      "Using oxygen at this level is the medical lead's decision, to be confirmed.",
+      "Her material cites 90% as the most used threshold to start oxygen (WHO) or 94% (BTS), not opened."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels by SpO2, confirmed by the medical lead on 14 Nov: 95 or more normal; 90-94 unusual (self), the system asks about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone, with the urgent card). The card also shows when the person reports shortness of breath. Card level above is the middle one; the system uses the table. Update 14 Nov (medical lead, option B): shortness of breath she reports, even with a normal SpO2, is concerning: medical officer alerted, she is not left alone."
+  },
+  {
+    "id": "skin-rash",
+    "title": {
+      "en": "Skin rash",
+      "pt": "Erupção na pele"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Did you start a new medicine?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your skin painful?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "rash",
+          "itch",
+          "itchy",
+          "red spots",
+          "hives",
+          "skin"
+        ],
+        "pt": [
+          "erupção",
+          "coceira",
+          "manchas",
+          "vermelhidão",
+          "alergia",
+          "pele"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Do not scratch or rub. Clean the skin with a clean damp cloth.",
+        "pt": "Não coce nem esfregue. Limpe a pele com um pano úmido e limpo."
+      },
+      {
+        "en": "Write down when it started and whether you used anything new (medicine, product, clothes, equipment).",
+        "pt": "Anote quando começou e se você usou algo novo (remédio, produto, roupa, equipamento)."
+      },
+      {
+        "en": "Stop using what is new, if you can.",
+        "pt": "Pare de usar o que for novo, se puder."
+      },
+      {
+        "en": "Very itchy? Put a cold damp cloth on the spot.",
+        "pt": "Coça muito? Coloque um pano frio e úmido no local."
+      },
+      {
+        "en": "Look again in a few hours. If you have blisters, peeling skin, sores in the mouth, eyes or genitals, swelling of the face, lips or tongue, trouble breathing, dizziness or fainting: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se tiver bolhas, pele soltando, feridas na boca, nos olhos ou nos genitais, inchaço no rosto, nos lábios ou na língua, falta de ar, tontura ou desmaio: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not scratch.",
+        "pt": "Não coce."
+      },
+      {
+        "en": "Do not ignore blisters, peeling skin or swelling of the face, lips or tongue.",
+        "pt": "Não ignore bolhas, pele soltando ou inchaço no rosto, nos lábios ou na língua."
+      }
+    ],
+    "sources": [
+      {
+        "name": "Anaphylaxis guidelines, World Allergy Organization (poster)",
+        "url": "https://www.worldallergy.org/media/PDFs/Anaphylaxis_Guidelines_Poster.pdf",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Revised anaphylaxis criteria, Empendium",
+        "url": "https://empendium.com/mcmtextbook/table/031_0450",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Anaphylaxis, PMC8604419",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8604419",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "SJS/TEN, Cleveland Clinic Journal of Medicine",
+        "url": "https://www.ccjm.org/content/90/6/373",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "SJS/TEN, Merck Manual",
+        "url": "https://www.merckmanuals.com/en-ca/professional/dermatologic-disorders/hypersensitivity-and-reactive-skin-disorders/stevens-johnson-syndrome-sjs-and-toxic-epidermal-necrolysis-ten",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Stevens-Johnson syndrome, Mayo Clinic",
+        "url": "https://www.mayoclinic.org/health/stevens-johnson-syndrome/DS00940/DSECTION=causes",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "In-flight clinical symptoms on the ISS, rashes the most frequent (1.12 per flight year)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098747",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "The lay steps were written from memory; the sources listed support the warning levels, not the steps, and none is from NASA.",
+      "Sources were pasted by the medical lead and not opened.",
+      "'Cold damp cloth' and 'stop using what is new' are from memory."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels by situation, confirmed by the medical lead on 14 Nov: only skin = unusual (self); the system asks about new medicine and skin pain and asks again in a few hours. Skin plus fever or fast worsening = concerning (medical officer). Blisters, peeling or sores in mouth, eyes or genitals = dangerous (everyone). Skin plus swelling of face, lips or tongue, or shortness of breath = dangerous (everyone, urgent card). Skin plus dizziness or fainting, vomiting or abdominal pain = dangerous (everyone, urgent card). Swelling of lips or tongue even without skin = dangerous (everyone). Card level above is the base level; the system uses this list. No SAMU or epinephrine: not available on the ship."
+  },
+  {
+    "id": "upper-respiratory",
+    "title": {
+      "en": "Stuffy nose and upper respiratory symptoms",
+      "pt": "Nariz entupido e sintomas respiratórios altos"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have trouble swallowing?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "stuffy nose",
+          "runny nose",
+          "sore throat",
+          "cough",
+          "sneezing",
+          "congestion"
+        ],
+        "pt": [
+          "nariz entupido",
+          "coriza",
+          "dor de garganta",
+          "garganta",
+          "tosse",
+          "espirro",
+          "congestão"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Drink water and rest.",
+        "pt": "Beba água e descanse."
+      },
+      {
+        "en": "Use saline spray in your nose a few times a day.",
+        "pt": "Use soro em spray no nariz, algumas vezes ao dia."
+      },
+      {
+        "en": "Clean your nose with a tissue and throw it away in a closed bag. Wash your hands often and wear a mask near other crewmates.",
+        "pt": "Limpe o nariz com um lenço de papel e jogue fora num saco fechado. Lave as mãos com frequência e use máscara perto dos colegas."
+      },
+      {
+        "en": "Check your temperature if you have a thermometer. Watch for fever, strong pain in the face or ear, or getting worse.",
+        "pt": "Meça a temperatura, se tiver termômetro. Fique atenta a febre, dor forte no rosto ou no ouvido, ou piora."
+      },
+      {
+        "en": "Look again in a day. If you have trouble breathing, trouble swallowing or a hoarse voice with a swollen throat: follow the shortness of breath card or the urgent card.",
+        "pt": "Olhe de novo em um dia. Se tiver falta de ar, dificuldade para engolir ou rouquidão com a garganta inchada: siga o cartão de falta de ar ou o de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore trouble breathing or swallowing.",
+        "pt": "Não ignore falta de ar ou dificuldade para engolir."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Technical Reports Server: Shuttle medical events review (sinus congestion the most common respiratory complaint)",
+        "url": "https://ntrs.nasa.gov/citations/20000085962",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "In-flight clinical symptoms on the ISS, upper respiratory symptoms second most frequent (0.97 per flight year)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098747",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The two sources show that the problem is common in spaceflight; they do not support the steps or the warning levels.",
+      "The medical lead gave no sources for this card.",
+      "Saline spray (a few times a day) is from memory; that the ISS medical kit has nasal sprays is also from memory and not confirmed."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: only nose or throat (stuffy nose, runny nose, sore throat, mild cough) = unusual (self); the same plus fever, or worsening over a few days, or strong pain in the face or ear = concerning (medical officer); plus shortness of breath or low SpO2 = the SpO2 table and the shortness of breath card; trouble swallowing or hoarseness with a swollen throat = dangerous (everyone, urgent card). Card level above is the base level. Congestion in flight is partly from the fluid shift (from memory, unverified), so not every case is an infection. 14 Nov, medical lead: no squeeze-bottle nasal irrigation (liquid does not drain in microgravity); saline spray only, for every gravity state."
+  },
+  {
+    "id": "headache",
+    "title": {
+      "en": "Headache",
+      "pt": "Dor de cabeça"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "cabin_co2",
+          "direction": "high",
+          "basis": "nasa_limit",
+          "threshold": 2.3,
+          "unit": "mmHg",
+          "note": "if CO2 is 2.3 or more the high CO2 card is used instead"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Did you sleep well last night?",
+          "answer": "no"
+        },
+        {
+          "question": "Did you drink water today?",
+          "answer": "no"
+        },
+        {
+          "question": "Did you eat today?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "headache",
+          "migraine",
+          "head hurts"
+        ],
+        "pt": [
+          "dor de cabeça",
+          "cefaleia",
+          "enxaqueca",
+          "cabeça doendo"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit in a calm place with little light and noise.",
+        "pt": "Sente-se num lugar calmo, com pouca luz e pouco barulho."
+      },
+      {
+        "en": "Drink water. Eat something light if you have not eaten.",
+        "pt": "Beba água. Coma algo leve, se ainda não comeu."
+      },
+      {
+        "en": "Check the screen: is the CO2 in the room normal? If it is rising, go to another room.",
+        "pt": "Veja na tela se o CO2 do cômodo está normal. Se estiver subindo, vá para outro cômodo."
+      },
+      {
+        "en": "Write down when it started and how much it hurts, from 0 to 10. Rest or try to sleep.",
+        "pt": "Anote quando começou e quanto dói, de 0 a 10. Descanse ou tente dormir."
+      },
+      {
+        "en": "Look again in a few hours. If it does not get better, or you have repeated vomiting, fever, confusion, a stiff neck, weakness on one side, slurred speech or changed vision: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se não melhorar, ou se tiver vômitos repetidos, febre, confusão, pescoço rígido, fraqueza de um lado, fala enrolada ou visão alterada: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore a sudden, very strong headache.",
+        "pt": "Não ignore uma dor de cabeça súbita e muito forte."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Technical Reports Server: Shuttle medical events review (facial fullness and headache the most common complaints in the symptoms category)",
+        "url": "https://ntrs.nasa.gov/citations/20000085962",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "NASA OCHMO-TB-004 (CO2): headaches reported between 2.8 and 4.5 mmHg",
+        "url": "",
+        "quote": "Headaches at levels between 2.8-4.5 mmHg",
+        "is_nasa": true
+      },
+      {
+        "name": "Thunderclap headache pearls and pitfalls (EMDocs)",
+        "url": "https://www.emdocs.net/thunderclap-headache-pearls-pitfalls",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Headaches that should flag further attention (ACP)",
+        "url": "https://immattersacp.org/archives/2018/01/headaches-that-should-flag-further-attention.htm",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Headache red flags (ACI NSW)",
+        "url": "https://aci.health.nsw.gov.au/__data/assets/pdf_file/0008/319697/ACI-ECI-Red-flags-blood-from-stone.pdf",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The sources show that headache is common in spaceflight and linked to CO2; they do not support the steps or the warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine step: that is a medical decision not made yet.",
+      "Sources pasted by the medical lead, 14 Nov; none from NASA and they were not opened. They are about the warning signs on Earth, not about spaceflight, and do not fix the steps. The three headache pages support the red-flag signs (sudden strongest headache, neurological signs)."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: only headache = unusual (self), the system asks about sleep, water and food and asks again in a few hours (see case-004); headache that does not improve after a few hours, or repeated vomiting, or fever = concerning (medical officer); confusion, stiff neck with fever, or pain after a blow to the head = concerning (medical officer, not left alone); sudden worst-ever headache, weakness on one side, slurred speech, changed vision, or seizure = dangerous (everyone, urgent card). With cabin CO2 at 2.3 mmHg or more the high CO2 card is used instead. Card level above is the base level; the system uses this list."
+  },
+  {
+    "id": "cut-injury",
+    "title": {
+      "en": "Cut or injury",
+      "pt": "Corte ou lesão"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is it bleeding and does the bleeding not stop?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "cut",
+          "hurt myself",
+          "bleeding",
+          "sprain",
+          "blow",
+          "fall"
+        ],
+        "pt": [
+          "corte",
+          "machuquei",
+          "sangrando",
+          "torci",
+          "pancada",
+          "queda"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop and stay still. If there is blood, press the spot with a clean cloth for 10 minutes without letting go.",
+        "pt": "Pare e fique parada. Se tiver sangue, aperte o local com um pano limpo por 10 minutos, sem soltar."
+      },
+      {
+        "en": "Clean the cut with gauze and saline. Do not let blood float: collect it with gauze.",
+        "pt": "Limpe o corte com gaze e soro. Não deixe o sangue flutuar: recolha com gaze."
+      },
+      {
+        "en": "Cover the cut with a clean bandage.",
+        "pt": "Cubra o corte com um curativo limpo."
+      },
+      {
+        "en": "No cut (blow, twist, exercise pain)? Stop the exercise, rest, and put a cold cloth on the spot. Keep it still if it hurts to move.",
+        "pt": "Sem corte (pancada, torção, dor do exercício)? Pare o exercício, descanse e coloque um pano frio no local. Mantenha parado se doer ao mexer."
+      },
+      {
+        "en": "Look again in a few hours. If the bleeding does not stop, the cut is deep, something is stuck in it, a bone looks broken, or you have confusion, sleepiness or trouble breathing: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se o sangramento não parar, o corte for fundo, tiver algo cravado, um osso parecer quebrado, ou tiver confusão, sono ou falta de ar: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not let blood float free in the cabin.",
+        "pt": "Não deixe o sangue flutuar solto na cabine."
+      },
+      {
+        "en": "Do not ignore a blow to the head with confusion or sleepiness.",
+        "pt": "Não ignore uma pancada na cabeça com confusão ou sono."
+      }
+    ],
+    "sources": [
+      {
+        "name": "A NASA study of 219 in-flight injuries (hand injuries most frequent, mostly small cuts; 0.26 per spacewalk), seen only in a secondary news summary",
+        "url": "https://www.space.com/space-exploration/human-spaceflight/what-the-first-medical-evacuation-from-the-international-space-station-tells-us-about-healthcare-in-space",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The injury frequency comes from a secondary news summary; the original NASA study was not found.",
+      "The medical lead gave no sources for this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: small cut, scrape, bruise or mild pain that passes with pressure or rest = unusual (self); bleeding that does not stop after 10 minutes of pressure, deep or wide cut, stuck object, eye injury, or suspected broken bone = concerning (medical officer); blow to the head with confusion, sleepiness or fainting = concerning (medical officer, not left alone); strong bleeding that cannot be controlled, or trouble breathing after a chest injury = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Blood floats in microgravity, so steps tell her to collect it."
+  },
+  {
+    "id": "poor-sleep",
+    "title": {
+      "en": "Poor sleep",
+      "pt": "Sono ruim"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "sleep_duration",
+          "direction": "low",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "2 nights in a row shorter than her normal"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Did you sleep well last night?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "did not sleep",
+          "insomnia",
+          "can't sleep",
+          "tired"
+        ],
+        "pt": [
+          "não dormi",
+          "insônia",
+          "não consigo dormir",
+          "cansada",
+          "sono ruim"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Go to bed and wake up at the same times every day.",
+        "pt": "Vá dormir e acorde sempre nos mesmos horários."
+      },
+      {
+        "en": "Before bed, lower the light and the noise in your room.",
+        "pt": "Antes de dormir, diminua a luz e o barulho do seu cômodo."
+      },
+      {
+        "en": "Avoid caffeine and hard exercise in the hours before bed.",
+        "pt": "Evite cafeína e exercício pesado nas horas antes de dormir."
+      },
+      {
+        "en": "Cannot sleep after 20 to 30 minutes? Get up and do something calm until you feel sleepy.",
+        "pt": "Não conseguiu dormir em 20 a 30 minutos? Levante e faça algo calmo até sentir sono."
+      },
+      {
+        "en": "Check the screen for your room (noise, light, CO2, temperature). If something is not normal, sleep in another room.",
+        "pt": "Veja na tela o seu cômodo (barulho, luz, CO2, temperatura). Se algo estiver fora do normal, durma em outro cômodo."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore sleepiness while doing an important task.",
+        "pt": "Não ignore a sonolência durante uma tarefa importante."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA table of sleep in flight on Mir (109 nights): 307 min in flight versus 401 before; exact citation not in the project notes",
+        "url": "",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The Mir table shows that sleep gets shorter in flight; it does not support the steps or the warning levels.",
+      "The medical lead gave no sources for this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: 2 nights in a row with sleep shorter than her own normal = unusual (self); the room (noise, light, CO2) is shown as exposure, never as the cause; 4 or more nights in a row, or less than 4 hours in one night = concerning (medical officer); poor sleep plus very low mood, confusion or dangerous sleepiness during a task = concerning (medical officer). The unusual warning is never sent while she sleeps (project rule): it goes in the morning. Card level above is the base level; the system uses this list. The numbers (2 nights, 4 nights, 4 hours) were proposed in the draft and accepted by her."
+  },
+  {
+    "id": "chest-pain",
+    "title": {
+      "en": "Chest pain or fast heartbeat",
+      "pt": "Dor no peito ou batimento acelerado"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "resting_heart_rate",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "more than 20% or 20 bpm above her baseline at rest (medical lead's rule)"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you have chest pain or pressure?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your heart racing?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "chest pain",
+          "tight chest",
+          "racing heart",
+          "palpitations"
+        ],
+        "pt": [
+          "dor no peito",
+          "aperto no peito",
+          "coração acelerado",
+          "palpitação"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop what you are doing. Sit or lie down and stay still.",
+        "pt": "Pare o que está fazendo. Sente-se ou deite-se e fique parada."
+      },
+      {
+        "en": "Breathe slowly and deeply. Loosen tight clothes.",
+        "pt": "Respire devagar e fundo. Afrouxe a roupa apertada."
+      },
+      {
+        "en": "Ask someone to stay with you. Do not stay alone.",
+        "pt": "Peça para alguém ficar com você. Não fique sozinha."
+      },
+      {
+        "en": "Look at your heart rate on the watch. Write down the time and whether you have pain, shortness of breath, dizziness or cold sweat.",
+        "pt": "Olhe o seu batimento no relógio. Anote a hora e se tem dor, falta de ar, tontura ou suor frio."
+      },
+      {
+        "en": "If the pain is strong, spreads to the arm or jaw, or you faint or feel confused: follow the urgent card.",
+        "pt": "Se a dor for forte, for para o braço ou a mandíbula, ou se você desmaiar ou ficar confusa: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stay alone.",
+        "pt": "Não fique sozinha."
+      },
+      {
+        "en": "Do not ignore strong chest pain or fainting.",
+        "pt": "Não ignore uma dor forte no peito ou um desmaio."
+      }
+    ],
+    "sources": [
+      {
+        "name": "2021 AHA/ACC chest pain guideline, summary (ACC)",
+        "url": "https://acc.org/latest-in-cardiology/ten-points-to-remember/2021/10/27/14/06/2021-guideline-for-chest-pain-gl_chestpain",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Chest pain guideline highlights (AHA)",
+        "url": "https://newsroom.heart.org/news/chest-pain-may-extend-outside-the-chest-often-needs-to-be-checked-by-a-professional",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "New chest pain guidelines, 'but only if you act' (AHA)",
+        "url": "https://heart.org/en/news/2021/10/28/new-guidelines-help-doctors-diagnose-chest-pain-but-only-if-you-act",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Approach to palpitations (RACGP)",
+        "url": "https://www1.racgp.org.au/ajgp/2019/april/approach-to-palpitations",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Palpitations (StatPearls)",
+        "url": "https://www.ncbi.nlm.nih.gov/books/NBK436016/",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Five tips on the clinical approach to palpitations (Medical Independent)",
+        "url": "https://www.medicalindependent.ie/2018/03/22/five-tips-on-the-clinical-approach-to-palpitations/",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Palpitations and SVT (iatrox)",
+        "url": "https://www.iatrox.com/guidelines/palpitations-and-svt",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "High heart rate warning on the Apple Watch (Gadget Hacks)",
+        "url": "https://ios.gadgethacks.com/news/high-heart-rate-warning-your-apple-watch-heres-what-means-0191216",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Abnormal heart rate alert (Garmin manual)",
+        "url": "https://www8.garmin.com/manuals/webhelp/marqexpedition/EN-US/GUID-A1C8190D-D4D6-4EE4-9B31-87AE009433AA.html",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source.",
+      "The 20% or 20 bpm cut-off is the medical lead's own rule, without a source.",
+      "No medicine step (for example aspirin): that is a medical decision not made.",
+      "Sources pasted by the medical lead, 14 Nov; none from NASA and they were not opened. They are about chest pain and palpitations in general and about watch alerts, not about spaceflight; they do not fix the steps or the 20% or 20 bpm cut-off."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: heart rate at rest more than 20% or 20 bpm above her baseline, no other symptoms = unusual (self), and the system asks about recent exercise, caffeine and nervousness; high heart rate plus shortness of breath, dizziness, cold sweat, or mild chest pain = concerning (medical officer, not left alone); strong chest pain or pressure (especially going to the arm or jaw), fainting, or a very irregular heartbeat = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list."
+  },
+  {
+    "id": "nausea-vomiting",
+    "title": {
+      "en": "Nausea and vomiting",
+      "pt": "Náusea e vômito"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Have you vomited more than twice?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you drink water?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "nausea",
+          "nauseous",
+          "vomit",
+          "vomited",
+          "sick to my stomach"
+        ],
+        "pt": [
+          "enjoo",
+          "náusea",
+          "vomitei",
+          "vômito",
+          "mal do estômago"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit down and stay still. Avoid moving your head fast.",
+        "pt": "Sente-se e fique parada. Evite mexer a cabeça rápido."
+      },
+      {
+        "en": "Keep a vomit bag at hand. If you vomit, do it into the bag and close it. Do not let it float.",
+        "pt": "Deixe um saco de vômito à mão. Se vomitar, vomite no saco e feche. Não deixe flutuar."
+      },
+      {
+        "en": "Afterwards, drink water in small sips.",
+        "pt": "Depois, beba água em pequenos goles."
+      },
+      {
+        "en": "Do not eat anything heavy. Eat something light when it passes.",
+        "pt": "Não coma nada pesado. Coma algo leve quando passar."
+      },
+      {
+        "en": "Look again in a few hours. If you vomit a lot, cannot drink, or have fever, strong belly pain, blood, confusion or fainting: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se vomitar muito, não conseguir beber, ou tiver febre, dor de barriga forte, sangue, confusão ou desmaio: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not vomit with the mask or helmet on your face: take it off first.",
+        "pt": "Não vomite com a máscara ou o capacete no rosto: tire antes."
+      },
+      {
+        "en": "Do not let vomit float free in the cabin.",
+        "pt": "Não deixe o vômito flutuar solto na cabine."
+      }
+    ],
+    "sources": [
+      {
+        "name": "When to get help: nausea or vomiting in adults (Mayo Clinic)",
+        "url": "https://www.mayoclinic.org/symptom-checker/nausea-or-vomiting-in-adults-adult/related-factors/itt-20009075",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Vomiting: causes and what to do (Cleveland Clinic)",
+        "url": "https://health.clevelandclinic.org/what-causes-vomiting-and-what-should-you-do-about-it",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Nausea and vomiting in adults (NI Direct)",
+        "url": "https://www.nidirect.gov.uk/conditions/nausea-and-vomiting-adults",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Vomiting warning signs (GoodRx)",
+        "url": "https://www.goodrx.com/health-topic/gastroenterology/er-vomiting",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Diabetes sick days (UCSF)",
+        "url": "https://diabetesteachingcenter.ucsf.edu/node/7756",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Type 1 sick days (T1D Exchange)",
+        "url": "https://t1dexchange.org/t1d-sick-days/",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Diabetes and intercurrent illness (Patient.info)",
+        "url": "https://patient.info/doctor/endocrine-disorders/diabetes-and-intercurrent-illness",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Type 1 sick day plan (Healthify NZ)",
+        "url": "https://healthify.nz/diabetes-type-1-sick-day-plan",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source.",
+      "That nausea is common in the first days of spaceflight is from memory; no NASA source found yet.",
+      "No medicine step (anti-nausea): that is a medical decision not made.",
+      "Sources pasted by the medical lead, 14 Nov; none from NASA and they were not opened. They are about the warning signs on Earth, not about spaceflight, and do not fix the steps. The four diabetes sick-day pages relate vomiting to glucose."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: nausea or vomiting alone = unusual (self); repeated vomiting (more than 2 times), cannot drink water, fever, or strong belly pain = concerning (medical officer); vomit with blood, confusion, fainting, or together with a sudden very strong headache = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. No sources were given for this card. Vomiting inside a mask or helmet is a choking risk."
+  },
+  {
+    "id": "dizziness-fainting",
+    "title": {
+      "en": "Dizziness or fainting",
+      "pt": "Tontura ou desmaio"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "heart_rate",
+          "direction": "changed",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "high or low heart rate with dizziness raises the level"
+        },
+        {
+          "signal": "blood_oxygen",
+          "direction": "low",
+          "basis": "reference_range",
+          "threshold": 95,
+          "unit": "%",
+          "note": "low SpO2 with dizziness raises the level"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Did you faint?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is the dizziness still there after sitting?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "dizzy",
+          "dizziness",
+          "fainted",
+          "passed out",
+          "vision going dark"
+        ],
+        "pt": [
+          "tontura",
+          "tonta",
+          "desmaiei",
+          "vista escura",
+          "zonza"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit or lie down right away and stay still.",
+        "pt": "Sente-se ou deite-se já e fique parada."
+      },
+      {
+        "en": "Drink water in small sips, only if you are wide awake and do not feel like vomiting.",
+        "pt": "Beba água em pequenos goles, só se estiver bem acordada e sem vontade de vomitar."
+      },
+      {
+        "en": "Look at your heart rate and blood oxygen on the watch and measure your glucose if you can. Write down the time. If glucose is below 70, eat or drink something sweet and measure again in 15 minutes. If it is high, follow the glucose table.",
+        "pt": "Olhe o batimento e o oxigênio no relógio e meça a glicose, se puder. Anote a hora. Se a glicose estiver abaixo de 70, coma ou beba algo doce e meça de novo em 15 minutos. Se estiver alta, siga a tabela da glicose."
+      },
+      {
+        "en": "Ask someone to stay with you. Get up slowly, and do not do tasks that need attention or use stairs while dizzy.",
+        "pt": "Peça para alguém ficar com você. Levante devagar e não faça tarefas que exijam atenção nem use escadas enquanto estiver tonta."
+      },
+      {
+        "en": "If it does not get better in 10 to 15 minutes, or gets worse, call everyone. If you faint, feel confused, or have chest pain, shortness of breath, a very irregular heartbeat, a sudden very strong headache, loss of vision, double vision, weakness or tingling on one side, trouble speaking or swallowing, or lose your balance: follow the urgent card.",
+        "pt": "Se não melhorar em 10 a 15 minutos, ou piorar, chame todos. Se você desmaiar, ficar confusa, ou tiver dor no peito, falta de ar, batimento muito irregular, dor de cabeça súbita e muito forte, perda de visão, visão dupla, fraqueza ou formigamento de um lado, dificuldade para falar ou engolir, ou perder o equilíbrio: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not get up fast.",
+        "pt": "Não levante rápido."
+      },
+      {
+        "en": "Do not stay alone if the dizziness does not pass.",
+        "pt": "Não fique sozinha se a tontura não passar."
+      }
+    ],
+    "sources": [
+      {
+        "name": "2018 ESC syncope guideline, summary (ACC)",
+        "url": "https://www.acc.org/latest-in-cardiology/ten-points-to-remember/2018/04/04/14/28/2018-esc-guidelines-for-syncope",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "2018 ESC syncope guideline (European Heart Journal)",
+        "url": "https://boris.unibe.ch/125913/1/ehy037.pdf",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Emergency department evaluation of acute dizziness (ENT Bulletin)",
+        "url": "https://bulletin.entnet.org/home/article/22952012/emergency-department-evaluation-of-acute-dizziness",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Dizziness in the ED (NHS Scotland)",
+        "url": "https://rightdecisions.scot.nhs.uk/media/2rkpjp33/dizziness-ed-gri.pdf",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "The evaluation of the dizzy patient (Relias)",
+        "url": "https://reliasmedia.com/articles/142758-the-evaluation-of-the-dizzy-patient",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Vertigo (Textbook of Urgent Care Medicine, JUCM)",
+        "url": "https://www.jucm.com/textbook-of-urgent-care-medicine-chapter-3-vertigo/",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Dizziness, PMC9807946",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9807946",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Orthostatic hypotension (Mayo Clinic)",
+        "url": "https://www.mayoclinic.org/diseases-conditions/orthostatic-hypotension/symptoms-causes/syc-20352548",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Orthostatic hypotension (Altru)",
+        "url": "https://www.altru.org/health-library/conditions/orthostatic-hypotension-postural-hypotension",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Diabetes and dizziness (Pfizer Health Answers)",
+        "url": "https://healthanswers.pfizer.com/diabetes/symptoms-complications/diabetes-and-dizziness",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Diabetes and dizziness (Byram Healthcare)",
+        "url": "https://www.byramhealthcare.com/blogs/can-diabetes-cause-dizziness",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "Sources pasted by the medical lead, 14 Nov; none from NASA and they were not opened. They are about dizziness and fainting on Earth, not about spaceflight, and do not fix the steps.",
+      "The list of high-risk fainting symptoms was not found by the search, so it is not used.",
+      "Step 3 'something sweet below 70, measure again in 15 minutes' comes from a review the medical lead pasted, no source; she approved it as her decision.",
+      "Step 5 '10 to 15 minutes' is a protocol decision, no source; she approved it."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels, with the medical lead's four adjustments, 14 Nov: mild dizziness that passes on sitting = unusual (self); persistent dizziness, or sudden onset that does not change with head position, or short repeated episodes, or with high or low heart rate, low SpO2 or chest pain = concerning (medical officer, not left alone); stroke signs even when alone (double vision, lost visual field, weakness of the face or a limb, trouble speaking or swallowing, loss of balance, new strong headache), fainting, or confusion = dangerous (everyone, urgent card); dizziness with glucose outside the range = one level higher and the glucose table applies (the Astrum does not know who has diabetes, so only the glucose value is used). She sent the sources after the table without saying yes; the drafting tool took that as agreement and asks for approval of the card. Card level above is the base level; the system uses this list. Adjusted 14 Nov with the review's caveats A to D: water only if awake and not vomiting; low glucose (below 70) treated with sweets and re-measured in 15 minutes; stairs and attention tasks avoided; wait of 10-15 minutes before moving up; more urgent-card signs added. SAMU left out (not on the ship): 'call everyone'. Approved by the medical lead."
+  },
+  {
+    "id": "mood-stress",
+    "title": {
+      "en": "Mood, stress, anxiety and conflict",
+      "pt": "Humor, estresse, ansiedade e conflito"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "mood",
+          "direction": "low",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "low mood for a few days"
+        },
+        {
+          "signal": "stress",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "stress above her normal for a few days"
+        },
+        {
+          "signal": "conflict",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "conflict reported in the daily check"
+        },
+        {
+          "signal": "time_alone",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "much time alone"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you have thoughts of hurting yourself?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a plan or something at hand to do it?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you afraid you could hurt someone else?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "anxious",
+          "can't take it",
+          "panic",
+          "argued with",
+          "sad",
+          "stressed",
+          "bored",
+          "monotony",
+          "nothing to do",
+          "forgetting things",
+          "can't concentrate",
+          "memory"
+        ],
+        "pt": [
+          "ansiosa",
+          "não aguento",
+          "pânico",
+          "briguei com",
+          "triste",
+          "estressada",
+          "entediada",
+          "monotonia",
+          "nada para fazer",
+          "esquecendo as coisas",
+          "não consigo me concentrar",
+          "memória"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "First check your body and the air: the CO2 in the room, blood oxygen and glucose. If something is not normal, follow the card for that problem.",
+        "pt": "Primeiro confira o corpo e o ar: o CO2 do cômodo, o oxigênio no sangue e a glicose. Se algo estiver fora do normal, siga o cartão desse problema."
+      },
+      {
+        "en": "Sit in a calm place and breathe slowly. Talk to someone you trust or to the medical officer. If it is a conflict, step away and talk again when you are both calm.",
+        "pt": "Sente-se num lugar calmo e respire devagar. Fale com alguém de confiança ou com o responsável médico. Se for um conflito, afaste-se e converse de novo quando os dois estiverem calmos."
+      },
+      {
+        "en": "If you have thoughts of hurting yourself or someone else: ask for someone now and do not stay alone.",
+        "pt": "Se tiver pensamentos de se machucar ou de machucar outra pessoa: peça alguém agora e não fique sozinha."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stay alone if you have thoughts of hurting yourself or someone else.",
+        "pt": "Não fique sozinha se tiver pensamentos de se machucar ou de machucar outra pessoa."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: acute stress, adjustment reaction, anxiety/panic, cognitive disturbance, mood disturbance and interpersonal conflict are among the most common conditions to address on every mission",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps (including the 4-second and 6-second breathing).",
+      "The NASA table says these conditions are common; it does not give steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: low mood or stress above her normal for a few days, or a conflict = unusual (self); worsening for several days, cannot sleep or work, panic attack, or a conflict that is not solved = concerning (medical officer); thoughts of hurting herself with no plan or means = concerning (medical officer, not left alone, without waiting for answers); thoughts of hurting herself WITH a plan or means, risk to another person, confusion with strange ideas, or very strong agitation = dangerous (everyone, urgent card). Physical causes first: step 1 sends her to check cabin CO2, blood oxygen and glucose before treating it as emotional (high CO2, low oxygen or low glucose cause fast heartbeat, shortness of breath, confusion, agitation). If the affected person is the medical officer (Okafor), the alert goes to the commander (Tanaka) instead of the medical officer. Privacy: the text she writes is never shown to the crew, only the alert level. Card level above is the base level; the system uses this list. Cut to 3 steps on 14 Nov at the medical lead's request. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): monotony or lack of meaningful work = unusual (self); neurocognitive problems (forgetting things, cannot concentrate) = unusual (self), and concerning (medical officer) if it lasts more than a few days or gets worse. Physical causes first."
+  },
+  {
+    "id": "digestive",
+    "title": {
+      "en": "Stomach and bowel (diarrhea, constipation, indigestion)",
+      "pt": "Estômago e intestino (diarreia, prisão de ventre, indigestão)"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Have you had diarrhea for more than 2 days?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you drink water?",
+          "answer": "no"
+        },
+        {
+          "question": "Is there blood or black stool?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "diarrhea",
+          "constipation",
+          "indigestion",
+          "stomach ache",
+          "belly pain",
+          "heartburn",
+          "hemorrhoids",
+          "piles"
+        ],
+        "pt": [
+          "diarreia",
+          "prisão de ventre",
+          "constipação",
+          "indigestão",
+          "dor de barriga",
+          "azia",
+          "dor de estômago",
+          "hemorroidas"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Drink water in small sips and eat only light things.",
+        "pt": "Beba água em pequenos goles e coma só coisas leves."
+      },
+      {
+        "en": "Diarrhea: keep drinking and use oral rehydration solution if you have it.",
+        "pt": "Diarreia: continue bebendo e use soro de reidratação, se tiver."
+      },
+      {
+        "en": "Constipation: drink more water, eat fiber (fruit, grains) and do light exercise.",
+        "pt": "Prisão de ventre: beba mais água, coma fibras (frutas, grãos) e faça exercício leve."
+      },
+      {
+        "en": "Hemorrhoids (pain, itch or a little bright blood when you pass stool): clean with warm water and a soft cloth, avoid straining, and put a cold cloth on it.",
+        "pt": "Hemorroidas (dor, coceira ou um pouco de sangue vivo ao evacuar): limpe com água morna e um pano macio, evite fazer força e coloque um pano frio."
+      },
+      {
+        "en": "Wash your hands often. If you have fever, stay apart from the others and do not share objects.",
+        "pt": "Lave as mãos com frequência. Se tiver febre, fique separada dos outros e não divida objetos."
+      },
+      {
+        "en": "Look again in a day or two. If you have blood in the stool or vomit, black stool, a very hard belly, strong pain with fever, no stool and no gas with vomiting, or a large amount of blood with dizziness: follow the urgent card.",
+        "pt": "Olhe de novo em um ou dois dias. Se tiver sangue nas fezes ou no vômito, fezes pretas, barriga muito dura, dor forte com febre, sem fezes e sem gases com vômito, ou sangue em grande quantidade com tontura: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore blood or black stool.",
+        "pt": "Não ignore sangue ou fezes pretas."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: constipation, diarrhea and indigestion are among the most common conditions to address on every mission",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "Mayo Clinic: Diarrhea",
+        "url": "https://www.mayoclinic.org/diseases-conditions/diarrhea/symptoms-causes/syc-20352241",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Mayo Clinic: Blood in stool",
+        "url": "https://www.mayoclinic.org/symptom-checker/blood-in-stool-in-adults-adult/related-factors/itt-20009075",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "NHS Chelsea and Westminster: Gastroenteritis (hospital leaflet)",
+        "url": "https://www.chelwest.nhs.uk/your-visit/patient-leaflets/medicine-services/gastroenteritis",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "News about constipation in astronauts (Copenhagen with NASA, 2026): context only, not a source for the steps",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The Mayo and NHS pages support the warning signs (more than 2 days, cannot drink, strong belly pain, blood or black stool); they are Earth sources, not NASA.",
+      "No source for the dangerous line items 'no stool and no gas with vomiting' (bowel obstruction) and 'very hard belly': the search found nothing reliable.",
+      "No source for diarrhea, abdominal pain or bleeding in spaceflight.",
+      "The medical lead pasted the sources; they were not opened.",
+      "Hemorrhoids line added from memory, no source."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels, 14 Nov: mild diarrhea, constipation or indigestion = unusual (self); diarrhea for more than 2 days, cannot drink, fever, or strong belly pain = concerning (medical officer); blood in stool or vomit, black stool (melena, bleeding from the upper digestive tract; added by the medical lead), very hard and painful belly, no stool and no gas with vomiting, or strong belly pain WITH fever (possible surgical cause such as appendicitis, no surgeon on the ship) = dangerous (everyone, urgent card). The last two items (strong pain with fever raised to dangerous, and hygiene and staying apart from the crew if she has fever) are the draft's recommendations that she did not answer after being asked three times; they are included in this draft and covered by her approval of the card. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): hemorrhoids (pain, itch or a little bright blood when passing stool) = unusual (self); bleeding that does not stop, or strong pain = concerning (medical officer); blood in a large amount with dizziness = dangerous (everyone, urgent card). Covers hemorrhoids from NASA table E.2-2."
+  },
+  {
+    "id": "back-pain",
+    "title": {
+      "en": "Back pain",
+      "pt": "Dor nas costas"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Does the pain go down your leg?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have numbness or weakness in your legs?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "back pain",
+          "backache",
+          "my back hurts",
+          "lower back",
+          "numb around the genitals",
+          "both legs weak"
+        ],
+        "pt": [
+          "dor nas costas",
+          "costas doendo",
+          "lombar",
+          "coluna",
+          "dormência nos genitais",
+          "as duas pernas fracas"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop what is hurting your back. Rest in a comfortable position.",
+        "pt": "Pare o que está machucando as costas. Descanse numa posição confortável."
+      },
+      {
+        "en": "Move slowly and do light stretches. Do not stay still for too long.",
+        "pt": "Mexa-se devagar e faça alongamentos leves. Não fique parada por muito tempo."
+      },
+      {
+        "en": "Put a warm or cold cloth on the sore spot.",
+        "pt": "Coloque um pano morno ou frio no local da dor."
+      },
+      {
+        "en": "Look again in 2 days. If the pain goes down the leg, you have numbness, weakness in the legs, numbness around the genitals or the anus, numbness or weakness in both legs, loss of control of urine or stool, high fever, or it began after a fall or hard blow: follow the urgent card.",
+        "pt": "Olhe de novo em 2 dias. Se a dor descer pela perna, se tiver dormência, fraqueza nas pernas, dormência em volta dos genitais ou do ânus, dormência ou fraqueza nas duas pernas, perda de controle da urina ou das fezes, febre alta, ou se começou depois de uma queda ou pancada forte: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore numbness, weakness in the legs or loss of control of urine or stool.",
+        "pt": "Não ignore dormência, fraqueza nas pernas ou perda de controle da urina ou das fezes."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: back pain (space-adaptation related) is among the most common conditions to address on every mission",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says back pain is common; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine step: that is a medical decision not made."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild or moderate back pain that improves with slow movement = unusual (self); pain that does not improve in 2 days, goes down the leg, or with numbness = concerning (medical officer); back pain with weakness in the legs, loss of control of urine or stool, high fever, or after a fall or hard blow = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 11, medical lead chose A): added numbness around the genitals or the anus, and numbness or weakness in both legs, to the last step and to the dangerous level (everyone, urgent card)."
+  },
+  {
+    "id": "eyes",
+    "title": {
+      "en": "Eyes",
+      "pt": "Olhos"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Did something get into your eye?",
+          "answer": "yes"
+        },
+        {
+          "question": "Have you lost any vision?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "eye",
+          "red eye",
+          "something in my eye",
+          "eye pain",
+          "chemical in my eye",
+          "vision",
+          "eyelid",
+          "blurred vision",
+          "halos",
+          "flashes of light",
+          "floaters",
+          "curtain over vision"
+        ],
+        "pt": [
+          "olho",
+          "olho vermelho",
+          "algo no olho",
+          "dor no olho",
+          "produto no olho",
+          "visão",
+          "enxergo",
+          "pálpebra",
+          "visão borrada",
+          "halos",
+          "clarões de luz",
+          "moscas volantes",
+          "cortina na visão"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Do not rub the eye. Wash your hands.",
+        "pt": "Não esfregue o olho. Lave as mãos."
+      },
+      {
+        "en": "Something in the eye: blink many times. Do not try to remove something that is stuck in the eye.",
+        "pt": "Algo no olho: pisque várias vezes. Não tente tirar algo que esteja cravado no olho."
+      },
+      {
+        "en": "Chemical in the eye: wash the eye right away with plenty of water or saline for at least 20 minutes, and keep washing while you wait for help. Collect the liquid with gauze so it does not float.",
+        "pt": "Produto químico no olho: lave o olho já com bastante água ou soro por pelo menos 20 minutos, e continue lavando enquanto espera ajuda. Recolha o líquido com gaze para não flutuar."
+      },
+      {
+        "en": "Do not put drops or ointment in the eye unless the medical officer says so.",
+        "pt": "Não ponha gotas nem pomada no olho se o responsável médico não mandar."
+      },
+      {
+        "en": "Red, swollen eyelid: put a warm wet cloth on it. Do not squeeze it.",
+        "pt": "Pálpebra vermelha e inchada: coloque um pano morno e úmido. Não espreme."
+      },
+      {
+        "en": "Look again in a few hours. If you lose vision, something is stuck in the eye, or you have very strong eye pain with nausea, halos around lights and blurred vision: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se perder a visão, tiver algo cravado no olho, ou dor muito forte no olho com náusea, halos em volta das luzes e visão borrada: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub the eye.",
+        "pt": "Não esfregue o olho."
+      },
+      {
+        "en": "Do not ignore loss of vision.",
+        "pt": "Não ignore perda de visão."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: chemical eye injury, eye foreign body and corneal abrasion are among the most common conditions to address on every mission",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are common; it gives no steps or warning levels.",
+      "Washing for 15 minutes is from memory of Earth first aid; how an eye wash works in microgravity (water floats) is not known: The drafting tool only added gauze to collect the liquid.",
+      "The medical lead gave no sources for this card.",
+      "Eyelid, ulcer, glaucoma and SANS lines added from memory, no source.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild irritation (redness, itch, tearing) without strong pain or loss of vision = unusual (self); something in the eye, scratch, pain that does not pass, discharge, or a very red eye = concerning (medical officer); chemical in the eye, loss of vision (partial or total), object stuck in the eye, or very strong pain with nausea = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): red and swollen eyelid = unusual (self), worsening = concerning; vision slowly getting worse in flight (SANS), or an ulcer (pain, discharge, white spot) = concerning (medical officer); very strong eye pain with nausea, halos and blurred vision (acute glaucoma) = dangerous (everyone). Covers eyelid infection, corneal ulcer, acute glaucoma and SANS from NASA table E.2-2. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): retinal detachment: new flashes of light or many new floaters = concerning (medical officer); a curtain or shadow over the vision, or sudden loss of vision = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 8, medical lead chose A): chemical in the eye is washed for at least 20 minutes (before: 15) and washing continues while waiting for help."
+  },
+  {
+    "id": "urinary-genital",
+    "title": {
+      "en": "Urinary and genital",
+      "pt": "Urinário e genital"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you urinate?",
+          "answer": "no"
+        },
+        {
+          "question": "Is there blood in the urine?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "burning when I pee",
+          "urinary infection",
+          "can't pee",
+          "itching",
+          "discharge",
+          "yeast infection",
+          "leaking urine",
+          "incontinence",
+          "prostate",
+          "pain below the belly",
+          "dribbling"
+        ],
+        "pt": [
+          "ardor ao urinar",
+          "infecção urinária",
+          "não consigo urinar",
+          "coceira",
+          "corrimento",
+          "candidíase",
+          "xixi",
+          "escapando urina",
+          "incontinência",
+          "próstata",
+          "dor entre as pernas",
+          "gotejando"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Drink water often.",
+        "pt": "Beba água com frequência."
+      },
+      {
+        "en": "Do not hold your urine. Go as soon as you feel the need.",
+        "pt": "Não segure a urina. Vá assim que sentir vontade."
+      },
+      {
+        "en": "Keep the area clean and dry. Wear loose, clean underwear. If urine leaks by accident, use a pad and change it when it is wet.",
+        "pt": "Mantenha a região limpa e seca. Use roupa íntima limpa e folgada. Se a urina escapar sem querer, use um absorvente e troque quando molhar."
+      },
+      {
+        "en": "Do not use perfumed soaps or products that irritate.",
+        "pt": "Não use sabonete perfumado nem produtos que irritem."
+      },
+      {
+        "en": "Look again in a day or two. If you have fever, pain in the back or side, blood in the urine, cannot urinate for many hours, or have strong pain in the lower belly: follow the urgent card.",
+        "pt": "Olhe de novo em um ou dois dias. Se tiver febre, dor nas costas ou no lado, sangue na urina, não conseguir urinar por muitas horas, ou dor forte na barriga de baixo: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not hold your urine.",
+        "pt": "Não segure a urina."
+      },
+      {
+        "en": "Do not ignore fever, blood in the urine, or being unable to urinate.",
+        "pt": "Não ignore febre, sangue na urina ou não conseguir urinar."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: urinary tract infection, vaginal yeast infection, urinary incontinence and urinary retention are among the most common conditions to address on every mission",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "In-flight clinical symptoms on the ISS: urinary tract infection (0.1 per flight year)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098747",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table and the ISS study say these conditions occur; they give no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No medicine step (antibiotic, antifungal): that is a medical decision not made.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: burning when urinating, frequent urge, itching or discharge with no fever = unusual (self); those symptoms with fever, pain in the back or side, blood in the urine, or cannot urinate for many hours = concerning (medical officer); cannot urinate with very strong lower-belly pain, confusion with fever, or dizziness with high fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): urinary incontinence: leaking urine = unusual (self); with fever or pain = concerning (medical officer). Acute prostatitis: pain between the legs or below the belly, with fever, chills or trouble urinating = concerning (medical officer); cannot urinate with strong pain = dangerous (everyone). CHANGED 14 Nov (after Caio's check against healthdirect, item 12, medical lead chose A): 'cannot urinate for many hours' moves from concerning to DANGEROUS (everyone, urgent card), matching step 5; the concerning level keeps fever, pain in the back or side, and blood in the urine."
+  },
+  {
+    "id": "skin-infection",
+    "title": {
+      "en": "Skin infection",
+      "pt": "Infecção de pele"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is the red area growing?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "infection",
+          "pus",
+          "red and hot skin",
+          "cold sore",
+          "boil",
+          "infected",
+          "shingles",
+          "herpes zoster",
+          "painful blisters in a band"
+        ],
+        "pt": [
+          "infecção",
+          "pus",
+          "pele vermelha e quente",
+          "herpes",
+          "furúnculo",
+          "infeccionou",
+          "cobreiro",
+          "herpes zóster",
+          "bolhas dolorosas em faixa"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Wash your hands. Clean the skin with gauze and saline.",
+        "pt": "Lave as mãos. Limpe a pele com gaze e soro."
+      },
+      {
+        "en": "Do not squeeze or pop it. Cover it with a clean bandage.",
+        "pt": "Não esprema nem fure. Cubra com um curativo limpo."
+      },
+      {
+        "en": "Mark the edge of the redness with a pen and write down the time, to see if it grows.",
+        "pt": "Marque com caneta o limite da vermelhidão e anote a hora, para ver se cresce."
+      },
+      {
+        "en": "Do not share towels or let other people touch it. With a cold sore, do not kiss or share cups.",
+        "pt": "Não divida toalha nem deixe outras pessoas tocarem. Com herpes labial, não beije nem divida copos."
+      },
+      {
+        "en": "Look again in a few hours. If the redness spreads fast, you have a high fever, the skin turns dark or blistered, or you feel dizzy or confused: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se a vermelhidão se espalhar rápido, tiver febre alta, a pele ficar escura ou com bolhas, ou sentir tontura ou confusão: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not squeeze or pop it.",
+        "pt": "Não esprema nem fure."
+      },
+      {
+        "en": "Do not ignore redness that spreads fast with fever.",
+        "pt": "Não ignore vermelhidão que se espalha rápido com febre."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: cellulitis (bacterial skin infection) is among the most common conditions to address on every mission; viral and fungal skin infection and herpes zoster are also on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "In-flight clinical symptoms on the ISS: skin infection (0.3 per flight year) and herpes viruses, cold sores (0.3 per flight year)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098747",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table and the ISS study say these infections occur; they give no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No antibiotic or antiviral step: that is a medical decision not made.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: red, warm or pus-filled skin in a small area with no fever = unusual (self); an area that grows, hurts a lot, comes with fever, or a cold sore near the eye = concerning (medical officer); redness that spreads fast with high fever, skin that turns dark or blistered, or dizziness and confusion = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): herpes zoster (shingles): a band of painful blisters on one side of the body = concerning (medical officer); near the eye or face, or with confusion = dangerous."
+  },
+  {
+    "id": "ear-nose-throat",
+    "title": {
+      "en": "Ear, nose and throat",
+      "pt": "Ouvido, nariz e garganta"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is the nosebleed lasting more than 15 minutes?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have trouble swallowing or breathing?",
+          "answer": "yes"
+        },
+        {
+          "question": "Did you suddenly lose hearing?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "ear pain",
+          "blocked ear",
+          "earache",
+          "nosebleed",
+          "sore throat",
+          "hearing loss"
+        ],
+        "pt": [
+          "dor de ouvido",
+          "ouvido entupido",
+          "sangramento de nariz",
+          "sangrando pelo nariz",
+          "garganta",
+          "perdi a audição"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Blocked or sore ear: chew or yawn. Do not put anything inside your ear, not even a cotton swab.",
+        "pt": "Ouvido entupido ou dolorido: mastigue ou boceje. Não coloque nada dentro do ouvido, nem cotonete."
+      },
+      {
+        "en": "Sore throat: drink warm liquids and rest your voice.",
+        "pt": "Garganta irritada: beba líquidos mornos e descanse a voz."
+      },
+      {
+        "en": "Nosebleed: stay still, lean slightly forward and press the soft part of the nose for 10 to 15 minutes. Collect the blood with gauze so it does not float.",
+        "pt": "Sangramento de nariz: fique parada, incline levemente para a frente e aperte a parte mole do nariz por 10 a 15 minutos. Recolha o sangue com gaze para não flutuar."
+      },
+      {
+        "en": "Do not pick your nose or put your finger in it.",
+        "pt": "Não mexa no nariz nem enfie o dedo."
+      },
+      {
+        "en": "Look again in a day. If you have trouble swallowing, cannot even swallow saliva, a swollen neck, trouble breathing with your throat or neck, or the cloth is soaked with blood, you swallow or vomit blood, or you feel dizzy: follow the urgent card.",
+        "pt": "Olhe de novo em um dia. Se tiver dificuldade para engolir, não conseguir nem engolir a saliva, pescoço inchado, dificuldade para respirar junto com a garganta ou o pescoço, ou se o pano ficar ensopado de sangue, você engolir ou vomitar sangue, ou sentir tontura: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not put anything inside your ear.",
+        "pt": "Não coloque nada dentro do ouvido."
+      },
+      {
+        "en": "Do not ignore trouble swallowing or breathing.",
+        "pt": "Não ignore dificuldade para engolir ou respirar."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: barotrauma (ear and sinus block), epistaxis (space-adaptation related), hearing loss (noise related), acute sinusitis, otitis externa, otitis media and pharyngitis are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      },
+      {
+        "name": "In-flight clinical symptoms on the ISS: ear-related problems (0.3 per flight year) and pharyngitis (0.1)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098747",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table and the ISS study say these conditions occur; they give no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No medicine step (drops, decongestant): that is a medical decision not made.",
+      "The sore throat and stuffy nose parts overlap with the 'stuffy nose and upper respiratory' card.",
+      "The 15 minutes for a nosebleed is from memory of Earth first aid, no source; the medical lead kept it."
+    ],
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild ear pain, blocked ear, irritated throat, or a nosebleed that stops by itself = unusual (self); strong ear pain, discharge, sudden hearing loss, fever, or a nosebleed that does not stop in 15 minutes = concerning (medical officer); trouble swallowing or breathing, a swollen neck, or a very strong nosebleed = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Four adjustments approved 14 Nov: (1) 'very strong nosebleed' = the cloth is soaked, she swallows or vomits blood, or she feels dizzy; 15 minutes kept, no source. (2) Sudden hearing loss stays concerning (medical officer). (3) Trouble breathing alone uses the shortness of breath card; this card shows it only together with throat or neck, so the system does not pick two cards. (4) Sore throat with fever and drooling (cannot swallow saliva) = dangerous (everyone, urgent card). Approved by the medical lead."
+  },
+  {
+    "id": "neuro",
+    "title": {
+      "en": "Head blow, seizure and stroke signs",
+      "pt": "Pancada na cabeça, convulsão e sinais de AVC"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Did you hit your head?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is one side of the face drooping, or is one arm weak?",
+          "answer": "yes"
+        },
+        {
+          "question": "Did you have a seizure?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "hit my head",
+          "head blow",
+          "seizure",
+          "stroke",
+          "slurred speech",
+          "face drooping"
+        ],
+        "pt": [
+          "bati a cabeça",
+          "pancada na cabeça",
+          "convulsão",
+          "AVC",
+          "fala enrolada",
+          "rosto torto"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Blow to the head: sit and stay still. Ask someone to stay with you and watch you for the first 24 hours.",
+        "pt": "Pancada na cabeça: sente-se e fique parada. Peça para alguém ficar com você e observar nas primeiras 24 horas."
+      },
+      {
+        "en": "Seizure in someone else: move hard objects away and protect the head. Do not hold the person down and do not put anything in the mouth. Note the time it started. When it stops, turn the person on their side.",
+        "pt": "Convulsão em outra pessoa: afaste objetos duros e proteja a cabeça. Não segure a pessoa nem ponha nada na boca. Anote a hora em que começou. Quando parar, vire a pessoa de lado."
+      },
+      {
+        "en": "Stroke signs: ask the person to smile, raise both arms and say a sentence. If one side of the face droops, one arm falls, or the speech is slurred, write down the time it started and call everyone.",
+        "pt": "Sinais de AVC: peça para a pessoa sorrir, levantar os dois braços e falar uma frase. Se um lado do rosto cair, um braço descer ou a fala estiver enrolada, anote a hora em que começou e chame todos."
+      },
+      {
+        "en": "Seizure or stroke signs: do not give food, drink or medicine.",
+        "pt": "Convulsão ou sinais de AVC: não dê comida, bebida nem remédio."
+      },
+      {
+        "en": "If there is a seizure, signs of stroke, fainting after the blow, or strong confusion: follow the urgent card.",
+        "pt": "Se houver convulsão, sinais de AVC, desmaio depois da pancada ou confusão forte: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not put anything in the mouth of someone having a seizure.",
+        "pt": "Não ponha nada na boca de uma pessoa em convulsão."
+      },
+      {
+        "en": "Do not leave someone alone after a blow to the head with vomiting, too much sleepiness or forgetfulness.",
+        "pt": "Não deixe sozinha uma pessoa com pancada na cabeça e vômito, sono demais ou esquecimento."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: head trauma (major and minor), seizure and cerebrovascular accident are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The smile, arms, speech check is from memory of the common stroke test.",
+      "The medical lead gave no sources for this card.",
+      "How to protect someone having a seizure in microgravity was not checked."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild blow to the head with no other symptoms = unusual (self), the system asks about dizziness, vomiting and sleep; a blow with strong headache, vomiting, too much sleep or forgetfulness = concerning (medical officer, not left alone); seizure, stroke signs (drooping face, one-sided weakness, slurred speech), fainting after the blow, or strong confusion = dangerous (everyone, urgent card). The dizziness card also lists stroke signs as dangerous. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the NHS, item 9, medical lead chose A): after a blow to the head someone stays and watches for the first 24 hours (before: a few hours). CHANGED 14 Nov (after Caio's check against the NHS, item 10, medical lead chose A): 'no food, drink or medicine' now applies only to a seizure or stroke signs; for a mild blow to the head nothing is said about medicine (the NHS allows paracetamol for the headache; that is the medical officer's decision)."
+  },
+  {
+    "id": "burn",
+    "title": {
+      "en": "Burn",
+      "pt": "Queimadura"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Are there blisters?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is the burn bigger than your palm?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is it on the hand, face or genitals?",
+          "answer": "yes"
+        },
+        {
+          "question": "Was it an electrical burn or a chemical?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "burn",
+          "burned",
+          "blister",
+          "scalded",
+          "electric shock",
+          "chemical on skin",
+          "toxic skin exposure",
+          "chemical on skin",
+          "contact with a toxic substance"
+        ],
+        "pt": [
+          "queimei",
+          "queimadura",
+          "bolha",
+          "choque",
+          "produto na pele",
+          "escaldei",
+          "exposição tóxica na pele",
+          "produto químico na pele",
+          "contato com substância tóxica"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Move away from the heat, fire or electricity. If it is a chemical, take off the clothes it touched and rinse the skin with water.",
+        "pt": "Afaste-se do calor, do fogo ou da eletricidade. Se for produto químico, tire a roupa que ele tocou e enxágue a pele com água."
+      },
+      {
+        "en": "Cool the burn with running water for 20 minutes; if there is none, use a cold wet cloth. Chemical burn: rinse with water for about 1 hour. Collect the water with gauze so it does not float.",
+        "pt": "Esfrie a queimadura com água corrente por 20 minutos; se não houver, use um pano frio e úmido. Queimadura química: enxágue com água por cerca de 1 hora. Recolha a água com gaze para não flutuar."
+      },
+      {
+        "en": "Do not pop blisters. Do not put toothpaste, butter or cream on it.",
+        "pt": "Não estoure bolhas. Não passe pasta de dente, manteiga nem creme."
+      },
+      {
+        "en": "Cover the burn loosely with clean gauze. Take off rings and bracelets before it swells.",
+        "pt": "Cubra a queimadura sem apertar, com gaze limpa. Tire anéis e pulseiras antes que inche."
+      },
+      {
+        "en": "Look again in a few hours. If you have blisters, a large or deep burn, trouble breathing, soot on the face or mouth, or black or white skin with no pain: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se tiver bolhas, queimadura grande ou funda, dificuldade para respirar, fuligem no rosto ou na boca, ou pele preta ou branca e sem dor: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not pop blisters.",
+        "pt": "Não estoure bolhas."
+      },
+      {
+        "en": "Do not put toothpaste, butter or cream on a burn.",
+        "pt": "Não passe pasta de dente, manteiga nem creme na queimadura."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: burn (thermal), burns secondary to fire, chemical skin burn and electrical injury are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "Cooling for 10 to 20 minutes is from memory of Earth first aid; how water works for cooling in microgravity was not checked, the drafting tool only added gauze to collect it.",
+      "The medical lead gave no sources for this card.",
+      "The drafting tool took her 'quero' as agreement with the table; she did not answer the table directly.",
+      "No cream or medicine step: that is a medical decision not made.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead.",
+      "Running water for cooling and a rinse for about 1 hour in microgravity were not checked."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels proposed in the draft and taken as accepted by the medical lead on 14 Nov: small mild burn (red skin, no blister, smaller than the palm) = unusual (self); blisters, a burn bigger than the palm, on the hand, face or genitals, an electrical burn, or a chemical on the skin = concerning (medical officer, not left alone); trouble breathing, soot on the face or mouth, black or white skin with no pain, or a very large burn = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. Fire and smoke inhalation will be a separate card. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): toxic dermal exposure: a chemical or toxic substance on the skin is concerning (medical officer, not left alone) already; with trouble breathing or confusion = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check against the NHS, item 13, medical lead chose A): cooling is running water for 20 minutes (a cold wet cloth only if there is none); chemical burn about 1 hour of water. Running water in microgravity was not checked."
+  },
+  {
+    "id": "smoke-toxic-air",
+    "title": {
+      "en": "Smoke and toxic air",
+      "pt": "Fumaça e ar tóxico"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "cabin_oxygen",
+          "direction": "low",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "low oxygen in the room"
+        },
+        {
+          "signal": "cabin_co2",
+          "direction": "high",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "high CO2 in the room: the high CO2 card also applies"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you see smoke or smell something strange?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a cough or trouble breathing?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "smoke",
+          "fire",
+          "burning smell",
+          "strange smell",
+          "fumes",
+          "alarm"
+        ],
+        "pt": [
+          "fumaça",
+          "fogo",
+          "cheiro de queimado",
+          "cheiro estranho",
+          "alarme",
+          "incêndio"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Leave the room now, go to a room with good air, and close the hatch behind you.",
+        "pt": "Saia do cômodo agora, vá para um cômodo com ar bom e feche a escotilha atrás de você."
+      },
+      {
+        "en": "Put on the protective mask. If you do not have one, cover your nose and mouth with a wet cloth.",
+        "pt": "Coloque a máscara de proteção. Se não tiver, cubra o nariz e a boca com um pano úmido."
+      },
+      {
+        "en": "Tell everyone: fire, smoke or a strange smell. Check the screen to see where the problem is.",
+        "pt": "Avise todos: fogo, fumaça ou cheiro estranho. Veja na tela onde está o problema."
+      },
+      {
+        "en": "Do not go back into the room. Do not try to put out a big fire alone.",
+        "pt": "Não volte ao cômodo. Não tente apagar um fogo grande sozinha."
+      },
+      {
+        "en": "Look again in a few minutes. If you have a strong cough, trouble breathing, confusion or fainting: follow the urgent card.",
+        "pt": "Olhe de novo em alguns minutos. Se tiver tosse forte, dificuldade para respirar, confusão ou desmaio: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not go back into the room.",
+        "pt": "Não volte ao cômodo."
+      },
+      {
+        "en": "Do not try to put out a big fire alone.",
+        "pt": "Não tente apagar um fogo grande sozinha."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: smoke and combustion product inhalation, toxic inhalation injury and burns secondary to fire are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The ship's own fire and toxic-atmosphere procedures (hatch, masks, fire extinguishers) were not read; this card is only about what the person should do first. The medical lead or Caio should check them against the real procedures.",
+      "The medical lead gave no sources for this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a strange smell or mild irritation of the nose, eyes or throat with no other symptoms = unusual (self); cough, mild shortness of breath, headache or dizziness together with a strange smell or smoke = concerning (medical officer, not left alone); visible smoke, a fire alarm, confusion, fainting, or severe trouble breathing = dangerous (everyone, urgent card). The Astrum reads the room (CO2, oxygen, pressure); it does not control air, lights or equipment. Card level above is the base level; the system uses this list."
+  },
+  {
+    "id": "asthma-lung",
+    "title": {
+      "en": "Wheezing, cough and lung infection",
+      "pt": "Chiado, tosse e infecção do pulmão"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "blood_oxygen",
+          "direction": "low",
+          "basis": "reference_range",
+          "threshold": 95,
+          "unit": "%",
+          "note": "the SpO2 table decides the level: below 90 concerning, below 85 dangerous"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Are you wheezing?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever with the cough?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you speak full sentences?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "wheezing",
+          "cough",
+          "chest cold",
+          "asthma",
+          "phlegm",
+          "lung infection"
+        ],
+        "pt": [
+          "chiado",
+          "tosse",
+          "catarro",
+          "asma",
+          "infecção no pulmão",
+          "pneumonia"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit upright and stay still, and check the screen for the air in the room (CO2, oxygen, smoke). If it is bad, go to another room.",
+        "pt": "Sente-se reta e fique parada, e veja na tela o ar do cômodo (CO2, oxigênio, fumaça). Se estiver ruim, vá para outro cômodo."
+      },
+      {
+        "en": "Breathe in slowly through the nose and out through the mouth.",
+        "pt": "Respire devagar pelo nariz e solte o ar pela boca."
+      },
+      {
+        "en": "Look at your blood oxygen on the watch. If it is low, follow the shortness of breath card.",
+        "pt": "Olhe o oxigênio no relógio. Se estiver baixo, siga o cartão de falta de ar."
+      },
+      {
+        "en": "Drink warm liquids in small sips to loosen the mucus.",
+        "pt": "Beba líquidos mornos em pequenos goles para soltar o catarro."
+      },
+      {
+        "en": "If you have a reliever inhaler prescribed by the medical officer: take 1 puff every 30 to 60 seconds, up to 10 puffs. If you do not get better, follow the urgent card.",
+        "pt": "Se você tem inalador de alívio, receitado pelo responsável médico: 1 jato a cada 30 a 60 segundos, até 10 jatos. Se não melhorar, siga o cartão de urgência."
+      },
+      {
+        "en": "Look again in a few hours. If you cough up blood, have chest pain with shortness of breath, cannot speak full sentences, your lips turn blue, or you are short of breath at rest: follow the urgent card.",
+        "pt": "Olhe de novo em algumas horas. Se tossir com sangue, tiver dor no peito com falta de ar, não conseguir falar frases inteiras, se os lábios ficarem azulados ou se tiver falta de ar em repouso: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore blue lips or being unable to speak full sentences.",
+        "pt": "Não ignore lábios azulados ou não conseguir falar frases inteiras."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: reactive airway or asthma and respiratory tract infection (upper and lower) are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "The SpO2 reading from the watch can be wrong (movement, cold skin) and the watch is not for diagnosis (from memory, not verified).",
+      "Inhaler step (1 puff every 30 to 60 seconds, up to 10 puffs) comes from the NHS as cited in Caio's check, not opened; the medical lead chose to include it. It is not known whether the ship has an inhaler."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild cough or wheeze without shortness of breath = unusual (self); shortness of breath on effort, wheeze, a cough with phlegm for more than 2 days, or fever with cough = concerning (medical officer); shortness of breath at rest, cannot speak full sentences, or blue lips = dangerous (everyone, urgent card). CORRECTION by the drafting tool: The drafting tool first wrote 'SpO2 below 90' as dangerous, which clashes with the approved SpO2 table (below 90 concerning, below 85 dangerous); this card follows the SpO2 table, so SpO2 below 85 is the dangerous one. Shortness of breath alone has its own card; this card only shows with wheeze, cough or fever so the system does not pick two cards. Card level above is the base level; the system uses this list. Four recommendations approved 14 Nov: (1) the third line is dangerous, everyone, urgent card; (2) dangerous is SpO2 below 85, not below 90; a low watch reading only alerts after it repeats on the next reading, Caio sets the time; (3) step 1 checks the room air before anything else; (4) coughing up blood, and chest pain together with shortness of breath = dangerous (everyone); breathing rate above her own normal = concerning (medical officer). Approved by the medical lead. CHANGED 14 Nov (after Caio's check against the NHS, item 15, medical lead chose A): added a step for a reliever inhaler prescribed by the medical officer (1 puff every 30 to 60 seconds, up to 10 puffs, then the urgent card if no better)."
+  },
+  {
+    "id": "fracture",
+    "title": {
+      "en": "Fractures, chest injuries and joints",
+      "pt": "Fraturas, traumas no peito e articulações"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is it swollen or deformed?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you use the arm or leg?",
+          "answer": "no"
+        },
+        {
+          "question": "Is the hand or foot cold and pale, or numb?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "broke",
+          "fracture",
+          "dislocated",
+          "sprain",
+          "twisted",
+          "can't move",
+          "chest blow",
+          "rib",
+          "swollen joint",
+          "arthritis"
+        ],
+        "pt": [
+          "quebrei",
+          "fratura",
+          "luxação",
+          "torci",
+          "entorse",
+          "não consigo mexer",
+          "pancada no peito",
+          "costela",
+          "articulação inchada",
+          "artrite"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop and do not move the hurt part. Do not force it.",
+        "pt": "Pare e não mexa a parte machucada. Não force."
+      },
+      {
+        "en": "Hold it still in the position it is in, with a splint or something rigid and tape. Not too tight.",
+        "pt": "Mantenha parada na posição em que está, com uma tala ou algo rígido e fita. Sem apertar demais."
+      },
+      {
+        "en": "Put a cold wet cloth on the spot.",
+        "pt": "Coloque um pano frio e úmido no local."
+      },
+      {
+        "en": "Do not try to put the bone back. If a bone is showing, cover it with clean gauze and do not push it.",
+        "pt": "Não tente colocar o osso no lugar. Se o osso estiver à mostra, cubra com gaze limpa e não empurre."
+      },
+      {
+        "en": "Chest wound: do not seal it completely and do not pull out anything that is stuck. Press only if it bleeds heavily from one spot. Sit upright and follow the urgent card.",
+        "pt": "Ferida no peito: não tape por completo e não tire o que estiver cravado. Pressione só se estiver sangrando muito num ponto. Fique sentada reta e siga o cartão de urgência."
+      },
+      {
+        "en": "Neck or back injury: do not move the person. If you have numbness, a cold pale hand or foot, a bone showing, a chest wound, trouble breathing, coughing blood, or a very strong disproportionate pain in an arm or leg with a tense muscle and cold fingers: follow the urgent card.",
+        "pt": "Lesão no pescoço ou nas costas: não mova a pessoa. Se tiver dormência, mão ou pé frio e pálido, osso à mostra, ferida no peito, dificuldade para respirar, tosse com sangue, ou dor muito forte e desproporcional num braço ou perna com músculo tenso e dedos frios: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not try to put the bone back.",
+        "pt": "Não tente colocar o osso no lugar."
+      },
+      {
+        "en": "Do not move a person with a neck or back injury.",
+        "pt": "Não mova uma pessoa com lesão no pescoço ou nas costas."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: fractures, dislocations, joint sprains and strains, hand injury (EVA related), suit contact injury and others are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine step: that is a medical decision not made.",
+      "Moving or not moving a person with a neck or back injury in microgravity was not checked.",
+      "Chest, arthritis and compartment syndrome lines added from memory, no source. 'Do not pull out what is stuck' and 'sit upright' for a chest wound were not checked for microgravity."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild sprain or joint pain that still moves and bears weight = unusual (self); swelling, deformity, strong pain on moving, or cannot use the arm or leg = concerning (medical officer); suspected fracture of the spine, neck, hip or a large leg bone, a bone showing, or an injury with numbness or a cold pale hand or foot = dangerous (everyone, urgent card). Related card: cut or injury. Card level above is the base level; the system uses this list. ADDED 14 Nov (plan to reach 95%): chest: mild blow with mild pain = unusual (self); strong pain on breathing, a cracking rib, a large bruise = concerning (medical officer); chest wound (object or hole), trouble breathing, coughing blood = dangerous (everyone, urgent card). Joints: a swollen, warm, painful joint with no injury (arthritis) = concerning (medical officer); very strong disproportionate pain in an arm or leg with a tense muscle and cold fingers (compartment syndrome) = dangerous (everyone, urgent card). Covers blunt and penetrating chest injury, acute arthritis and compartment syndrome from NASA table E.2-2. CHANGED 14 Nov (after Caio's check against ERC 2025, item 5, medical lead chose A): chest wound is no longer pressed with a cloth over the whole wound; it is not sealed completely (risk of tension pneumothorax), nothing stuck is pulled out, and pressure is only for heavy bleeding from one spot."
+  },
+  {
+    "id": "dental",
+    "title": {
+      "en": "Teeth and mouth",
+      "pt": "Dentes e boca"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is your face or gum swollen?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is it hard to swallow or breathe?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "toothache",
+          "tooth pain",
+          "broken tooth",
+          "lost filling",
+          "mouth ulcer",
+          "swollen gum"
+        ],
+        "pt": [
+          "dor de dente",
+          "dente quebrado",
+          "obturação",
+          "úlcera na boca",
+          "afta",
+          "gengiva inchada"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Rinse your mouth with warm water and chew on the other side.",
+        "pt": "Enxágue a boca com água morna e mastigue do outro lado."
+      },
+      {
+        "en": "A tooth came out whole: hold it by the crown (the top), not the root, put it back in place as fast as you can and bite on gauze. If you cannot, keep it in milk or in saliva. Broken piece: keep it in a small closed container. If it bleeds, press gauze on the spot.",
+        "pt": "Dente que saiu inteiro: pegue pela coroa (a parte de cima), não pela raiz, recoloque no lugar o mais rápido possível e morda uma gaze. Se não der, guarde em leite ou na saliva. Pedaço quebrado: guarde num recipiente pequeno fechado. Se sangrar, aperte uma gaze no local."
+      },
+      {
+        "en": "Lost filling or crown: keep it, and cover the hole with wax or filling material from the kit, if you have it.",
+        "pt": "Obturação ou coroa perdida: guarde e cubra o buraco com cera ou material de obturação do kit, se tiver."
+      },
+      {
+        "en": "Put a cold wet cloth on the cheek if it is swollen.",
+        "pt": "Coloque um pano frio e úmido na bochecha se estiver inchada."
+      },
+      {
+        "en": "Look again in a day. If the swelling spreads to the face or neck, you have trouble swallowing or breathing, or swelling near the eye with fever: follow the urgent card.",
+        "pt": "Olhe de novo em um dia. Se o inchaço se espalhar para o rosto ou o pescoço, se tiver dificuldade para engolir ou respirar, ou inchaço perto do olho com febre: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore swelling that spreads to the face or neck.",
+        "pt": "Não ignore inchaço que se espalha para o rosto ou o pescoço."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: caries, crown loss, dental abscess, filling loss, fractured tooth or exposed pulp, oral ulcer and tooth loss are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "That the kit has dental wax or filling material was not checked.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine or antibiotic step: that is a medical decision not made."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild toothache, a loose filling or crown, or a mouth ulcer = unusual (self); strong pain, a broken or lost tooth, swollen gum or face, or fever with toothache = concerning (medical officer); swelling of the face or neck that makes swallowing or breathing hard, or swelling near the eye with fever = dangerous (everyone, urgent card). Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against ILCOR and the NHS, item 14, medical lead chose A): a tooth knocked out whole is put back in place as fast as possible (held by the crown), otherwise kept in milk or saliva (before: keep it in saline); a broken piece is kept in a closed container. A baby tooth is not put back: not added to the card."
+  },
+  {
+    "id": "acute-abdomen",
+    "title": {
+      "en": "Strong belly pain",
+      "pt": "Dor forte de barriga"
+    },
+    "level": "concerning",
+    "notify": "medical_officer",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is the belly pain strong and not passing after a few hours?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is the belly very hard?",
+          "answer": "yes"
+        },
+        {
+          "question": "Did the pain start around the navel and move to the lower right?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "strong belly pain",
+          "appendix",
+          "gallbladder",
+          "hard belly",
+          "stabbed in the belly",
+          "severe stomach pain"
+        ],
+        "pt": [
+          "dor forte de barriga",
+          "apêndice",
+          "vesícula",
+          "barriga dura",
+          "dor muito forte na barriga",
+          "hérnia"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop and stay still, sitting or lying in the position that hurts least, with your knees bent.",
+        "pt": "Pare e fique parada, sentada ou deitada na posição que doer menos, com os joelhos dobrados."
+      },
+      {
+        "en": "Do not eat or drink until the medical officer has seen you.",
+        "pt": "Não coma nem beba até o responsável médico avaliar."
+      },
+      {
+        "en": "Do not press hard on the belly. Do not take a laxative or any medicine unless the medical officer says so.",
+        "pt": "Não aperte a barriga com força. Não tome laxante nem remédio se o responsável médico não mandar."
+      },
+      {
+        "en": "Write down when it started, where it hurts, and whether you have fever or vomiting.",
+        "pt": "Anote quando começou, onde dói, e se tem febre ou vômito."
+      },
+      {
+        "en": "Ask someone to stay with you. If the belly is very hard, the pain is sudden and very strong, you vomit blood, or you feel dizzy with cold sweat: follow the urgent card.",
+        "pt": "Peça para alguém ficar com você. Se a barriga estiver muito dura, a dor for súbita e muito forte, você vomitar sangue, ou sentir tontura com suor frio: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not eat or drink until the medical officer has seen you.",
+        "pt": "Não coma nem beba até o responsável médico avaliar."
+      },
+      {
+        "en": "Do not take a laxative.",
+        "pt": "Não tome laxante."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: appendicitis, acute cholecystitis or biliary colic, acute diverticulitis, acute pancreatitis, small bowel obstruction, abdominal wall hernia and abdominal injury (blunt and penetrating) are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "'Do not eat or drink' is from memory of the usual advice before possible surgery.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine step: that is a medical decision not made."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild belly pain with no other symptoms is covered by the stomach and bowel card; strong belly pain that does not pass in a few hours, or that starts around the navel and moves to the lower right = concerning (medical officer, not left alone); a very hard belly, very strong sudden pain, vomiting blood, a belly wound (blow or object), or pain with dizziness and cold sweat = dangerous (everyone, urgent card). The stomach and bowel card already sends strong pain with fever to dangerous; there is no surgeon on the ship. Card level above is the base level (concerning, since the card starts at strong pain); the system uses this list."
+  },
+  {
+    "id": "heart-circulation",
+    "title": {
+      "en": "Blood pressure, leg swelling and shock signs",
+      "pt": "Pressão, inchaço na perna e sinais de choque"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is one leg or arm swollen, warm and painful?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you pale with cold sweat and weakness?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your blood pressure very high with a strong headache?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "high blood pressure",
+          "swollen leg",
+          "cold sweat",
+          "pale",
+          "weak pulse",
+          "clot",
+          "embolism",
+          "pulmonary embolism"
+        ],
+        "pt": [
+          "pressão alta",
+          "perna inchada",
+          "suor frio",
+          "pálida",
+          "pulso fraco",
+          "trombose",
+          "embolia",
+          "embolia pulmonar"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit or lie down and stay still.",
+        "pt": "Sente-se ou deite-se e fique parada."
+      },
+      {
+        "en": "High blood pressure: breathe slowly. If you have a pressure cuff, measure it and write it down. Check if you have a strong headache.",
+        "pt": "Pressão alta: respire devagar. Se tiver aparelho de pressão, meça e anote. Veja se tem dor de cabeça forte."
+      },
+      {
+        "en": "Swollen, warm, painful arm or leg on one side: keep it still. Do not rub or massage it.",
+        "pt": "Braço ou perna inchado, quente e dolorido de um lado: mantenha parado. Não esfregue nem massageie."
+      },
+      {
+        "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Do not give anything by mouth. Ask someone to stay with you.",
+        "pt": "Palidez, suor frio e fraqueza: deite-se, afrouxe a roupa apertada e fique aquecida. Não dê nada pela boca. Peça para alguém ficar com você."
+      },
+      {
+        "en": "If you have sudden shortness of breath with chest pain, a very weak or irregular pulse, or you are pale with cold sweat and weakness: follow the urgent card.",
+        "pt": "Se tiver falta de ar súbita com dor no peito, pulso muito fraco ou irregular, ou palidez com suor frio e fraqueza: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub or massage a swollen, painful leg or arm.",
+        "pt": "Não esfregue nem massageie uma perna ou um braço inchado e dolorido."
+      },
+      {
+        "en": "Do not ignore pale skin with cold sweat and weakness.",
+        "pt": "Não ignore palidez com suor frio e fraqueza."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: hypertension, venous thromboembolism, cardiogenic shock, traumatic hypovolemic shock and cardiac dysrhythmias are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The Astrum does not measure blood pressure; the card only says to measure it if a cuff is available.",
+      "The medical lead gave no sources for this card.",
+      "No medicine step: that is a medical decision not made.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: slightly high blood pressure, or a slightly swollen leg, with no other symptoms = unusual (self); an arm or leg swollen, warm and painful on one side only, or very high blood pressure with a strong headache = concerning (medical officer, not left alone); pale with cold sweat and weakness, a very weak or irregular pulse, or sudden shortness of breath with chest pain = dangerous (everyone, urgent card). The chest pain card already covers fast heartbeat and chest pain. Card level above is the base level; the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: a swollen, painful leg followed by sudden shortness of breath or chest pain = dangerous (everyone, urgent card). CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B and kept it when the drafting tool warned): the base level of this card is now dangerous, everyone (before: unusual, self). The drafting tool's warning: if the system used the base level alone, slightly high blood pressure would alert everyone; the list above (slightly high blood pressure or a slightly swollen leg = unusual, self) is the one that must decide the real level. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation)."
+  },
+  {
+    "id": "heat-cold",
+    "title": {
+      "en": "Heat and cold",
+      "pt": "Calor e frio"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "cabin_temperature",
+          "direction": "changed",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "room temperature outside the normal"
+        },
+        {
+          "signal": "cabin_humidity",
+          "direction": "changed",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "room humidity outside the normal"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Are you confused or have you fainted?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is your skin white, numb or hard on fingers or toes?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "too hot",
+          "too cold",
+          "heat",
+          "freezing",
+          "chills",
+          "dehydrated"
+        ],
+        "pt": [
+          "muito calor",
+          "muito frio",
+          "calor",
+          "congelando",
+          "tremendo",
+          "desidratada"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Check the screen for the temperature and humidity of your room. If they are not normal, go to a more comfortable room.",
+        "pt": "Veja na tela a temperatura e a umidade do seu cômodo. Se estiverem fora do normal, vá para um cômodo mais agradável."
+      },
+      {
+        "en": "Too hot: drink water in small sips, take off extra clothes, put a wet cloth on your neck and rest. With dizziness, nausea or cramps: cool yourself actively, with cold wet cloths on the neck, armpits and groin, and fan your body.",
+        "pt": "Calor demais: beba água em pequenos goles, tire o excesso de roupa, coloque um pano úmido no pescoço e descanse. Com tontura, náusea ou câimbras: esfrie-se ativamente, com panos frios e úmidos no pescoço, nas axilas e na virilha, e ventile o corpo."
+      },
+      {
+        "en": "Too cold: cover yourself, drink something warm, and warm your hands and feet under your clothes.",
+        "pt": "Frio demais: cubra-se, beba algo morno e aqueça as mãos e os pés por baixo da roupa."
+      },
+      {
+        "en": "White, numb or hard skin on fingers or toes: warm it only if it cannot freeze again. Use warm water, between 37 and 42 degrees C, for about 30 minutes. Do not rub it.",
+        "pt": "Pele branca, dormente ou dura nos dedos das mãos ou dos pés: só aqueça se ela não puder congelar de novo. Use água morna, entre 37 e 42 °C, por uns 30 minutos. Não esfregue."
+      },
+      {
+        "en": "Look again in an hour. If you are confused, faint, your skin is very hot and dry, or your temperature is very high or very low: follow the urgent card.",
+        "pt": "Olhe de novo em uma hora. Se ficar confusa, desmaiar, se a pele estiver muito quente e seca, ou a temperatura do corpo estiver muito alta ou muito baixa: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub white, numb or hard skin.",
+        "pt": "Não esfregue pele branca, dormente ou dura."
+      },
+      {
+        "en": "Do not ignore confusion or fainting from heat or cold.",
+        "pt": "Não ignore confusão ou desmaio por calor ou frio."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: heat illness, hypothermia, cold injury (chilblains, frostbite) and EVA-related dehydration are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "The temperature and humidity limits were not defined: the Astrum only shows the room reading, and does not control temperature."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: uncomfortable heat or cold, thirst, or cold fingertips = unusual (self); dizziness, nausea or cramps with heat, strong shivering with cold, or white and numb skin on the fingers = concerning (medical officer); confusion, very hot and dry skin, a very high or very low body temperature, fainting, or white hard skin (frostbite) = dangerous (everyone, urgent card). The Astrum reads the room temperature and humidity and does not control them. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check against the Wilderness Medical Society 2019 and MedlinePlus, item 6, medical lead chose A): frostbite rewarming gives 37 to 42 C for about 30 minutes and only if the part cannot freeze again (before: warm slowly with warm, not hot, water). Warm water in microgravity was not checked. CHANGED 14 Nov (after Caio's check, bloco 2, passo 2, medical lead's own version): active cooling (cold wet cloths on the neck, armpits and groin, and fanning the body) is added to the moderate heat step (dizziness, nausea or cramps), NOT to the urgent step."
+  },
+  {
+    "id": "depression-psychosis",
+    "title": {
+      "en": "Depression, psychosis and delirium",
+      "pt": "Depressão, psicose e delírio"
+    },
+    "level": "concerning",
+    "notify": "medical_officer",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "mood",
+          "direction": "low",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "low mood for more than 2 weeks"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you hear voices or see things that are not there?",
+          "answer": "yes"
+        },
+        {
+          "question": "Have you lost interest in everything for more than 2 weeks?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you confused with a fever?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "hearing voices",
+          "seeing things",
+          "nobody cares",
+          "persecuted",
+          "grief",
+          "hopeless",
+          "forgetting things",
+          "confused thinking"
+        ],
+        "pt": [
+          "ouvindo vozes",
+          "vendo coisas",
+          "perseguida",
+          "luto",
+          "sem esperança",
+          "depressão",
+          "esquecendo as coisas",
+          "pensamento confuso"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "First check the body and the air: the CO2 in the room, blood oxygen, glucose and fever. These can cause confusion and strange ideas.",
+        "pt": "Primeiro confira o corpo e o ar: o CO2 do cômodo, o oxigênio no sangue, a glicose e a febre. Eles podem causar confusão e ideias estranhas."
+      },
+      {
+        "en": "Do not stay alone. Stay with someone you trust and talk to the medical officer.",
+        "pt": "Não fique sozinha. Fique com alguém de confiança e fale com o responsável médico."
+      },
+      {
+        "en": "If someone hears voices, sees things that are not there or has strange ideas: stay calm, speak softly, do not argue, and move dangerous objects away.",
+        "pt": "Se alguém ouvir vozes, vir coisas que não existem ou tiver ideias estranhas: mantenha a calma, fale baixo, não discuta e afaste objetos perigosos."
+      },
+      {
+        "en": "Keep a routine: sleep, meals, lighting and gentle exercise at the same times.",
+        "pt": "Mantenha a rotina: sono, refeições, luz e exercício leve nos mesmos horários."
+      },
+      {
+        "en": "If you have thoughts of hurting yourself or someone else, or you are confused with fever: follow the urgent card.",
+        "pt": "Se tiver pensamentos de se machucar ou de machucar outra pessoa, ou estiver confusa com febre: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stay alone.",
+        "pt": "Não fique sozinha."
+      },
+      {
+        "en": "Do not argue with strange ideas and do not leave a confused person alone.",
+        "pt": "Não discuta com ideias estranhas e não deixe uma pessoa confusa sozinha."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: depression, psychosis, delirium, grief reaction, apathy or low motivation, and work overload or burnout are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No medicine step: that is a medical decision not made.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: sadness, apathy, low motivation or work tiredness for a few days is covered by the mood and stress card; sadness for more than 2 weeks, loss of interest in everything, not eating or not sleeping, or strong grief = concerning (medical officer); hearing voices, seeing things that are not there, strange or persecution ideas, or delirium (confusion with fever) = dangerous (everyone, urgent card). Same rules as the mood card: thoughts of self-harm follow that card (no plan = medical officer and not left alone; with a plan or means = everyone); if the affected person is the medical officer (Okafor), the commander (Tanaka) is alerted instead; what she writes is never shown to the crew. Physical causes first (CO2, low oxygen, low glucose, fever). Card level above is the base level (concerning, since the card starts at 2 weeks of sadness); the system uses this list. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): neurocognitive disorders: forgetting things or confused thinking that lasts more than a few days or gets worse = concerning (medical officer)."
+  },
+  {
+    "id": "sepsis-anemia",
+    "title": {
+      "en": "Fever with weakness, pallor and anemia",
+      "pt": "Febre com fraqueza, palidez e anemia"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "heart_rate",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "with fever"
+        },
+        {
+          "signal": "respiratory_rate",
+          "direction": "high",
+          "basis": "personal_normal",
+          "threshold": 20,
+          "unit": "breaths/min",
+          "note": "with fever"
+        },
+        {
+          "signal": "blood.hematocrit",
+          "direction": "low",
+          "basis": "reference_range",
+          "threshold": 38,
+          "unit": "%PCV",
+          "note": "the hematocrit table decides the level"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you have a fever with chills?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you confused or very pale with cold sweat?",
+          "answer": "yes"
+        },
+        {
+          "question": "Are you passing very little urine?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "fever and chills",
+          "very pale",
+          "weak",
+          "tired all the time",
+          "anemia"
+        ],
+        "pt": [
+          "febre e calafrio",
+          "muito pálida",
+          "fraqueza",
+          "cansada o tempo todo",
+          "anemia"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit or lie down and rest.",
+        "pt": "Sente-se ou deite-se e descanse."
+      },
+      {
+        "en": "Measure your temperature. Look at your heart rate, breathing and blood oxygen on the watch. Write down the time.",
+        "pt": "Meça a temperatura. Olhe o batimento, a respiração e o oxigênio no relógio. Anote a hora."
+      },
+      {
+        "en": "Drink water in small sips, only if you are wide awake. If you are pale with cold sweat and weakness, lie down, keep warm and do not take anything by mouth.",
+        "pt": "Beba água em pequenos goles, só se estiver bem acordada. Se estiver pálida, com suor frio e fraqueza, deite-se, fique aquecida e não tome nada pela boca."
+      },
+      {
+        "en": "Ask someone to stay with you. Do not stay alone.",
+        "pt": "Peça para alguém ficar com você. Não fique sozinha."
+      },
+      {
+        "en": "If you have fever with confusion, cold sweat, a weak pulse, blotchy or cold skin, or you pass little urine: follow the urgent card.",
+        "pt": "Se tiver febre com confusão, suor frio, pulso fraco, pele manchada ou fria, ou pouca urina: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not stay alone with fever and fast heartbeat.",
+        "pt": "Não fique sozinha com febre e batimento rápido."
+      },
+      {
+        "en": "Do not ignore fever with confusion.",
+        "pt": "Não ignore febre com confusão."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: sepsis and anemia or iron deficiency are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No antibiotic, fluid or iron step: that is a medical decision not made.",
+      "The Astrum does not diagnose: it never says 'sepsis', it only shows the signs and the alert."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, mild pallor or dizziness on standing with no other symptoms = unusual (self); if the hematocrit is low the hematocrit table applies; fever with chills, fast heartbeat and fast breathing, or strong weakness with pallor = concerning (medical officer, not left alone); fever with confusion, low blood pressure signs (pale, cold sweat, weak pulse), mottled or cold skin, or very little urine = dangerous (everyone, urgent card), suspicion of sepsis. The Astrum does not diagnose: it never shows the word sepsis. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 1, medical lead chose A): shock signs: lie down, keep warm, nothing by mouth (no leg elevation)."
+  },
+  {
+    "id": "decompression-radiation",
+    "title": {
+      "en": "Pressure drop and radiation",
+      "pt": "Queda de pressão e radiação"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "cabin_pressure",
+          "direction": "low",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "no numeric limit defined yet"
+        },
+        {
+          "signal": "radiation",
+          "direction": "high",
+          "basis": "nasa_limit",
+          "threshold": null,
+          "unit": null,
+          "note": "simulated radiation; no numeric limit defined yet"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Do you have joint pain or tingling after a pressure drop?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have trouble breathing or sudden chest pain?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "pressure drop",
+          "decompression",
+          "radiation",
+          "joint pain",
+          "bends",
+          "depressurization",
+          "gas embolism",
+          "sudden breathlessness"
+        ],
+        "pt": [
+          "queda de pressão",
+          "descompressão",
+          "radiação",
+          "dor nas juntas",
+          "despressurização",
+          "vazamento de ar",
+          "embolia",
+          "falta de ar súbita"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Pressure drop alarm: close the hatch between you and the affected room and put on the protective mask.",
+        "pt": "Alarme de queda de pressão: feche a escotilha entre você e o cômodo afetado e coloque a máscara de proteção."
+      },
+      {
+        "en": "Sit and stay still. Breathe normally and do not hold your breath.",
+        "pt": "Sente-se e fique parada. Respire normalmente e não segure a respiração."
+      },
+      {
+        "en": "Joint pain or tingling after a pressure drop: stay still, do not exercise, breathe pure oxygen if the ship has it, and tell the medical officer, who decides on recompression.",
+        "pt": "Dor nas articulações ou formigamento depois de uma queda de pressão: fique parada, não faça exercício, respire oxigênio puro se a nave tiver, e avise o responsável médico, que decide a recompressão."
+      },
+      {
+        "en": "High radiation: go to the most protected place on the ship, the radiation shelter if there is one.",
+        "pt": "Radiação alta: vá para o lugar mais protegido da nave, o abrigo contra radiação, se houver."
+      },
+      {
+        "en": "If you have trouble breathing, sudden chest pain, confusion, or very high radiation: follow the urgent card.",
+        "pt": "Se tiver dificuldade para respirar, dor no peito súbita, confusão ou radiação muito alta: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not hold your breath during a pressure drop.",
+        "pt": "Não segure a respiração durante uma queda de pressão."
+      },
+      {
+        "en": "Do not exercise with joint pain after a pressure drop.",
+        "pt": "Não faça exercício com dor nas articulações depois de uma queda de pressão."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: decompression sickness, barotrauma, embolism, altitude sickness and acute radiation syndrome are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The ship's real pressure-loss and radiation procedures (hatches, masks, shelter) were NOT read. This card must be checked against them by the medical lead or Caio before it is used.",
+      "No numeric limits for cabin pressure or radiation exist in this project: the card only shows the reading.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "Radiation in the Astrum is simulated and labeled as such.",
+      "Lines added from memory on 14 Nov, no source; levels proposed in the draft, accepted by the medical lead.",
+      "Pure oxygen and recompression come from the guidelines cited in Caio's check; it is not known whether the ship has 100 percent oxygen or a way to recompress."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: cabin pressure a little below normal, mild joint pain, or radiation a little above normal with no symptoms = unusual (self); a pressure drop that continues, strong joint pain, tingling, or nausea or vomiting with a high radiation dose = concerning (medical officer, not left alone); a fast pressure drop (alarm), trouble breathing, sudden chest pain, confusion, or a very high radiation dose = dangerous (everyone, urgent card). The numbers for 'a little', 'continues' and 'high' are not defined: Caio or a NASA source must set them. Card level above is the base level; the system uses this list. The Astrum reads pressure and radiation and does not control them. ADDED 14 Nov (second pass, to reach 95% full coverage of NASA table E.2-2): embolism: sudden shortness of breath with chest pain after a pressure drop = dangerous (everyone, urgent card); venous clots are in the blood pressure and leg swelling card. CHANGED 14 Nov (after Caio's check, bloco 2, passo 4, medical lead chose A): joint pain or tingling step now says to breathe pure oxygen if the ship has it, and that the medical officer decides on recompression."
+  },
+  {
+    "id": "choking",
+    "title": {
+      "en": "Choking (gravity on)",
+      "pt": "Engasgo (com gravidade)"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Can you cough or speak?",
+          "answer": "no"
+        },
+        {
+          "question": "Are you choking?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "choking",
+          "can't breathe",
+          "something stuck in my throat",
+          "swallowed wrong"
+        ],
+        "pt": [
+          "engasgada",
+          "engasguei",
+          "não consigo respirar",
+          "algo preso na garganta"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Ask: are you choking? If the person can cough or speak, tell them to keep coughing hard. Do not hit their back while they can cough.",
+        "pt": "Pergunte: você está engasgada? Se a pessoa consegue tossir ou falar, peça para continuar tossindo forte. Não bata nas costas enquanto ela consegue tossir."
+      },
+      {
+        "en": "If the person cannot speak, cough or breathe: call everyone and give 5 hard blows on the back, between the shoulder blades.",
+        "pt": "Se a pessoa não consegue falar, tossir nem respirar: chame todos e dê 5 pancadas fortes nas costas, entre as omoplatas."
+      },
+      {
+        "en": "Then give 5 belly thrusts: stand behind them, put a fist above the navel, and pull hard inward and upward.",
+        "pt": "Depois dê 5 compressões na barriga: fique atrás dela, ponha um punho acima do umbigo e puxe forte para dentro e para cima."
+      },
+      {
+        "en": "Repeat 5 blows and 5 thrusts until the object comes out or the person stops responding. When the object comes out, tell the medical officer.",
+        "pt": "Repita 5 pancadas e 5 compressões até o objeto sair ou a pessoa ficar sem responder. Quando o objeto sair, avise o responsável médico."
+      },
+      {
+        "en": "If the person stops responding: follow the cardiac arrest card.",
+        "pt": "Se a pessoa ficar sem responder: siga o cartão de parada cardiorrespiratória."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not hit the back of someone who can still cough or speak.",
+        "pt": "Não bata nas costas de quem ainda consegue tossir ou falar."
+      },
+      {
+        "en": "Do not stop until the object comes out or the person stops responding.",
+        "pt": "Não pare até o objeto sair ou a pessoa ficar sem responder."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: choking or obstructed airway is on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps (5 back blows, 5 belly thrusts).",
+      "The NASA table says this condition is considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. Split in two on 14 Nov at the medical lead's request: this card is for when the ship has gravity. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now)."
+  },
+  {
+    "id": "choking-no-gravity",
+    "title": {
+      "en": "Choking (no or reduced gravity)",
+      "pt": "Engasgo (sem gravidade ou gravidade reduzida)"
+    },
+    "level": "dangerous",
+    "notify": "everyone",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Can you cough or speak?",
+          "answer": "no"
+        },
+        {
+          "question": "Are you choking?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "choking",
+          "can't breathe",
+          "something stuck in my throat",
+          "swallowed wrong"
+        ],
+        "pt": [
+          "engasgada",
+          "engasguei",
+          "não consigo respirar",
+          "algo preso na garganta"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Ask: are you choking? If the person can cough or speak, tell them to keep coughing hard. Do not hit their back while they can cough.",
+        "pt": "Pergunte: você está engasgada? Se a pessoa consegue tossir ou falar, peça para continuar tossindo forte. Não bata nas costas enquanto ela consegue tossir."
+      },
+      {
+        "en": "If the person cannot speak, cough or breathe: call everyone. Brace yourself: put your feet on a wall or hold on to a fixed point so you stay firm.",
+        "pt": "Se a pessoa não consegue falar, tossir nem respirar: chame todos. Firme-se: apoie os pés numa parede ou segure num ponto fixo para ficar firme."
+      },
+      {
+        "en": "Hold the person from behind. Give 5 hard blows on the back, between the shoulder blades, with your other arm holding them.",
+        "pt": "Segure a pessoa por trás. Dê 5 pancadas fortes nas costas, entre as omoplatas, com o outro braço segurando-a."
+      },
+      {
+        "en": "Then give 5 belly thrusts: arms around them, a fist above the navel, pull hard inward and upward. Repeat until the object comes out or the person stops responding. When the object comes out, tell the medical officer.",
+        "pt": "Depois dê 5 compressões na barriga: braços em volta dela, um punho acima do umbigo, puxe forte para dentro e para cima. Repita até o objeto sair ou a pessoa ficar sem responder. Quando o objeto sair, avise o responsável médico."
+      },
+      {
+        "en": "If the person stops responding: follow the cardiac arrest card for no gravity.",
+        "pt": "Se a pessoa ficar sem responder: siga o cartão de parada cardiorrespiratória sem gravidade."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not hit the back of someone who can still cough or speak.",
+        "pt": "Não bata nas costas de quem ainda consegue tossir ou falar."
+      },
+      {
+        "en": "Do not stop until the object comes out or the person stops responding.",
+        "pt": "Não pare até o objeto sair ou a pessoa ficar sem responder."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: choking or obstructed airway is on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps (5 back blows, 5 belly thrusts).",
+      "The NASA table says this condition is considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "Everything about bracing and doing back blows and belly thrusts in microgravity is from memory and was NOT checked in any source. It must be reviewed by the medical lead.",
+      "Where 'reduced' gravity ends and this card starts is not defined: Caio decides."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels: mild choking that she clears by coughing = unusual (self); cannot speak, cough or breathe = dangerous (everyone, urgent card, and this card first). Levels proposed in the draft, accepted by the medical lead on 14 Nov. Card level above is the base level; the system uses this list. This card is for no gravity or reduced gravity (the exact limit is Caio's decision). If she stops responding, the cardiac arrest card for no gravity follows. CHANGED 14 Nov (after Caio's check, bloco 1, medical lead chose B): the base level of this card is now dangerous, everyone (before: unusual, self). A mild choking that she clears by coughing stays unusual in the list above. CHANGED 14 Nov (after Caio's check, bloco 2, passo 5, medical lead chose B): added 'when the object comes out, tell the medical officer'. The chest-thrust option for a pregnant or obese person was NOT added (no pregnant crew member now)."
+  },
+  {
+    "id": "medication-overdose",
+    "title": {
+      "en": "Medicine reaction and overdose",
+      "pt": "Reação a remédio e overdose"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "respiratory_rate",
+          "direction": "low",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "slow breathing"
+        },
+        {
+          "signal": "blood_oxygen",
+          "direction": "low",
+          "basis": "reference_range",
+          "threshold": 95,
+          "unit": "%",
+          "note": "the SpO2 table decides the level"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Did you take more medicine than you should?",
+          "answer": "yes"
+        },
+        {
+          "question": "Is it hard to wake the person?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "took too much",
+          "wrong medicine",
+          "overdose",
+          "medicine reaction",
+          "side effect"
+        ],
+        "pt": [
+          "tomei demais",
+          "remédio errado",
+          "overdose",
+          "reação ao remédio",
+          "efeito colateral"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Stop taking the medicine and keep the package. Write down the name, the dose and the time.",
+        "pt": "Pare de tomar o remédio e guarde a embalagem. Anote o nome, a dose e a hora."
+      },
+      {
+        "en": "Do not cause vomiting. Take another medicine only if the medical officer says so.",
+        "pt": "Não provoque vômito. Só tome outro remédio se o responsável médico mandar."
+      },
+      {
+        "en": "Do not stay alone. Stay with someone and keep talking. If you are sleepy but breathing, lie on your side.",
+        "pt": "Não fique sozinha. Fique com alguém e continue conversando. Se estiver sonolenta mas respirando, deite de lado."
+      },
+      {
+        "en": "Look at your breathing and blood oxygen on the watch. Write them down.",
+        "pt": "Olhe a respiração e o oxigênio no relógio. Anote."
+      },
+      {
+        "en": "If it is hard to wake the person, the breathing is slow or weak, the lips turn blue, there is strong confusion, or the face swells or breathing is hard: follow the urgent card.",
+        "pt": "Se for difícil acordar a pessoa, se a respiração estiver lenta ou fraca, os lábios ficarem azulados, houver confusão forte, ou o rosto inchar ou a respiração ficar difícil: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not cause vomiting.",
+        "pt": "Não provoque vômito."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: medication adverse reaction and benzodiazepine or opiate overdose are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No antidote step (for example naloxone): that is a medical decision, and it is not known whether the ship's kit has it."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: a mild reaction to a medicine (itch, mild nausea, sleepiness), or a doubt about what was taken = unusual (self); a double dose or the wrong medicine even with no symptoms, or a reaction with repeated vomiting, strong dizziness, a large rash or a very changed heartbeat = concerning (medical officer, not left alone); hard to wake, slow or weak breathing, blue lips, strong confusion, or a severe allergic reaction (swollen face, trouble breathing) = dangerous (everyone, urgent card). Related cards: skin rash (new medicine) and shortness of breath. Card level above is the base level; the system uses this list. CHANGED 14 Nov (after Caio's check, bloco 2, passo 3, medical lead chose A): 'do not take another medicine' became 'only if the medical officer says so' (so it does not block an antidote); added 'if sleepy but breathing, lie on your side'; 'do not let yourself fall asleep' was removed for lack of a source."
+  },
+  {
+    "id": "gynecologic",
+    "title": {
+      "en": "Gynecologic problems",
+      "pt": "Problemas ginecológicos"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Are you soaking more than one pad an hour?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have strong pain in the lower belly?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have a fever?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "heavy bleeding",
+          "period",
+          "unprotected sex",
+          "pelvic pain",
+          "bleeding"
+        ],
+        "pt": [
+          "sangramento forte",
+          "menstruação",
+          "sexo sem proteção",
+          "dor na barriga de baixo",
+          "sangrando"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Bleeding outside your cycle: use a pad and count how many you soak per hour. Write down when it started, how heavy it is and the color.",
+        "pt": "Sangramento fora do ciclo: use absorvente e conte quantos você encharca por hora. Anote quando começou, o quanto é e a cor."
+      },
+      {
+        "en": "If the bleeding is heavy: lie down and stay still. Do not take aspirin; talk to the medical officer before taking any medicine.",
+        "pt": "Se o sangramento for forte: deite-se e fique parada. Não tome aspirina; fale com o responsável médico antes de tomar qualquer remédio."
+      },
+      {
+        "en": "Drink water in small sips and eat something light. Avoid effort and exercise.",
+        "pt": "Beba água em pequenos goles e coma algo leve. Evite esforço e exercício."
+      },
+      {
+        "en": "Pain in the lower belly: put a warm cloth on it and rest.",
+        "pt": "Dor na barriga de baixo: coloque um pano morno e descanse."
+      },
+      {
+        "en": "Unprotected sex: tell the medical officer as soon as you can, in private. Some options work better the earlier they are used.",
+        "pt": "Sexo sem proteção: avise o responsável médico o quanto antes, em particular. Algumas opções funcionam melhor quanto mais cedo forem usadas."
+      },
+      {
+        "en": "If you soak more than one pad an hour with dizziness, pale skin or fainting, or have sudden very strong pain in the lower belly: ask someone to stay with you and follow the urgent card.",
+        "pt": "Se encharcar mais de um absorvente por hora com tontura, palidez ou desmaio, ou tiver dor súbita e muito forte na barriga de baixo: peça para alguém ficar com você e siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not ignore heavy bleeding with dizziness or fainting.",
+        "pt": "Não ignore sangramento forte com tontura ou desmaio."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: abnormal uterine bleeding and unprotected intercourse are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No emergency contraception, pregnancy test or medicine step: those are medical decisions and depend on the ship's kit.",
+      "Vaginal yeast infection and discharge are covered by the urinary and genital card.",
+      "'Do not take aspirin' is from memory, no source; ibuprofen was removed after the AAFP 2020 conflict."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: bleeding a little outside the cycle, or unprotected sex with no symptoms = unusual (self); heavy bleeding (soaking more than one pad an hour), strong pain in the lower belly, fever, or foul-smelling discharge = concerning (medical officer, not left alone); very heavy bleeding with dizziness, pallor or fainting, or sudden very strong pain in the lower belly = dangerous (everyone, urgent card). Privacy: what she writes is shown only to the medical officer, never to the crew. Card level above is the base level; the system uses this list. Steps improved on 14 Nov at the medical lead's request (6 steps). CHANGED 14 Nov (after Caio's check, item 7, medical lead chose C): step 2 no longer says not to take ibuprofen (the AAFP 2020 review says NSAIDs reduce heavy menstrual bleeding); it now says not to take aspirin and to talk to the medical officer before any medicine. Aspirin and bleeding outside the cycle were not checked."
+  },
+  {
+    "id": "eva-hand-nails",
+    "title": {
+      "en": "Hand, nails and spacesuit injuries",
+      "pt": "Mão, unhas e lesões da roupa espacial"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Is the nail coming off or is there blood under it?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do your fingers feel numb?",
+          "answer": "yes"
+        },
+        {
+          "question": "Can you move the hand?",
+          "answer": "no"
+        }
+      ],
+      "words": {
+        "en": [
+          "hand hurts",
+          "nail",
+          "glove",
+          "spacesuit",
+          "fingers numb",
+          "stress fracture"
+        ],
+        "pt": [
+          "mão doendo",
+          "unha",
+          "luva",
+          "roupa espacial",
+          "dedos dormentes",
+          "dor no osso"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Take off gloves or clothing that squeeze, and rest the hand. Move your fingers slowly: check if they move, have color and have feeling.",
+        "pt": "Tire luvas ou roupas que apertam e descanse a mão. Mexa os dedos devagar: veja se mexem, se têm cor e se têm sensação."
+      },
+      {
+        "en": "Hurt nail: put a cold wet cloth on it. Do not pull off a loose nail. Cover it with a clean bandage.",
+        "pt": "Unha machucada: coloque um pano frio e úmido. Não arranque a unha solta. Cubra com um curativo limpo."
+      },
+      {
+        "en": "Blood under the nail with strong pain: do not pierce it. Tell the medical officer.",
+        "pt": "Sangue sob a unha com dor forte: não fure. Avise o responsável médico."
+      },
+      {
+        "en": "Bone pain when you put weight on it, or pain from overuse: stop the exercise or the task with that part and rest.",
+        "pt": "Dor no osso ao apoiar, ou dor de uso excessivo: pare o exercício ou a tarefa com essa parte e descanse."
+      },
+      {
+        "en": "If the bleeding is strong, a finger is deformed or cold and pale, or you cannot move the hand: follow the urgent card.",
+        "pt": "Se o sangramento for forte, um dedo estiver deformado ou frio e pálido, ou você não conseguir mexer a mão: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not pull off a loose nail.",
+        "pt": "Não arranque a unha solta."
+      },
+      {
+        "en": "Do not pierce a nail with blood under it.",
+        "pt": "Não fure o sangue sob a unha."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: fingernail delamination (EVA related), subungual hematoma, hand injury (EVA related), suit contact injury, overuse injury and lower extremity stress fracture are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No pain medicine step: that is a medical decision not made."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild hand or finger pain after work, a bruised nail with no blood, or a suit mark on the skin = unusual (self); a nail coming off, blood under the nail with strong pain, pain that does not pass in 2 days, numbness in the fingers, or bone pain on pressure (possible stress fracture) = concerning (medical officer); strong bleeding, a deformed or cold and pale finger, or loss of movement of the hand = dangerous (everyone, urgent card). Related cards: cut or injury, fractures. Card level above is the base level; the system uses this list."
+  },
+  {
+    "id": "tingling-nerves",
+    "title": {
+      "en": "Tingling and nerve problems",
+      "pt": "Formigamento e problemas dos nervos"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [
+        {
+          "signal": "heart_rate",
+          "direction": "low",
+          "basis": "personal_normal",
+          "threshold": null,
+          "unit": null,
+          "note": "with very low blood pressure signs"
+        }
+      ],
+      "answers": [
+        {
+          "question": "Is the tingling or numbness lasting more than 2 days?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have weakness in an arm or leg?",
+          "answer": "yes"
+        },
+        {
+          "question": "Did you lose control of urine or stool?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "tingling",
+          "numb",
+          "pins and needles",
+          "weak arm",
+          "paralysis"
+        ],
+        "pt": [
+          "formigamento",
+          "dormente",
+          "dormência",
+          "braço fraco",
+          "paralisia"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Sit or lie down and stay still. Do not stay in a position that squeezes the arm or leg.",
+        "pt": "Sente-se ou deite-se e fique parada. Não fique numa posição que aperte o braço ou a perna."
+      },
+      {
+        "en": "Move the arm or leg slowly. Check if you can move it, if you feel touch, and if it has the same strength as the other side.",
+        "pt": "Mexa o braço ou a perna devagar. Veja se consegue mexer, se sente o toque e se tem a mesma força do outro lado."
+      },
+      {
+        "en": "Write down when it started, where it is and whether it comes and goes.",
+        "pt": "Anote quando começou, onde é e se vem e vai."
+      },
+      {
+        "en": "Do not rub, heat or massage the numb area.",
+        "pt": "Não esfregue, não aqueça nem massageie a área dormente."
+      },
+      {
+        "en": "If it is sudden numbness or weakness on one side, you lose control of urine or stool, you cannot move an arm or leg, or you feel very weak with a slow heartbeat: follow the urgent card.",
+        "pt": "Se for dormência ou fraqueza súbita de um lado, se perder o controle da urina ou das fezes, não conseguir mexer um braço ou uma perna, ou se sentir muito fraca com batimento lento: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub, heat or massage a numb area.",
+        "pt": "Não esfregue, não aqueça nem massageie uma área dormente."
+      },
+      {
+        "en": "Do not ignore sudden numbness or weakness on one side.",
+        "pt": "Não ignore dormência ou fraqueza súbita de um lado."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: paresthesia, central neuropathy (impingement) and neurogenic shock are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: mild tingling that comes and goes in one hand or foot with no other symptoms = unusual (self); tingling or numbness that does not pass in 2 days, weakness in an arm or leg, or pain that goes down the arm or leg = concerning (medical officer, not left alone); sudden numbness or weakness on one side, loss of control of urine or stool, very low blood pressure with a slow heartbeat (neurogenic shock), or paralysis = dangerous (everyone, urgent card). Sudden numbness on one side is also in the head blow, seizure and stroke card: this card is shown only when the tingling comes alone, so the system does not pick two cards. Card level above is the base level; the system uses this list."
+  },
+  {
+    "id": "nutrition-dust-kidney",
+    "title": {
+      "en": "Nutrition, dust and kidneys",
+      "pt": "Nutrição, poeira e rins"
+    },
+    "level": "unusual",
+    "notify": "self",
+    "message_houston": false,
+    "signs": {
+      "readings": [],
+      "answers": [
+        {
+          "question": "Have you passed very little urine for many hours?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have strong pain in the side that goes to the groin?",
+          "answer": "yes"
+        },
+        {
+          "question": "Do you have cough and irritated eyes after dust?",
+          "answer": "yes"
+        }
+      ],
+      "words": {
+        "en": [
+          "dust",
+          "kidney pain",
+          "side pain",
+          "little urine",
+          "tired for weeks",
+          "lunar dust"
+        ],
+        "pt": [
+          "poeira",
+          "dor no rim",
+          "dor do lado",
+          "pouca urina",
+          "cansada há semanas",
+          "poeira lunar"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "en": "Dust: take off the dusty clothes and gloves, close them in a bag, and wipe your skin and face with a damp cloth. Do not rub your eyes.",
+        "pt": "Poeira: tire as roupas e luvas empoeiradas, feche num saco, e limpe a pele e o rosto com um pano úmido. Não esfregue os olhos."
+      },
+      {
+        "en": "Pain in the side of your back or in the kidneys: drink water in small sips and write down how much urine you pass and its color.",
+        "pt": "Dor nas costas do lado ou nos rins: beba água em pequenos goles e anote quanto você urina e a cor."
+      },
+      {
+        "en": "Tired for weeks, weak nails or hair loss: eat a varied meal with fresh food if you have it, and tell the medical officer.",
+        "pt": "Cansaço por semanas, unhas fracas ou queda de cabelo: faça uma refeição variada com alimentos frescos, se tiver, e avise o responsável médico."
+      },
+      {
+        "en": "Do not take medicine for kidney pain unless the medical officer says so.",
+        "pt": "Não tome remédio para dor de rim se o responsável médico não mandar."
+      },
+      {
+        "en": "If you pass no urine with swelling, confusion or hard breathing, or have very strong pain with vomiting: follow the urgent card.",
+        "pt": "Se não urinar e tiver inchaço, confusão ou respiração difícil, ou dor muito forte com vômito: siga o cartão de urgência."
+      }
+    ],
+    "do_not": [
+      {
+        "en": "Do not rub your eyes after contact with dust.",
+        "pt": "Não esfregue os olhos depois da poeira."
+      },
+      {
+        "en": "Do not ignore passing no urine with swelling or confusion.",
+        "pt": "Não ignore ficar sem urinar com inchaço ou confusão."
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Appendix E, table E.2-2: nutritional deficiency, celestial dust exposure, acute kidney injury and nephrolithiasis are on the table",
+        "url": "https://www.nasa.gov/reference/appendix-e-health-and-medical-care-technical-requirements/",
+        "quote": "",
+        "is_nasa": true
+      }
+    ],
+    "unverified": [
+      "All steps written from memory, no source for the steps.",
+      "The NASA table says these conditions are considered; it gives no steps or warning levels.",
+      "The medical lead gave no sources for this card.",
+      "No medicine step: that is a medical decision not made.",
+      "The urinary and genital card already covers cannot urinate and blood in the urine."
+    ],
+    "status": "approved",
+    "en_checked": true,
+    "notes": "Levels confirmed by the medical lead on 14 Nov: tiredness, weak nails or hair loss for weeks, mild cough or irritation after dust, or mild side pain = unusual (self); little urine for many hours, strong side pain going to the groin, blood in the urine, or cough and irritated eyes for more than 1 day after dust = concerning (medical officer, not left alone); no urine with swelling, confusion or hard breathing, or very strong pain with vomiting = dangerous (everyone, urgent card). This card shows only with side pain, little urine, dust or lack of nutrients. Card level above is the base level; the system uses this list."
+  }
+]

@@ -1,0 +1,404 @@
+{
+  "about": "English checked by an independent review, 14 Nov 2026. Language only: \"checked\" means the English of the title, steps and do-nots says what the medical lead's Portuguese says. It is not a medical check of the steps. The installer applies a card's fixes and sets en_checked only while both hashes still match her card; a card she changes drops back to unchecked. Cards she changed in her second export (14 Nov 2026, evening) were checked again the same way.",
+  "cards": {
+    "high-co2": {
+      "checked": true,
+      "pt_sha256": "7745ed3e886821bba6de7dd8a98232c557f6c1acb6b0aa8c42b3dd041d718c88",
+      "en_sha256": "37f34fcd0356765dc11f79e0dcd66a46e5a2abb52029163a73d3c3853059a288",
+      "fixes": {
+        "steps[3]": {
+          "pt": "Sintomas graves (sono profundo, convulsão, não responde): todos a bordo são avisados. Se a pessoa convulsiona, afaste objetos duros e não ponha nada na boca; quando parar, deite de lado. Se não responde e não respira normalmente, vá para o cartão de parada. A ventilação com o ambu só com duas pessoas e a pessoa presa (sem gravidade).",
+          "en": "Severe symptoms (deep sleep, seizure, not responding): everyone on board is notified. If the person has a seizure, move hard objects away and do not put anything in the mouth; when it stops, lay them on their side. If they do not respond and are not breathing normally, go to the cardiac arrest card. Use the bag-valve mask only with two people and with the person strapped down (no gravity)."
+        },
+        "do_not[1]": {
+          "pt": "Não use cateter nasal: você continua respirando o ar da cabine pelos lados e pela boca.",
+          "en": "Do not use a nasal cannula: you keep breathing cabin air around it and through your mouth."
+        }
+      }
+    },
+    "unknown-urgent": {
+      "checked": true,
+      "pt_sha256": "e5e093af705738b589955559f76c536f78d494d4dbd1fd24639c8c23c625195b",
+      "en_sha256": "0da9f37354731f06e91310c8932853c6101c964295634c2802feb7994d6c5f26",
+      "fixes": {
+        "steps[2]": {
+          "pt": "A. A pessoa responde quando você fala? Se não, olhe dentro da boca e tire o que estiver bloqueando. Qualquer outra coisa na via aérea precisa de duas pessoas e da pessoa presa na maca de restrição.",
+          "en": "A. Does the person answer when you speak? If not, look inside the mouth and remove anything blocking it. Anything else on the airway needs two people and the person strapped to the medical restraint."
+        }
+      }
+    },
+    "cardiac-arrest": {
+      "checked": true,
+      "pt_sha256": "157d7c4972fd0821c617b5553255e2d5de5561ab1e995c52ca45d6b0a6e033f3",
+      "en_sha256": "f0c754209985672078697d578f67bbdf229532d4af36a4567d026a21be50389e",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Com a pessoa solta, prenda o corpo dela com as pernas (perna esquerda sobre o ombro direito dela, perna direita em volta do peito, tornozelos cruzados nas costas dela). Aperte o centro do peito forte e rápido, cerca de 2 vezes por segundo. Se as pernas não derem apertos fortes, abrace o peito da pessoa por trás e aperte.",
+          "en": "While the person is not strapped down, hold their body with your legs (left leg over their right shoulder, right leg around their chest, ankles crossed behind their back). Press the middle of the chest hard and fast, about 2 times per second. If the leg hold does not give strong presses, hug the person's chest from behind and press."
+        },
+        "steps[4]": {
+          "pt": "Desfibrilador, só com a pessoa presa numa superfície segura: cole as pás, siga a voz do aparelho e todos se afastam durante o choque.",
+          "en": "Defibrillator, only with the person strapped to a safe surface: stick the pads on, follow the voice of the device, and everyone stays away during the shock."
+        },
+        "do_not[1]": {
+          "pt": "Não use o desfibrilador numa pessoa solta.",
+          "en": "Do not use the defibrillator on a person who is not strapped down."
+        }
+      }
+    },
+    "cardiac-arrest-gravity": {
+      "checked": true,
+      "pt_sha256": "9503c5ff20e7e91aedfd3ce5c462b6399b8c2c9abf6b890fb14f2faf9976557d",
+      "en_sha256": "dab415f8aab01e9e58990cb9bb7b7f94b4dc74dc25ca83d10c6ed1c091a4dc7b",
+      "fixes": {}
+    },
+    "low-oxygen": {
+      "checked": true,
+      "pt_sha256": "501ca78c7b7883384ba077b8e11896d26fb507e3aba8aab8401143f752883bdc",
+      "en_sha256": "58bd85b1debe585c91c65d105001c697f088d8da24bb239f39d70f1a6f1e9a81",
+      "fixes": {}
+    },
+    "skin-rash": {
+      "checked": true,
+      "pt_sha256": "79256734634547449075f68802149f44736fc76e8a214938912e48c6d78a06b3",
+      "en_sha256": "44b23bcade08d869cac423a6ca1650a6e55c1c64c282790702e427f8b60ddf03",
+      "fixes": {}
+    },
+    "upper-respiratory": {
+      "checked": true,
+      "pt_sha256": "b93f79ca5d1999869e019c565acad644d10ee6d53e7fb49b5157fe21523abb17",
+      "en_sha256": "c6a2ad7f730e41cfe9b6f7e6997738a64a25cdf93166697b418bd1236366f499",
+      "fixes": {}
+    },
+    "headache": {
+      "checked": true,
+      "pt_sha256": "581cc2701510b5714690021d274e148100eebd5cb2a4d094714c4f430538ecad",
+      "en_sha256": "524e1ba4b10eea1c814897fbae98c528fbab26da1f2045493a750b37dec9d9ea",
+      "fixes": {}
+    },
+    "cut-injury": {
+      "checked": true,
+      "pt_sha256": "d0ee1997180c6c54d5dc355c680a491e6209e30c93211ecf7b9e4ccaec33dd43",
+      "en_sha256": "125326365838ed16e45066709fb29991bc42218f44fe71c7867f29c608688606",
+      "fixes": {}
+    },
+    "poor-sleep": {
+      "checked": true,
+      "pt_sha256": "2feaebb4f229fc27771642fb4b1574080e916d1de91a4fc73b4661ee7118597b",
+      "en_sha256": "074208fbf3ca09eb03860bddbfc60a261555b33af4c385d189496fa2e52f495c",
+      "fixes": {
+        "steps[4]": {
+          "pt": "Veja na tela o seu cômodo (barulho, luz, CO2, temperatura). Se algo estiver fora do normal, durma em outro cômodo.",
+          "en": "Check the screen for your room (noise, light, CO2, temperature). If something is not normal, sleep in another room."
+        }
+      }
+    },
+    "chest-pain": {
+      "checked": true,
+      "pt_sha256": "c3bc934c09b3fa82dd90b2bc91272f5b5656aaab2b2cdc8162a43ca026eb6e62",
+      "en_sha256": "ee00c84d2e0d38df0df6080b1435d78d9537a7044854f0d175d5fcfdde621828",
+      "fixes": {
+        "steps[4]": {
+          "pt": "Se a dor for forte, for para o braço ou a mandíbula, ou se você desmaiar ou ficar confusa: siga o cartão de urgência.",
+          "en": "If the pain is strong, spreads to the arm or jaw, or you faint or feel confused: follow the urgent card."
+        }
+      }
+    },
+    "nausea-vomiting": {
+      "checked": true,
+      "pt_sha256": "dd553f91a5825b2c4ce39147370bd5492382763800acaacb998ce1e94418c9d5",
+      "en_sha256": "f01305be2fde093d1690ff3a20951960295c090eaab8739286794e4640236a97",
+      "fixes": {}
+    },
+    "dizziness-fainting": {
+      "checked": true,
+      "pt_sha256": "d677164b4566bd10644957edccaec11b2a392c2df6c85d120fb2fb5401d8f66b",
+      "en_sha256": "08f281a873b77344a3f48263bc3571451b8b1e5bc9822f73b6ef0c98b8c0ddb2",
+      "fixes": {}
+    },
+    "mood-stress": {
+      "checked": true,
+      "pt_sha256": "b94363003b4cf6354fe22eb9818f8b1c0ba02aa150e5b0894dbea5b76a6bd7b7",
+      "en_sha256": "969446919aee587bfb0b01dc597a3666ded2b31cd65d12955e9cfaae420d91cc",
+      "fixes": {
+        "steps[0]": {
+          "pt": "Primeiro confira o corpo e o ar: o CO2 do cômodo, o oxigênio no sangue e a glicose. Se algo estiver fora do normal, siga o cartão desse problema.",
+          "en": "First check your body and the air: the CO2 in the room, blood oxygen and glucose. If something is not normal, follow the card for that problem."
+        }
+      }
+    },
+    "digestive": {
+      "checked": true,
+      "pt_sha256": "f5c9589c46a42134283f4ff597b95e404dea9c6cb0294b603ac2a4b545364cfb",
+      "en_sha256": "e00562a053712217b67762de5475579e26a4af7648059b32d4809af79e0c386b",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Diarreia: continue bebendo e use soro de reidratação, se tiver.",
+          "en": "Diarrhea: keep drinking and use oral rehydration solution if you have it."
+        }
+      }
+    },
+    "back-pain": {
+      "checked": true,
+      "pt_sha256": "d3bce758592674e94edc7edb53bf27d49c19a91213a6707d9e81c6ebbd90691a",
+      "en_sha256": "b2d0b751cbca5d1d9ad4b28389e52c907eaae25ead034d3313d7291e34f41253",
+      "fixes": {}
+    },
+    "eyes": {
+      "checked": true,
+      "pt_sha256": "2d6a792c647133f61c180c7a60491c5933c4778b40182cbfc898eb6ca1c59521",
+      "en_sha256": "0be51c5b37c162b1a4eeaf1eaa99ba6b5bee1744d202b1e42a220c56baa174f6",
+      "fixes": {}
+    },
+    "urinary-genital": {
+      "checked": true,
+      "pt_sha256": "bdeb47f21bd9cc0287711dfe95e73d966a3657f696d0d9c83e655783cdcf7186",
+      "en_sha256": "c6346e413110e57ae2db5fcf3c02258ca06768412832e7be1858ea05522d603b",
+      "fixes": {
+        "steps[2]": {
+          "pt": "Mantenha a região limpa e seca. Use roupa íntima limpa e folgada. Se a urina escapar sem querer, use um absorvente e troque quando molhar.",
+          "en": "Keep the area clean and dry. Wear loose, clean underwear. If urine leaks by accident, use a pad and change it when it is wet."
+        }
+      }
+    },
+    "skin-infection": {
+      "checked": true,
+      "pt_sha256": "889ed3c9175cb001a8caeb60532174dca39513d8eec775aa3336dbfe4e54200d",
+      "en_sha256": "c4ab3a5155731780e87d2c70a59ee694f92238a43f45fe7e59cf8dec4a48077b",
+      "fixes": {
+        "steps[3]": {
+          "pt": "Não divida toalha nem deixe outras pessoas tocarem. Com herpes labial, não beije nem divida copos.",
+          "en": "Do not share towels or let other people touch it. With a cold sore, do not kiss or share cups."
+        }
+      }
+    },
+    "ear-nose-throat": {
+      "checked": false,
+      "why_not": "Step 5: the Portuguese \"dificuldade para respirar junto com a garganta ou o pescoço\" is unclear (trouble breathing together with what about the throat or neck?). The English keeps the same unclear wording until the medical lead says what it means.",
+      "pt_sha256": "0c210460d740e51c54e11cdd40275dcaa3b33451f100db5588072ce476313f88",
+      "en_sha256": "ac88f5f8615a5184e244d0f68cfbd3ead5417e598cf5cc7bf7051122b796c1c7",
+      "fixes": {
+        "steps[2]": {
+          "pt": "Sangramento de nariz: fique parada, incline levemente para a frente e aperte a parte mole do nariz por 10 a 15 minutos. Recolha o sangue com gaze para não flutuar.",
+          "en": "Nosebleed: stay still, lean slightly forward and press the soft part of the nose for 10 to 15 minutes. Collect the blood with gauze so it does not float."
+        }
+      }
+    },
+    "neuro": {
+      "checked": true,
+      "pt_sha256": "478e4c658d2197d03ccc58a29e894e94cbfa0703e7da76a2507813884d061935",
+      "en_sha256": "99e12eff2d036cd462210a5d06e16a8b7a53544868e0a1cb578bc386eb1aeaa9",
+      "fixes": {
+        "do_not[1]": {
+          "pt": "Não deixe sozinha uma pessoa com pancada na cabeça e vômito, sono demais ou esquecimento.",
+          "en": "Do not leave someone alone after a blow to the head with vomiting, too much sleepiness or forgetfulness."
+        }
+      }
+    },
+    "burn": {
+      "checked": true,
+      "pt_sha256": "834b40dd68ff3bc71622b04295e14b27df0d43fb25d3be2542dc1da0d14c5997",
+      "en_sha256": "2727d0393760b3e18919d5a9d4b7d01b3cc5f0dc53eb449cb43e0887100a4327",
+      "fixes": {
+        "steps[2]": {
+          "pt": "Não estoure bolhas. Não passe pasta de dente, manteiga nem creme.",
+          "en": "Do not pop blisters. Do not put toothpaste, butter or cream on it."
+        }
+      }
+    },
+    "smoke-toxic-air": {
+      "checked": true,
+      "pt_sha256": "8a3da5d28fc9694f0c1f8c6101604ae6480ae51a1788aa65c127c20fef080a6f",
+      "en_sha256": "1c7b6cdee0841ecab62192d16150d783a1f86171b50312f3023cb2d9bcb6f468",
+      "fixes": {}
+    },
+    "asthma-lung": {
+      "checked": true,
+      "pt_sha256": "a993bd6566a28d9cefe86f8aa7b939350d69523f246f0c8689cb2dc150ac6571",
+      "en_sha256": "69ec9c9131a08e17eddc68722fb0d407708005a58e26e7921f4cd12722fc5d34",
+      "fixes": {
+        "steps[4]": {
+          "pt": "Se você tem inalador de alívio, receitado pelo responsável médico: 1 jato a cada 30 a 60 segundos, até 10 jatos. Se não melhorar, siga o cartão de urgência.",
+          "en": "If you have a reliever inhaler prescribed by the medical officer: take 1 puff every 30 to 60 seconds, up to 10 puffs. If you do not get better, follow the urgent card."
+        }
+      }
+    },
+    "fracture": {
+      "checked": true,
+      "pt_sha256": "781875c671390c8a274a7b45ce9ce55e6fa80542c45c36d497d193ba3e3320db",
+      "en_sha256": "f03680b8114c5ae457541b5e032dd62406aadebd37a8a15dfb64280b9c7a78ca",
+      "fixes": {}
+    },
+    "dental": {
+      "checked": true,
+      "pt_sha256": "ec93e740a30b19fe28fe8970a0e6d378cbf7ad5cfe0c5b120285f9ba33dd5926",
+      "en_sha256": "9c64ec45e234c8eadf50ea461a7972d764712aa75585797c911a97b7964537b2",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Dente que saiu inteiro: pegue pela coroa (a parte de cima), não pela raiz, recoloque no lugar o mais rápido possível e morda uma gaze. Se não der, guarde em leite ou na saliva. Pedaço quebrado: guarde num recipiente pequeno fechado. Se sangrar, aperte uma gaze no local.",
+          "en": "A tooth came out whole: hold it by the crown (the top), not the root, put it back in place as fast as you can and bite on gauze. If you cannot, keep it in milk or in saliva. Broken piece: keep it in a small closed container. If it bleeds, press gauze on the spot."
+        },
+        "steps[2]": {
+          "pt": "Obturação ou coroa perdida: guarde e cubra o buraco com cera ou material de obturação do kit, se tiver.",
+          "en": "Lost filling or crown: keep it, and cover the hole with wax or filling material from the kit, if you have it."
+        }
+      }
+    },
+    "acute-abdomen": {
+      "checked": true,
+      "pt_sha256": "99743a8b3b87d2e25d2d0e45f68165821ed1bacaace35e9431202f88ceed6b23",
+      "en_sha256": "2c1370957bb12d5c64ab3cf3e67d7ae50b7ac4a83fcb4edb0aeea44705405706",
+      "fixes": {}
+    },
+    "heart-circulation": {
+      "checked": false,
+      "why_not": "Step 4: the Portuguese speaks to the person herself (\"deite-se\", \"fique aquecida\") and then says \"Não dê nada pela boca\" (do not GIVE anything by mouth), which speaks to a helper. Who must not give what to whom is unclear; the English keeps the same wording until the medical lead says which she means.",
+      "pt_sha256": "553d5b0971c86c141a92f4aeab845a38fdb46c635db7ec8fae6dc587375e51a7",
+      "en_sha256": "b39c154e808ffa0ea43c98b79e345c5657efede31a898bbcc66b6cc540914544",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Pressão alta: respire devagar. Se tiver aparelho de pressão, meça e anote. Veja se tem dor de cabeça forte.",
+          "en": "High blood pressure: breathe slowly. If you have a pressure cuff, measure it and write it down. Check if you have a strong headache."
+        },
+        "steps[3]": {
+          "pt": "Palidez, suor frio e fraqueza: deite-se, afrouxe a roupa apertada e fique aquecida. Não dê nada pela boca. Peça para alguém ficar com você.",
+          "en": "Paleness, cold sweat and weakness: lie down, loosen tight clothes and keep warm. Do not give anything by mouth. Ask someone to stay with you."
+        }
+      }
+    },
+    "heat-cold": {
+      "checked": true,
+      "pt_sha256": "5964c87136d1957b5532c98ba1ec9b5d2665a1159f14daa239505f5812d67120",
+      "en_sha256": "c20a95f1f90033ee6e35244872e4b6bb4f9cc55348d699e8076d1672878ed6ce",
+      "fixes": {
+        "steps[0]": {
+          "pt": "Veja na tela a temperatura e a umidade do seu cômodo. Se estiverem fora do normal, vá para um cômodo mais agradável.",
+          "en": "Check the screen for the temperature and humidity of your room. If they are not normal, go to a more comfortable room."
+        }
+      }
+    },
+    "depression-psychosis": {
+      "checked": true,
+      "pt_sha256": "923d80a853f86e601da3dcafdb3e67ebee2f10f3bddde17c3341f1159ec17f74",
+      "en_sha256": "f69e39058a57f951c35517d1f00d6b94cccfcbbfa384ff434adfdae155c3d5e4",
+      "fixes": {
+        "steps[0]": {
+          "pt": "Primeiro confira o corpo e o ar: o CO2 do cômodo, o oxigênio no sangue, a glicose e a febre. Eles podem causar confusão e ideias estranhas.",
+          "en": "First check the body and the air: the CO2 in the room, blood oxygen, glucose and fever. These can cause confusion and strange ideas."
+        },
+        "steps[3]": {
+          "pt": "Mantenha a rotina: sono, refeições, luz e exercício leve nos mesmos horários.",
+          "en": "Keep a routine: sleep, meals, lighting and gentle exercise at the same times."
+        }
+      }
+    },
+    "sepsis-anemia": {
+      "checked": true,
+      "pt_sha256": "e4df7480d3956342e445afa057fde19c4e0eaad8dafba881b0e12ba6d4f5253f",
+      "en_sha256": "bcadc2ea3f819e11ea7acadddf0d0a89dc714e82ef78ee53225c04737ef92956",
+      "fixes": {
+        "steps[4]": {
+          "pt": "Se tiver febre com confusão, suor frio, pulso fraco, pele manchada ou fria, ou pouca urina: siga o cartão de urgência.",
+          "en": "If you have fever with confusion, cold sweat, a weak pulse, blotchy or cold skin, or you pass little urine: follow the urgent card."
+        }
+      }
+    },
+    "decompression-radiation": {
+      "checked": true,
+      "pt_sha256": "1e13922f093b7b9b543a199c69b847a02766b76b329b8784b55c8249c3a13bd6",
+      "en_sha256": "811843a93dd66083ca9950f55603d58a16a101b5cf8623ff118a09e5ad9329f4",
+      "fixes": {}
+    },
+    "choking": {
+      "checked": true,
+      "pt_sha256": "d7a30a3fb06fcbb175e2db8ba0ec597e751599bbb9a603094417a116fb23092c",
+      "en_sha256": "2c36961cae77c5f5087514c25d1e89f8ebdeed4736e9cb07c358d7aebc09be63",
+      "fixes": {}
+    },
+    "choking-no-gravity": {
+      "checked": true,
+      "pt_sha256": "90c01b31319c79e9a0ae8e23a448280da01f772f67d9476da33bdccc295240db",
+      "en_sha256": "0986ba51729ccd76257553910b34f59ed9fdab6791b9f864090ebf5edd831ee4",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Se a pessoa não consegue falar, tossir nem respirar: chame todos. Firme-se: apoie os pés numa parede ou segure num ponto fixo para ficar firme.",
+          "en": "If the person cannot speak, cough or breathe: call everyone. Brace yourself: put your feet on a wall or hold on to a fixed point so you stay firm."
+        }
+      }
+    },
+    "medication-overdose": {
+      "checked": true,
+      "pt_sha256": "d72906d0517840600e66e0bf135438a54ba0eaab62374277ebafd258354bb0aa",
+      "en_sha256": "ddab22a9053debcf4caefe28c8c3795639eee6c438a0ad0afc959eab2aeb8956",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Não provoque vômito. Só tome outro remédio se o responsável médico mandar.",
+          "en": "Do not cause vomiting. Take another medicine only if the medical officer says so."
+        },
+        "do_not[0]": {
+          "pt": "Não provoque vômito.",
+          "en": "Do not cause vomiting."
+        }
+      }
+    },
+    "gynecologic": {
+      "checked": true,
+      "pt_sha256": "5c5cc6d9b05d253faecc8585b5e42f126f637863f12d003a28c79cd3c61dda40",
+      "en_sha256": "dc232f7444243cdceac82d29ba070d186203889c01086fe9997c2fa1c6265ffb",
+      "fixes": {}
+    },
+    "eva-hand-nails": {
+      "checked": true,
+      "pt_sha256": "0d9ba5690b33fbe8ddf55133b963ebecd3ca323207a44fa13cf310adc7e525c6",
+      "en_sha256": "d1630fc6114ec666fbe8af4fa37fe50720bb278f25b0912924c6589d40f0898b",
+      "fixes": {
+        "steps[0]": {
+          "pt": "Tire luvas ou roupas que apertam e descanse a mão. Mexa os dedos devagar: veja se mexem, se têm cor e se têm sensação.",
+          "en": "Take off gloves or clothing that squeeze, and rest the hand. Move your fingers slowly: check if they move, have color and have feeling."
+        },
+        "steps[3]": {
+          "pt": "Dor no osso ao apoiar, ou dor de uso excessivo: pare o exercício ou a tarefa com essa parte e descanse.",
+          "en": "Bone pain when you put weight on it, or pain from overuse: stop the exercise or the task with that part and rest."
+        },
+        "do_not[1]": {
+          "pt": "Não fure o sangue sob a unha.",
+          "en": "Do not pierce a nail with blood under it."
+        }
+      }
+    },
+    "tingling-nerves": {
+      "checked": true,
+      "pt_sha256": "7ef6fd46cc9be0a08be556c6508ffc0570d52c02a5e07dc6abd2f52893f47c03",
+      "en_sha256": "20724d9217db12aada60dc2fecee9d9865b8794e1180f0bed6dd38af731c5ed3",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Mexa o braço ou a perna devagar. Veja se consegue mexer, se sente o toque e se tem a mesma força do outro lado.",
+          "en": "Move the arm or leg slowly. Check if you can move it, if you feel touch, and if it has the same strength as the other side."
+        }
+      }
+    },
+    "nutrition-dust-kidney": {
+      "checked": true,
+      "pt_sha256": "34ca9a2fdc9195d239b1c3c6d71a1cf1ef5a206e18ac2a7099b399f1d5a00d54",
+      "en_sha256": "25ed2cc6699858d652fe961ef54a39bb8267505f75061724abfdb8061cb4704b",
+      "fixes": {
+        "steps[1]": {
+          "pt": "Dor nas costas do lado ou nos rins: beba água em pequenos goles e anote quanto você urina e a cor.",
+          "en": "Pain in the side of your back or in the kidneys: drink water in small sips and write down how much urine you pass and its color."
+        },
+        "steps[3]": {
+          "pt": "Não tome remédio para dor de rim se o responsável médico não mandar.",
+          "en": "Do not take medicine for kidney pain unless the medical officer says so."
+        },
+        "do_not[0]": {
+          "pt": "Não esfregue os olhos depois da poeira.",
+          "en": "Do not rub your eyes after contact with dust."
+        },
+        "do_not[1]": {
+          "pt": "Não ignore ficar sem urinar com inchaço ou confusão.",
+          "en": "Do not ignore passing no urine with swelling or confusion."
+        }
+      }
+    }
+  }
+}

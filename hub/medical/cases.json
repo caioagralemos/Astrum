@@ -1,0 +1,3621 @@
+[
+  {
+    "id": "case-001",
+    "title": "High CO2 while asleep, not waking, watch changed",
+    "story": {
+      "en": "A crewmate is asleep in her cabin. The cabin CO2 1-hour average rises above the NASA limit of 3 mmHg. The system alerts her and reads the watches of everyone in the room at the same time. She does not wake. Her watch shows breathing above her normal, heart rate more than 20% above her baseline, and blood oxygen below 95%.",
+      "pt": "A tripulante está dormindo no quarto. A média de 1 hora de CO2 do quarto passa do limite da NASA, de 3 mmHg. O sistema avisa a tripulante e confere o relógio de todos no cômodo ao mesmo tempo. Ela não acorda. O relógio mostra respiração acima do normal dela, batimento mais de 20% acima do basal e oxigênio no sangue abaixo de 95%."
+    },
+    "readings": [
+      {
+        "signal": "cabin_co2",
+        "value": 3.4,
+        "unit": "mmHg",
+        "compared": "above NASA limit (1-hour average)"
+      },
+      {
+        "signal": "respiratory_rate",
+        "value": 24,
+        "unit": "breaths/min",
+        "compared": "above this person's normal and above 20"
+      },
+      {
+        "signal": "heart_rate",
+        "value": 78,
+        "unit": "bpm",
+        "compared": "more than 20% above this person's baseline (about 52 bpm asleep)"
+      },
+      {
+        "signal": "blood_oxygen",
+        "value": 93,
+        "unit": "%",
+        "compared": "below 95 reference value"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "high-co2",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis (for example coma or acidosis)"
+      ]
+    },
+    "why": "She did not wake while the CO2 is over the limit and her watch shows changed breathing, heart rate and oxygen. This suggests loss of consciousness and a risk of cardiorespiratory arrest, so everyone aboard is alerted.",
+    "status": "approved",
+    "notes": "Rules from the medical lead, 14 Nov. System alerts the person and checks the watch of everyone in the room at the same time (no waiting). Watch changed means: respiratory rate above personal normal OR above 20; heart rate more than 20% or 20 bpm above personal baseline; SpO2 below 95. Reference tables she pasted have no named source: unverified. Test values are invented for the case.",
+    "en_checked": false
+  },
+  {
+    "id": "case-002",
+    "title": "High CO2 while asleep, not waking, watch normal",
+    "story": {
+      "en": "A crewmate is asleep in her cabin. The cabin CO2 1-hour average rises above the NASA limit of 3 mmHg. The system alerts her and reads the watches of everyone in the room at the same time. She does not wake, but her watch shows no change: breathing, heart rate and blood oxygen are within her normal and the reference values.",
+      "pt": "A tripulante está dormindo no quarto. A média de 1 hora de CO2 do quarto passa do limite da NASA, de 3 mmHg. O sistema avisa a tripulante e confere o relógio de todos no cômodo ao mesmo tempo. Ela não acorda, mas o relógio não mostra alteração: respiração, batimento e oxigênio estão dentro do normal dela e dos valores de referência."
+    },
+    "readings": [
+      {
+        "signal": "cabin_co2",
+        "value": 3.4,
+        "unit": "mmHg",
+        "compared": "above NASA limit (1-hour average)"
+      },
+      {
+        "signal": "respiratory_rate",
+        "value": 14,
+        "unit": "breaths/min",
+        "compared": "within this person's normal and below 20"
+      },
+      {
+        "signal": "heart_rate",
+        "value": 54,
+        "unit": "bpm",
+        "compared": "within this person's baseline (about 52 bpm asleep)"
+      },
+      {
+        "signal": "blood_oxygen",
+        "value": 97,
+        "unit": "%",
+        "compared": "above 95 reference value"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "self",
+      "card": "high-co2",
+      "next_question": "",
+      "must_not": [
+        "alert everyone",
+        "reassure the crewmate",
+        "suggest a diagnosis (for example coma or acidosis)"
+      ]
+    },
+    "why": "She is not waking while the CO2 is over the limit. Her vital signs are normal, so it may be heavy sleep, but with the room air this bad it can get serious within minutes. Prevention: alert the nearest roommate to wake her, fix the room CO2 and start the card steps.",
+    "status": "approved",
+    "notes": "Rule from the medical lead, 14 Nov: concerning, and also notify the nearest roommate to wake her; 'notify' has no roommate value, so it is self here and the roommate is in this note. Not yet decided: whether the medical officer is also notified at this level. The system keeps reading the watch; if it changes, it becomes case-001 (dangerous, everyone). Test values are invented. Approved by the medical lead without a medical officer alert at this level (she did not ask for it).",
+    "en_checked": false
+  },
+  {
+    "id": "case-003",
+    "title": "Headache with CO2 below the NASA limit",
+    "story": {
+      "en": "A crewmate in her cabin reports a headache. The cabin CO2 1-hour average is 2.6 mmHg: above 2.3 (where NASA reports first symptoms) but still under the NASA limit of 3 mmHg. The system points to the room as something to check.",
+      "pt": "A tripulante está no quarto e relata dor de cabeça. A média de 1 hora de CO2 do quarto é 2,6 mmHg: acima de 2,3 (onde a NASA relata os primeiros sintomas), mas ainda abaixo do limite da NASA, de 3 mmHg. O sistema aponta o quarto como algo a verificar."
+    },
+    "readings": [
+      {
+        "signal": "cabin_co2",
+        "value": 2.6,
+        "unit": "mmHg",
+        "compared": "above 2.3, below the NASA limit of 3"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Do you have a headache?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "high-co2",
+      "next_question": "",
+      "must_not": [
+        "alert everyone",
+        "alert the medical officer",
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "NASA reports first symptoms from 2.3 mmHg, so a headache here can be the room. The crewmate is told to move to another room and follow the CO2 card steps.",
+    "status": "approved",
+    "notes": "Medical lead, 14 Nov: 2.3 mmHg is the number, but even a little lower, if there are symptoms, the card steps should already be followed. How much lower is not decided yet. Shown as exposure to check, never as the cause. Test values are invented. She added: this applies to mild symptoms (the mild list in the CO2 card: headache, sleepiness, hand tremor, flushing, sweating). Final: the number is 2.3 mmHg, no lower cutoff.",
+    "en_checked": false
+  },
+  {
+    "id": "case-004",
+    "title": "Headache with normal CO2: no warning, only questions",
+    "story": {
+      "en": "A crewmate in her cabin reports a headache. The cabin CO2 is normal (0.5 mmHg, below 2.3). Her watch is within her normal. The system gives no warning and asks light questions about sleep, water and food.",
+      "pt": "A tripulante está no quarto e relata dor de cabeça. O CO2 do quarto está normal (0,5 mmHg, abaixo de 2,3). O relógio está dentro do normal dela. O sistema não dá aviso e faz perguntas leves sobre sono, água e comida."
+    },
+    "readings": [
+      {
+        "signal": "cabin_co2",
+        "value": 0.5,
+        "unit": "mmHg",
+        "compared": "below 2.3, normal"
+      },
+      {
+        "signal": "respiratory_rate",
+        "value": 14,
+        "unit": "breaths/min",
+        "compared": "within this person's normal"
+      },
+      {
+        "signal": "heart_rate",
+        "value": 62,
+        "unit": "bpm",
+        "compared": "within this person's baseline"
+      },
+      {
+        "signal": "blood_oxygen",
+        "value": 98,
+        "unit": "%",
+        "compared": "above 95 reference value"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Do you have a headache?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "Did you sleep well last night? Did you drink water today? Did you eat today?",
+      "must_not": [
+        "show the CO2 card",
+        "alert anyone",
+        "blame the room",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Nothing points to the room or the body: CO2 is normal and the watch is normal. A headache alone is common, so the system only asks about sleep, water and food.",
+    "status": "approved",
+    "notes": "Medical lead, 14 Nov: all three questions. What the system does with the answers is not decided. Test values are invented.",
+    "en_checked": false
+  },
+  {
+    "id": "case-005",
+    "title": "Very low sodium",
+    "story": {
+      "en": "A crewmate's typed blood test shows sodium of 118 mmol/L.",
+      "pt": "O exame de sangue digitado mostra sódio de 118 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 118,
+        "unit": "mmol/L",
+        "compared": "below 120"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis",
+        "leave her alone"
+      ]
+    },
+    "why": "Below 120 is very severe: everyone is alerted.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-006",
+    "title": "Low sodium, moderate",
+    "story": {
+      "en": "The typed blood test shows sodium of 127 mmol/L.",
+      "pt": "O exame de sangue digitado mostra sódio de 127 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 127,
+        "unit": "mmol/L",
+        "compared": "125 to 129"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "wait for symptom answers before alerting",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "125 to 129: the medical officer is alerted without waiting for answers, because a seizure would come before she could answer.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-007",
+    "title": "Mild low sodium, no symptoms",
+    "story": {
+      "en": "Sodium is 132 mmol/L. She answers no to confusion, slow thinking, headache, nausea and vomiting.",
+      "pt": "O sódio é 132 mmol/L. Ela responde que não tem confusão, lentidão, dor de cabeça, náusea nem vômito."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 132,
+        "unit": "mmol/L",
+        "compared": "130 to 134"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Do you have confusion, slow thinking, headache, nausea or vomiting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "Do you have confusion, slow thinking, headache, nausea or vomiting?",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "130 to 134 is usually without symptoms: unusual, only her.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-008",
+    "title": "Mild low sodium, with symptoms",
+    "story": {
+      "en": "Sodium is 132 mmol/L. She answers that she has headache and vomiting.",
+      "pt": "O sódio é 132 mmol/L. Ela responde que está com dor de cabeça e vômito."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 132,
+        "unit": "mmol/L",
+        "compared": "130 to 134"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Do you have confusion, slow thinking, headache, nausea or vomiting?",
+        "answer": "yes: headache and vomiting"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "keep it as unusual",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "With symptoms it is no longer mild: the medical officer is alerted.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-009",
+    "title": "Normal sodium",
+    "story": {
+      "en": "Sodium is 140 mmol/L.",
+      "pt": "O sódio é 140 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 140,
+        "unit": "mmol/L",
+        "compared": "within 135 to 146"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-010",
+    "title": "High sodium, severe",
+    "story": {
+      "en": "Sodium is 162 mmol/L.",
+      "pt": "O sódio é 162 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.sodium",
+        "value": 162,
+        "unit": "mmol/L",
+        "compared": "above 160"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "wait for symptom answers before alerting",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Above 160 there is risk of seizure: the medical officer is alerted without waiting, and she is not left alone.",
+    "status": "approved",
+    "notes": "Built from the approved sodium levels (medical lead, 14 Nov). Test values are invented. ",
+    "en_checked": false
+  },
+  {
+    "id": "case-011",
+    "title": "Low potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 2.8 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 2,8 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 2.8,
+        "unit": "mmol/L",
+        "compared": "below 3.0"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 3.0: the medical officer is alerted and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-012",
+    "title": "Mildly low potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 3.2 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 3,2 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 3.2,
+        "unit": "mmol/L",
+        "compared": "3.0 to 3.4"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "3.0 to 3.4: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-013",
+    "title": "Normal potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 4.4 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 4,4 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 4.4,
+        "unit": "mmol/L",
+        "compared": "within 3.5 to 5.3"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-014",
+    "title": "Mildly high potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 5.7 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 5,7 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 5.7,
+        "unit": "mmol/L",
+        "compared": "5.4 to 5.9"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "5.4 to 5.9: unusual, only her, and the system suggests repeating the collection because flight potassium can be high from collection technique.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. The warning includes 'repeat the collection'."
+  },
+  {
+    "id": "case-015",
+    "title": "High potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 6.2 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 6,2 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 6.2,
+        "unit": "mmol/L",
+        "compared": "6.0 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "6.0 or more: the medical officer is alerted, and the system suggests repeating the collection.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. The warning includes 'repeat the collection'."
+  },
+  {
+    "id": "case-016",
+    "title": "Very high potassium",
+    "story": {
+      "en": "The typed blood test shows potassium of 6.7 mmol/L.",
+      "pt": "O exame digitado mostra potássio de 6,7 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.potassium",
+        "value": 6.7,
+        "unit": "mmol/L",
+        "compared": "6.5 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "6.5 or more: risk of fatal arrhythmia even without symptoms, everyone is alerted, and the system suggests repeating the collection.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved potassium levels (medical lead, 14 Nov). Test values are invented. The warning includes 'repeat the collection'."
+  },
+  {
+    "id": "case-017",
+    "title": "Very low ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 0.8 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 0,8 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 0.8,
+        "unit": "mmol/L",
+        "compared": "below 0.9"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 0.9: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-018",
+    "title": "Moderately low ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 0.95 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 0,95 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 0.95,
+        "unit": "mmol/L",
+        "compared": "0.90 to 0.99"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "Do you have tingling, cramps, spasms, confusion, thirst, vomiting or weakness?",
+      "must_not": [
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "0.90 to 0.99: unusual, the system asks about symptoms, and symptoms call the medical officer.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-019",
+    "title": "Mildly low ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 1.05 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 1,05 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 1.05,
+        "unit": "mmol/L",
+        "compared": "1.00 to 1.11"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "1.00 to 1.11: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-020",
+    "title": "Normal ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 1.25 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 1,25 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 1.25,
+        "unit": "mmol/L",
+        "compared": "within 1.12 to 1.32"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-021",
+    "title": "Mildly high ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 1.40 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 1,40 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 1.4,
+        "unit": "mmol/L",
+        "compared": "1.33 to 1.50"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "1.33 to 1.50: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-022",
+    "title": "High ionized calcium at the critical limit",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 1.60 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 1,60 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 1.6,
+        "unit": "mmol/L",
+        "compared": "1.60 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "1.60 or more: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-023",
+    "title": "Very high ionized calcium",
+    "story": {
+      "en": "The typed blood test shows ionized calcium of 1.80 mmol/L.",
+      "pt": "O exame digitado mostra cálcio ionizado de 1,80 mmol/L."
+    },
+    "readings": [
+      {
+        "signal": "blood.ionized_calcium",
+        "value": 1.8,
+        "unit": "mmol/L",
+        "compared": "1.60 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Well above 1.60: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved ionized calcium levels (medical lead, 14 Nov, after her change to dangerous at below 0.9 and 1.6 or more). Test values are invented."
+  },
+  {
+    "id": "case-024",
+    "title": "Very low pH, no cut-off for it",
+    "story": {
+      "en": "The typed blood test shows pH of 7.05.",
+      "pt": "O exame digitado mostra pH de 7,05."
+    },
+    "readings": [
+      {
+        "signal": "blood.ph",
+        "value": 7.05,
+        "unit": "pH units",
+        "compared": "below 7.31"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "With the sourced numbers only, pH below 7.31 is shown as out of range and warns only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved pH entry (medical lead, 14 Nov): warns only outside 7.35-7.45 (self) and at 7.60 or more (everyone); the unsourced cut-offs were removed. Test values are invented. Test of a known gap: 7.05 is clinically very low, but the life-risk cut-off 7.10 was removed for lack of a source. If a source is found, this case changes. Updated 14 Nov: the normal pH range is now 7.31 to 7.41."
+  },
+  {
+    "id": "case-025",
+    "title": "Low pH",
+    "story": {
+      "en": "The typed blood test shows pH of 7.30.",
+      "pt": "O exame digitado mostra pH de 7,30."
+    },
+    "readings": [
+      {
+        "signal": "blood.ph",
+        "value": 7.3,
+        "unit": "pH units",
+        "compared": "below 7.31"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 7.31: out of range, unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved pH entry (medical lead, 14 Nov): warns only outside 7.35-7.45 (self) and at 7.60 or more (everyone); the unsourced cut-offs were removed. Test values are invented.  Updated 14 Nov: the normal pH range is now 7.31 to 7.41."
+  },
+  {
+    "id": "case-026",
+    "title": "Normal pH",
+    "story": {
+      "en": "The typed blood test shows pH of 7.40.",
+      "pt": "O exame digitado mostra pH de 7,40."
+    },
+    "readings": [
+      {
+        "signal": "blood.ph",
+        "value": 7.4,
+        "unit": "pH units",
+        "compared": "within 7.31 to 7.41"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved pH entry (medical lead, 14 Nov): warns only outside 7.35-7.45 (self) and at 7.60 or more (everyone); the unsourced cut-offs were removed. Test values are invented.  Updated 14 Nov: the normal pH range is now 7.31 to 7.41."
+  },
+  {
+    "id": "case-027",
+    "title": "High pH",
+    "story": {
+      "en": "The typed blood test shows pH of 7.52.",
+      "pt": "O exame digitado mostra pH de 7,52."
+    },
+    "readings": [
+      {
+        "signal": "blood.ph",
+        "value": 7.52,
+        "unit": "pH units",
+        "compared": "above 7.41"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Above 7.41: out of range, unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved pH entry (medical lead, 14 Nov): warns only outside 7.35-7.45 (self) and at 7.60 or more (everyone); the unsourced cut-offs were removed. Test values are invented.  Updated 14 Nov: the normal pH range is now 7.31 to 7.41."
+  },
+  {
+    "id": "case-028",
+    "title": "Very high pH",
+    "story": {
+      "en": "The typed blood test shows pH of 7.62.",
+      "pt": "O exame digitado mostra pH de 7,62."
+    },
+    "readings": [
+      {
+        "signal": "blood.ph",
+        "value": 7.62,
+        "unit": "pH units",
+        "compared": "7.60 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "7.60 or more: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved pH entry (medical lead, 14 Nov): warns only outside 7.35-7.45 (self) and at 7.60 or more (everyone); the unsourced cut-offs were removed. Test values are invented.  Updated 14 Nov: the normal pH range is now 7.31 to 7.41."
+  },
+  {
+    "id": "case-029",
+    "title": "Critically low hematocrit",
+    "story": {
+      "en": "The typed blood test shows hematocrit of 18%.",
+      "pt": "O exame digitado mostra hematócrito de 18%."
+    },
+    "readings": [
+      {
+        "signal": "blood.hematocrit",
+        "value": 18,
+        "unit": "%PCV",
+        "compared": "below 20"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 20: the medical officer is alerted and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved hematocrit entry (medical lead, 14 Nov). Fixed reference range 38-51. Test values are invented."
+  },
+  {
+    "id": "case-030",
+    "title": "Low hematocrit",
+    "story": {
+      "en": "The typed blood test shows hematocrit of 30%.",
+      "pt": "O exame digitado mostra hematócrito de 30%."
+    },
+    "readings": [
+      {
+        "signal": "blood.hematocrit",
+        "value": 30,
+        "unit": "%PCV",
+        "compared": "20 to 37"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "20 to 37: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved hematocrit entry (medical lead, 14 Nov). Fixed reference range 38-51. Test values are invented."
+  },
+  {
+    "id": "case-031",
+    "title": "Normal hematocrit",
+    "story": {
+      "en": "The typed blood test shows hematocrit of 44%.",
+      "pt": "O exame digitado mostra hematócrito de 44%."
+    },
+    "readings": [
+      {
+        "signal": "blood.hematocrit",
+        "value": 44,
+        "unit": "%PCV",
+        "compared": "within 38 to 51"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved hematocrit entry (medical lead, 14 Nov). Fixed reference range 38-51. Test values are invented."
+  },
+  {
+    "id": "case-032",
+    "title": "High hematocrit",
+    "story": {
+      "en": "The typed blood test shows hematocrit of 55%.",
+      "pt": "O exame digitado mostra hematócrito de 55%."
+    },
+    "readings": [
+      {
+        "signal": "blood.hematocrit",
+        "value": 55,
+        "unit": "%PCV",
+        "compared": "52 to 60"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "52 to 60: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved hematocrit entry (medical lead, 14 Nov). Fixed reference range 38-51. Test values are invented."
+  },
+  {
+    "id": "case-033",
+    "title": "Critically high hematocrit",
+    "story": {
+      "en": "The typed blood test shows hematocrit of 63%.",
+      "pt": "O exame digitado mostra hematócrito de 63%."
+    },
+    "readings": [
+      {
+        "signal": "blood.hematocrit",
+        "value": 63,
+        "unit": "%PCV",
+        "compared": "above 60"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Above 60: the medical officer is alerted and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved hematocrit entry (medical lead, 14 Nov). Fixed reference range 38-51. Test values are invented."
+  },
+  {
+    "id": "case-034",
+    "title": "Normal blood oxygen",
+    "story": {
+      "en": "The watch shows blood oxygen of 97%.",
+      "pt": "O relógio mostra SpO₂ de 97%."
+    },
+    "readings": [
+      {
+        "signal": "blood_oxygen",
+        "value": 97,
+        "unit": "%",
+        "compared": "95 or more"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved low-oxygen card (medical lead, 14 Nov): SpO2 95 or more normal; 90-94 unusual (self), ask about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone). Test values are invented. "
+  },
+  {
+    "id": "case-035",
+    "title": "Slightly low blood oxygen",
+    "story": {
+      "en": "The watch shows blood oxygen of 92%.",
+      "pt": "O relógio mostra SpO₂ de 92%."
+    },
+    "readings": [
+      {
+        "signal": "blood_oxygen",
+        "value": 92,
+        "unit": "%",
+        "compared": "90 to 94"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "Are you short of breath?",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "90 to 94: unusual, only her, and the system asks about shortness of breath.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved low-oxygen card (medical lead, 14 Nov): SpO2 95 or more normal; 90-94 unusual (self), ask about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone). Test values are invented. "
+  },
+  {
+    "id": "case-036",
+    "title": "Low blood oxygen",
+    "story": {
+      "en": "The watch shows blood oxygen of 88%.",
+      "pt": "O relógio mostra SpO₂ de 88%."
+    },
+    "readings": [
+      {
+        "signal": "blood_oxygen",
+        "value": 88,
+        "unit": "%",
+        "compared": "below 90"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "low-oxygen",
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 90: the medical officer is alerted, she is not left alone, and the low-oxygen card is shown.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved low-oxygen card (medical lead, 14 Nov): SpO2 95 or more normal; 90-94 unusual (self), ask about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone). Test values are invented. "
+  },
+  {
+    "id": "case-037",
+    "title": "Very low blood oxygen",
+    "story": {
+      "en": "The watch shows blood oxygen of 82%.",
+      "pt": "O relógio mostra SpO₂ de 82%."
+    },
+    "readings": [
+      {
+        "signal": "blood_oxygen",
+        "value": 82,
+        "unit": "%",
+        "compared": "below 85"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "unknown-urgent",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 85: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved low-oxygen card (medical lead, 14 Nov): SpO2 95 or more normal; 90-94 unusual (self), ask about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone). Test values are invented. The low-oxygen card can be shown too; the card field holds only one id."
+  },
+  {
+    "id": "case-038",
+    "title": "Normal blood oxygen but she writes shortness of breath",
+    "story": {
+      "en": "The watch shows blood oxygen of 97%, but she writes that she is short of breath.",
+      "pt": "O relógio mostra SpO₂ de 97%, mas ela escreve que está com falta de ar."
+    },
+    "readings": [
+      {
+        "signal": "blood_oxygen",
+        "value": 97,
+        "unit": "%",
+        "compared": "95 or more"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you short of breath?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "short of breath",
+      "pt": "falta de ar"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "low-oxygen",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A normal number does not rule out a breathing problem: shortness of breath she reports alerts the medical officer, she is not left alone, and the low-oxygen card is shown.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved low-oxygen card (medical lead, 14 Nov): SpO2 95 or more normal; 90-94 unusual (self), ask about shortness of breath; below 90 concerning (medical officer, not left alone); below 85 dangerous (everyone). Test values are invented. Medical lead chose concerning (option B) after a review said unusual, self only is too little. The review was not opened, unverified."
+  },
+  {
+    "id": "case-039",
+    "title": "Fasting, normal",
+    "story": {
+      "en": "Fasting, the typed blood test shows glucose of 85 mg/dL.",
+      "pt": "Em jejum, o exame digitado mostra glicose de 85 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 85,
+        "unit": "mg/dL",
+        "compared": "fasting, 70 to 99"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Fasting 70 to 99 is normal.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-040",
+    "title": "Fasting, high",
+    "story": {
+      "en": "Fasting, the typed blood test shows glucose of 110 mg/dL.",
+      "pt": "Em jejum, o exame digitado mostra glicose de 110 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 110,
+        "unit": "mg/dL",
+        "compared": "fasting, above 105"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "alert the medical officer"
+      ]
+    },
+    "why": "Fasting above 105: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented.  Updated 14 Nov: the fasting upper limit is now 105 (was 99); 110 is still above it."
+  },
+  {
+    "id": "case-041",
+    "title": "Fasting, slightly low",
+    "story": {
+      "en": "Fasting, the typed blood test shows glucose of 62 mg/dL.",
+      "pt": "Em jejum, o exame digitado mostra glicose de 62 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 62,
+        "unit": "mg/dL",
+        "compared": "fasting, below 70 but not below 60"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "alert the medical officer"
+      ]
+    },
+    "why": "Fasting outside 70 to 99: unusual, only her. At 60 to 69 she is still fine.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-042",
+    "title": "Fasting, below 60",
+    "story": {
+      "en": "Fasting, the typed blood test shows glucose of 57 mg/dL.",
+      "pt": "Em jejum, o exame digitado mostra glicose de 57 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 57,
+        "unit": "mg/dL",
+        "compared": "fasting, below 60"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "leave her alone"
+      ]
+    },
+    "why": "Below 60 she may faint: the medical officer is alerted and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-043",
+    "title": "Not fasting, normal",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 100 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 100 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 100,
+        "unit": "mg/dL",
+        "compared": "not fasting, 70 to 139"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone"
+      ]
+    },
+    "why": "Not fasting 70 to 139 is normal.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-044",
+    "title": "Not fasting, a little high",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 150 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 150 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 150,
+        "unit": "mg/dL",
+        "compared": "not fasting, 140 to 249"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "alert the medical officer"
+      ]
+    },
+    "why": "Not fasting 140 to 249: unusual, only her (light alert).",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-045",
+    "title": "Not fasting, low (54 to 69)",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 62 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 62 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 62,
+        "unit": "mg/dL",
+        "compared": "not fasting, 54 to 69"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Not fasting 54 to 69: concerning, she is alerted and then the medical officer. At 60 to 69 she is still fine, so she is not told to stay with someone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-046",
+    "title": "Not fasting, below 60",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 57 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 57 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 57,
+        "unit": "mg/dL",
+        "compared": "not fasting, 54 to 59"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "leave her alone"
+      ]
+    },
+    "why": "Below 60 she may faint: the medical officer is alerted and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-047",
+    "title": "Not fasting, low with sleepiness",
+    "story": {
+      "en": "Not fasting, glucose of 62 mg/dL. She answers that she is sleepy.",
+      "pt": "Sem estar em jejum, glicose de 62 mg/dL. Ela responde que está com sonolência."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 62,
+        "unit": "mg/dL",
+        "compared": "not fasting, 54 to 69"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      },
+      {
+        "question": "Are you sleepy or confused?",
+        "answer": "yes: sleepy"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "54 to 69 with sleepiness or confusion: only the medical officer is alerted, who monitors the heart rate.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-048",
+    "title": "Not fasting, low, sleepy, slow heartbeat",
+    "story": {
+      "en": "Not fasting, glucose of 62 mg/dL, with sleepiness and a heart rate of 38 bpm.",
+      "pt": "Sem estar em jejum, glicose de 62 mg/dL, com sonolência e batimento de 38 bpm."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 62,
+        "unit": "mg/dL",
+        "compared": "not fasting, 54 to 69"
+      },
+      {
+        "signal": "heart_rate",
+        "value": 38,
+        "unit": "bpm",
+        "compared": "below 40"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      },
+      {
+        "question": "Are you sleepy or confused?",
+        "answer": "yes: sleepy"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "54 to 69 with sleepiness and heart rate below 40 bpm: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. The 40 bpm cut-off is the medical lead's, without a source."
+  },
+  {
+    "id": "case-049",
+    "title": "Not fasting, very low",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 48 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 48 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 48,
+        "unit": "mg/dL",
+        "compared": "not fasting, below 54"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Below 54: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-050",
+    "title": "Not fasting, very high",
+    "story": {
+      "en": "Not fasting, the typed blood test shows glucose of 270 mg/dL.",
+      "pt": "Sem estar em jejum, o exame digitado mostra glicose de 270 mg/dL."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 270,
+        "unit": "mg/dL",
+        "compared": "not fasting, 250 or more"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "250 or more: concerning, she is alerted and then the medical officer.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-051",
+    "title": "Not fasting, very high with fast deep breathing",
+    "story": {
+      "en": "Not fasting, glucose of 270 mg/dL. She answers that she is breathing fast and deep.",
+      "pt": "Sem estar em jejum, glicose de 270 mg/dL. Ela responde que respira rápido e fundo."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 270,
+        "unit": "mg/dL",
+        "compared": "not fasting, 250 or more"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you fasting?",
+        "answer": "no"
+      },
+      {
+        "question": "Are you breathing fast and deep, vomiting, or sleepy, confused or prostrated?",
+        "answer": "yes: fast and deep breathing"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "250 or more with fast deep breathing (even at the start), vomiting, or sleepiness, confusion or prostration: dangerous, everyone is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. "
+  },
+  {
+    "id": "case-052",
+    "title": "Glucose varies a lot",
+    "story": {
+      "en": "Four glucose measurements of the same crewmate vary by more than 36%.",
+      "pt": "Quatro medições de glicose da mesma tripulante variam mais de 36%."
+    },
+    "readings": [
+      {
+        "signal": "blood.glucose",
+        "value": 70,
+        "unit": "mg/dL",
+        "compared": "variation (coefficient of variation) above 36%"
+      },
+      {
+        "signal": "blood.glucose",
+        "value": 130,
+        "unit": "mg/dL",
+        "compared": "variation (coefficient of variation) above 36%"
+      },
+      {
+        "signal": "blood.glucose",
+        "value": 60,
+        "unit": "mg/dL",
+        "compared": "variation (coefficient of variation) above 36%"
+      },
+      {
+        "signal": "blood.glucose",
+        "value": 150,
+        "unit": "mg/dL",
+        "compared": "variation (coefficient of variation) above 36%"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Coefficient of variation above 36% with at least 3 measurements: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved glucose ranges (medical lead, 14 Nov). Test values are invented. Coefficient of variation of 70, 130, 60 and 150 is about 40%."
+  },
+  {
+    "id": "case-053",
+    "title": "Cardiac arrest, gravity on",
+    "story": {
+      "en": "Gravity is on. The person does not respond and does not breathe.",
+      "pt": "A gravidade está ligada. A pessoa não responde e não respira."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Does the person respond when you speak?",
+        "answer": "no"
+      },
+      {
+        "question": "Is the person breathing?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "cardiac-arrest-gravity",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Not responding and not breathing is cardiac arrest: everyone is alerted, with the gravity-on card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-054",
+    "title": "Cardiac arrest, gravity off",
+    "story": {
+      "en": "Gravity is off. The person does not respond and does not breathe.",
+      "pt": "A gravidade está desligada. A pessoa não responde e não respira."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Does the person respond when you speak?",
+        "answer": "no"
+      },
+      {
+        "question": "Is the person breathing?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "cardiac-arrest",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Not responding and not breathing is cardiac arrest: everyone is alerted, with the gravity-off card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-055",
+    "title": "Skin rash, only skin",
+    "story": {
+      "en": "She writes \"itch and red spots\", with no other symptoms.",
+      "pt": "Ela escreve \"coceira e manchas\", sem outros sintomas."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "itch and red spots",
+      "pt": "coceira e manchas"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "skin-rash",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Only skin: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-056",
+    "title": "Stuffy nose, no fever",
+    "story": {
+      "en": "She writes \"stuffy nose and throat\", no fever.",
+      "pt": "Ela escreve \"nariz entupido e garganta\", sem febre."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Do you have a fever?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "stuffy nose and throat",
+      "pt": "nariz entupido e garganta"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "upper-respiratory",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Only nose or throat: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-057",
+    "title": "Headache with repeated vomiting",
+    "story": {
+      "en": "She writes \"headache\" and has vomited several times.",
+      "pt": "Ela escreve \"dor de cabeça\" e vomitou várias vezes."
+    },
+    "readings": [
+      {
+        "signal": "cabin_co2",
+        "value": 0.5,
+        "unit": "mmHg",
+        "compared": "below 2.3, normal"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Have you vomited more than twice?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "headache",
+      "pt": "dor de cabeça"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "headache",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Headache with repeated vomiting: concerning, the medical officer is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-058",
+    "title": "Small cut",
+    "story": {
+      "en": "She writes \"I cut myself\": a small cut, the bleeding stops with pressure.",
+      "pt": "Ela escreve \"me cortei\": corte pequeno, o sangramento para com pressão."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "I cut myself",
+      "pt": "me cortei"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "cut-injury",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Small cut: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-059",
+    "title": "Two short nights",
+    "story": {
+      "en": "The watch shows 2 nights in a row of sleep shorter than her normal.",
+      "pt": "O relógio mostra 2 noites seguidas de sono mais curto que o normal dela."
+    },
+    "readings": [
+      {
+        "signal": "sleep_duration",
+        "value": 5,
+        "unit": "hours",
+        "compared": "shorter than her normal for 2 nights in a row"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "poor-sleep",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "send the warning while she sleeps",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "2 nights in a row: unusual, only her, sent in the morning, never while she sleeps.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-060",
+    "title": "Fast resting heart rate, nothing else",
+    "story": {
+      "en": "Resting heart rate is 30% above her baseline, with no other symptoms.",
+      "pt": "O batimento de repouso está 30% acima do basal dela, sem outros sintomas."
+    },
+    "readings": [
+      {
+        "signal": "resting_heart_rate",
+        "value": 78,
+        "unit": "bpm",
+        "compared": "30% above her baseline of about 60"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "chest-pain",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "High resting heart rate with no other symptoms: unusual, only her, and the system asks about recent exercise, caffeine and nervousness.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-061",
+    "title": "Nausea, vomited once",
+    "story": {
+      "en": "She writes \"nausea\" and vomited once.",
+      "pt": "Ela escreve \"enjoo\" e vomitou uma vez."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Have you vomited more than twice?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "nausea",
+      "pt": "enjoo"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "nausea-vomiting",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Nausea or vomiting alone: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-062",
+    "title": "Mild dizziness",
+    "story": {
+      "en": "She writes \"dizzy\"; it passes when she sits.",
+      "pt": "Ela escreve \"tontura\"; passa quando ela senta."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Is the dizziness still there after sitting?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "dizzy",
+      "pt": "tontura"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "dizziness-fainting",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Mild dizziness that passes on sitting: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-063",
+    "title": "Anxious, stress above her normal",
+    "story": {
+      "en": "She writes \"I am anxious\" and her stress has been above her normal for a few days.",
+      "pt": "Ela escreve \"estou ansiosa\" e o estresse está acima do normal dela há alguns dias."
+    },
+    "readings": [
+      {
+        "signal": "stress",
+        "value": 7,
+        "unit": "0-10",
+        "compared": "above her normal for a few days"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "I am anxious",
+      "pt": "estou ansiosa"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "mood-stress",
+      "next_question": "",
+      "must_not": [
+        "alert everyone",
+        "show what she wrote to the crew",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Low mood or stress above her normal for a few days: unusual, only her. What she wrote is never shown to the crew.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-064",
+    "title": "Diarrhea for 3 days, cannot drink",
+    "story": {
+      "en": "She writes \"diarrhea\" for 3 days and cannot drink water.",
+      "pt": "Ela escreve \"diarreia\" há 3 dias e não consegue beber água."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Have you had diarrhea for more than 2 days?",
+        "answer": "yes"
+      },
+      {
+        "question": "Can you drink water?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "diarrhea",
+      "pt": "diarreia"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "digestive",
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Diarrhea for more than 2 days or cannot drink: concerning, the medical officer is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-065",
+    "title": "Back pain that improves",
+    "story": {
+      "en": "She writes \"back pain\"; it improves when she moves slowly.",
+      "pt": "Ela escreve \"dor nas costas\"; melhora quando ela se mexe devagar."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Does the pain go down your leg?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "back pain",
+      "pt": "dor nas costas"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "back-pain",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Mild back pain that improves with slow movement: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-066",
+    "title": "Chemical in the eye",
+    "story": {
+      "en": "She writes \"chemical in my eye\".",
+      "pt": "Ela escreve \"produto químico no olho\"."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Did something get into your eye?",
+        "answer": "yes: a chemical"
+      }
+    ],
+    "said": {
+      "en": "chemical in my eye",
+      "pt": "produto químico no olho"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "eyes",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Chemical in the eye: dangerous, everyone is alerted, with the urgent card too.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-067",
+    "title": "Burning when urinating, no fever",
+    "story": {
+      "en": "She writes \"burning when I pee\", no fever.",
+      "pt": "Ela escreve \"ardor ao urinar\", sem febre."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Do you have a fever?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "burning when I pee",
+      "pt": "ardor ao urinar"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "urinary-genital",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Burning with no fever: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-068",
+    "title": "Small red warm area of skin",
+    "story": {
+      "en": "She writes \"red and warm skin\", a small area, no fever.",
+      "pt": "Ela escreve \"pele vermelha e quente\", em área pequena, sem febre."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Is the red area growing?",
+        "answer": "no"
+      },
+      {
+        "question": "Do you have a fever?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "red and warm skin",
+      "pt": "pele vermelha e quente"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "skin-infection",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Small red warm area with no fever: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-069",
+    "title": "Mild ear pain",
+    "story": {
+      "en": "She writes \"mild ear pain\".",
+      "pt": "Ela escreve \"dor de ouvido leve\"."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "mild ear pain",
+      "pt": "dor de ouvido leve"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "ear-nose-throat",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Mild ear pain: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-070",
+    "title": "Stroke signs",
+    "story": {
+      "en": "Her speech is slurred and one side of her face droops.",
+      "pt": "A fala está enrolada e um lado do rosto está caído."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Is one side of the face drooping, or is one arm weak?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "neuro",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Stroke signs: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-071",
+    "title": "Burn with blisters on the hand",
+    "story": {
+      "en": "She writes \"I burned my hand\" and has blisters.",
+      "pt": "Ela escreve \"queimei a mão\" e tem bolhas."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Are there blisters?",
+        "answer": "yes"
+      },
+      {
+        "question": "Is it on the hand, face or genitals?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "I burned my hand",
+      "pt": "queimei a mão"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "burn",
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Blisters or a burn on the hand: concerning, the medical officer is alerted, and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-072",
+    "title": "Fire alarm and visible smoke",
+    "story": {
+      "en": "The fire alarm goes off and smoke is visible.",
+      "pt": "O alarme de incêndio dispara e há fumaça visível."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Do you see smoke or smell something strange?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "smoke",
+      "pt": "fumaça"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "smoke-toxic-air",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Visible smoke or a fire alarm: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-073",
+    "title": "Cough with phlegm for more than 2 days",
+    "story": {
+      "en": "She writes \"cough with phlegm\" for more than 2 days.",
+      "pt": "Ela escreve \"tosse com catarro\" há mais de 2 dias."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "cough with phlegm",
+      "pt": "tosse com catarro"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "asthma-lung",
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A cough with phlegm for more than 2 days: concerning, the medical officer is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-074",
+    "title": "Mild ankle sprain",
+    "story": {
+      "en": "She writes \"I twisted my ankle\"; she can still bear weight.",
+      "pt": "Ela escreve \"torci o tornozelo\"; ainda aguenta peso."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Can you use the arm or leg?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "I twisted my ankle",
+      "pt": "torci o tornozelo"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "fracture",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A mild sprain that bears weight: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-075",
+    "title": "Broken tooth",
+    "story": {
+      "en": "She writes \"I broke a tooth\".",
+      "pt": "Ela escreve \"quebrei um dente\"."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "I broke a tooth",
+      "pt": "quebrei um dente"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "dental",
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A broken or lost tooth: concerning, the medical officer is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-076",
+    "title": "Very hard belly and sudden pain",
+    "story": {
+      "en": "The belly is very hard and the pain is sudden and very strong.",
+      "pt": "A barriga está muito dura e a dor é súbita e muito forte."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Is the belly very hard?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "strong belly pain",
+      "pt": "dor forte de barriga"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "acute-abdomen",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A very hard belly or sudden very strong pain: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-077",
+    "title": "Swollen, warm, painful leg on one side",
+    "story": {
+      "en": "She writes that her left leg is swollen, warm and painful.",
+      "pt": "Ela escreve que a perna esquerda está inchada, quente e dolorida."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Is one leg or arm swollen, warm and painful?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "swollen leg",
+      "pt": "perna inchada"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "heart-circulation",
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "rub the leg",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A swollen, warm, painful arm or leg on one side: concerning, the medical officer is alerted, and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-078",
+    "title": "Confused with very hot, dry skin",
+    "story": {
+      "en": "She is confused and her skin is very hot and dry.",
+      "pt": "Ela está confusa e a pele está muito quente e seca."
+    },
+    "readings": [
+      {
+        "signal": "cabin_temperature",
+        "value": 38,
+        "unit": "C",
+        "compared": "far above normal"
+      }
+    ],
+    "answers": [
+      {
+        "question": "Are you confused or have you fainted?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "too hot",
+      "pt": "muito calor"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "heat-cold",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Confusion and very hot, dry skin: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-079",
+    "title": "Hearing voices",
+    "story": {
+      "en": "She writes that she hears voices.",
+      "pt": "Ela escreve que está ouvindo vozes."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Do you hear voices or see things that are not there?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "hearing voices",
+      "pt": "ouvindo vozes"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "depression-psychosis",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis",
+        "show what she wrote to the crew"
+      ]
+    },
+    "why": "Hearing voices: dangerous, everyone is alerted, with the urgent card. What she wrote is not shown to the crew.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-080",
+    "title": "Fever with confusion and cold sweat",
+    "story": {
+      "en": "She has a fever, is confused and has cold sweat.",
+      "pt": "Ela tem febre, está confusa e com suor frio."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Are you confused or very pale with cold sweat?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "sepsis-anemia",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis",
+        "say the word sepsis"
+      ]
+    },
+    "why": "Fever with confusion or cold sweat: dangerous, everyone is alerted, with the urgent card. The system never writes the word sepsis.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-081",
+    "title": "Fast pressure drop alarm",
+    "story": {
+      "en": "The fast pressure drop alarm goes off in the room.",
+      "pt": "O alarme de queda rápida de pressão dispara no cômodo."
+    },
+    "readings": [
+      {
+        "signal": "cabin_pressure",
+        "value": null,
+        "unit": "",
+        "compared": "fast drop, alarm (no numeric limit defined yet)"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "decompression-radiation",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A fast pressure drop: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-082",
+    "title": "Choking, gravity on",
+    "story": {
+      "en": "Gravity is on. She cannot speak, cough or breathe.",
+      "pt": "A gravidade está ligada. Ela não consegue falar, tossir nem respirar."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Can you cough or speak?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "choking",
+      "pt": "engasgada"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "choking",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Cannot speak, cough or breathe: dangerous, everyone is alerted, with the gravity-on choking card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-083",
+    "title": "Choking, gravity off",
+    "story": {
+      "en": "Gravity is off. She cannot speak, cough or breathe.",
+      "pt": "A gravidade está desligada. Ela não consegue falar, tossir nem respirar."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Can you cough or speak?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "choking",
+      "pt": "engasgada"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "choking-no-gravity",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Cannot speak, cough or breathe: dangerous, everyone is alerted, with the no-gravity choking card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-084",
+    "title": "Hard to wake after taking a medicine",
+    "story": {
+      "en": "She took a medicine and is hard to wake.",
+      "pt": "Ela tomou um remédio e está difícil de acordar."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Did you take more medicine than you should?",
+        "answer": "yes"
+      },
+      {
+        "question": "Is it hard to wake the person?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "took too much",
+      "pt": "tomei demais"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "medication-overdose",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Hard to wake or slow breathing after a medicine: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-085",
+    "title": "Heavy bleeding",
+    "story": {
+      "en": "She writes that she is bleeding heavily: more than one pad an hour.",
+      "pt": "Ela escreve que está sangrando muito: encharca mais de um absorvente por hora."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Are you soaking more than one pad an hour?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "heavy bleeding",
+      "pt": "sangramento forte"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "gynecologic",
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "show what she wrote to the crew",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Heavy bleeding: concerning, the medical officer is alerted, and she is not left alone. What she writes is shown only to the medical officer.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-086",
+    "title": "Suit mark on the skin",
+    "story": {
+      "en": "She writes that the spacesuit left a mild mark on her skin.",
+      "pt": "Ela escreve que a roupa espacial deixou uma marca leve na pele."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "suit mark",
+      "pt": "marca da roupa"
+    },
+    "expected": {
+      "flag": true,
+      "level": "unusual",
+      "notify": "self",
+      "card": "eva-hand-nails",
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A mild suit mark: unusual, only her.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-087",
+    "title": "Sudden numbness and weakness on one side",
+    "story": {
+      "en": "She has sudden numbness and weakness on one side of the body.",
+      "pt": "Ela tem dormência súbita e fraqueza de um lado do corpo."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Do you have weakness in an arm or leg?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "numb",
+      "pt": "dormente"
+    },
+    "expected": {
+      "flag": true,
+      "level": "dangerous",
+      "notify": "everyone",
+      "card": "tingling-nerves",
+      "next_question": "",
+      "must_not": [
+        "reassure the crewmate",
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Sudden numbness or weakness on one side: dangerous, everyone is alerted, with the urgent card.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-088",
+    "title": "Very little urine for many hours",
+    "story": {
+      "en": "She has passed very little urine for many hours.",
+      "pt": "Ela tem pouca urina há muitas horas."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Have you passed very little urine for many hours?",
+        "answer": "yes"
+      }
+    ],
+    "said": {
+      "en": "little urine",
+      "pt": "pouca urina"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": "nutrition-dust-kidney",
+      "next_question": "",
+      "must_not": [
+        "leave her alone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Little urine for many hours: concerning, the medical officer is alerted, and she is not left alone.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Built from the approved card (medical lead, 14 Nov). One case per card, kept short on purpose. Test values are invented."
+  },
+  {
+    "id": "case-089",
+    "title": "No card: hiccups for 2 hours",
+    "story": {
+      "en": "She writes \"I have had hiccups for 2 hours\". No card fits.",
+      "pt": "Ela escreve \"estou com soluço há 2 horas\". Nenhum cartão serve."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "I have had hiccups for 2 hours",
+      "pt": "estou com soluço há 2 horas"
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "Did it get better?",
+      "must_not": [
+        "suggest a diagnosis",
+        "reassure the crewmate",
+        "alert the medical officer",
+        "alert everyone"
+      ]
+    },
+    "why": "No card fits: the AI explains from the NASA documents, gives a simple suggestion, does not diagnose or reassure, and asks if it got better. Nobody is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "No card fits, so the small offline AI answers from the NASA documents (the rules, not the AI, choose cards). Medical lead, 14 Nov: the medical officer is alerted only when the person says it did not get better after the guidance. Test values are invented."
+  },
+  {
+    "id": "case-090",
+    "title": "No card: hiccups did not get better",
+    "story": {
+      "en": "The same situation, but she answers that it did not get better.",
+      "pt": "A mesma situação, mas ela responde que não melhorou."
+    },
+    "readings": [],
+    "answers": [
+      {
+        "question": "Did it get better?",
+        "answer": "no"
+      }
+    ],
+    "said": {
+      "en": "I have had hiccups for 2 hours",
+      "pt": "estou com soluço há 2 horas"
+    },
+    "expected": {
+      "flag": true,
+      "level": "concerning",
+      "notify": "medical_officer",
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "reassure the crewmate",
+        "alert everyone"
+      ]
+    },
+    "why": "The guidance did not solve it, so the medical officer is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "No card fits, so the small offline AI answers from the NASA documents (the rules, not the AI, choose cards). Medical lead, 14 Nov: the medical officer is alerted only when the person says it did not get better after the guidance. Test values are invented."
+  },
+  {
+    "id": "case-091",
+    "title": "No card: leg cramp at night",
+    "story": {
+      "en": "She writes \"I have leg cramps at night\". No card fits.",
+      "pt": "Ela escreve \"estou com câimbra na perna à noite\". Nenhum cartão serve."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "I have leg cramps at night",
+      "pt": "estou com câimbra na perna à noite"
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "Did it get better?",
+      "must_not": [
+        "suggest a diagnosis",
+        "reassure the crewmate",
+        "alert the medical officer",
+        "alert everyone"
+      ]
+    },
+    "why": "No card fits: the AI explains from the NASA documents, gives a simple suggestion and asks if it got better. Nobody is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "No card fits, so the small offline AI answers from the NASA documents (the rules, not the AI, choose cards). Medical lead, 14 Nov: the medical officer is alerted only when the person says it did not get better after the guidance. Test values are invented."
+  },
+  {
+    "id": "case-092",
+    "title": "No card: question about water",
+    "story": {
+      "en": "She asks \"how much water should I drink a day?\".",
+      "pt": "Ela pergunta \"quanta água devo beber por dia?\"."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "how much water should I drink a day?",
+      "pt": "quanta água devo beber por dia?"
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert the medical officer",
+        "alert everyone",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "It is a question, not a problem: the AI answers with a source and nobody is alerted.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "No card fits, so the small offline AI answers from the NASA documents (the rules, not the AI, choose cards). Medical lead, 14 Nov: the medical officer is alerted only when the person says it did not get better after the guidance. Test values are invented."
+  },
+  {
+    "id": "case-093",
+    "title": "No card: asks if it is cancer",
+    "story": {
+      "en": "She asks \"is what I have cancer?\".",
+      "pt": "Ela pergunta \"isso que eu tenho é câncer?\"."
+    },
+    "readings": [],
+    "answers": [],
+    "said": {
+      "en": "is what I have cancer?",
+      "pt": "isso que eu tenho é câncer?"
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "suggest a diagnosis",
+        "reassure the crewmate",
+        "alert everyone"
+      ]
+    },
+    "why": "The Astrum does not diagnose: the AI says so, does not reassure, and does not alert anyone by itself.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "No card fits, so the small offline AI answers from the NASA documents (the rules, not the AI, choose cards). Medical lead, 14 Nov: the medical officer is alerted only when the person says it did not get better after the guidance. Test values are invented."
+  },
+  {
+    "id": "case-094",
+    "title": "Heart rate rises during a workout",
+    "story": {
+      "en": "During a workout her heart rate rises to 150 and returns to normal a few minutes after.",
+      "pt": "Durante o treino o batimento sobe a 150 e volta ao normal em poucos minutos depois."
+    },
+    "readings": [
+      {
+        "signal": "heart_rate",
+        "value": 150,
+        "unit": "bpm",
+        "compared": "during exercise, back to her normal a few minutes after"
+      },
+      {
+        "signal": "exercise_minutes",
+        "value": 45,
+        "unit": "min",
+        "compared": "normal workout"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone",
+        "show a card",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "A high heart rate during exercise that recovers is normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Nothing should happen. Built from the medical lead's rule (14 Nov): resting heart rate counts only above 20% or 20 bpm over her baseline; exercise is normal. Test values are invented."
+  },
+  {
+    "id": "case-095",
+    "title": "Long workout with faster breathing",
+    "story": {
+      "en": "A long workout of an hour and a half, with faster breathing and normal blood oxygen.",
+      "pt": "Treino longo de 1 hora e meia, com respiração mais rápida e oxigênio normal."
+    },
+    "readings": [
+      {
+        "signal": "exercise_minutes",
+        "value": 90,
+        "unit": "min",
+        "compared": "as on the ISS (about 1.5 hours a day)"
+      },
+      {
+        "signal": "respiratory_rate",
+        "value": 26,
+        "unit": "breaths/min",
+        "compared": "above her normal, during exercise"
+      },
+      {
+        "signal": "blood_oxygen",
+        "value": 97,
+        "unit": "%",
+        "compared": "normal"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone",
+        "show a card",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "Faster breathing during exercise with normal oxygen is normal: nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Nothing should happen. Built from the medical lead's rule (14 Nov): resting heart rate counts only above 20% or 20 bpm over her baseline; exercise is normal. Test values are invented."
+  },
+  {
+    "id": "case-096",
+    "title": "Resting heart rate 15 bpm above baseline",
+    "story": {
+      "en": "Resting heart rate is 15 bpm above her baseline, with no other symptoms.",
+      "pt": "Batimento de repouso 15 bpm acima do basal dela, sem outros sintomas."
+    },
+    "readings": [
+      {
+        "signal": "resting_heart_rate",
+        "value": 75,
+        "unit": "bpm",
+        "compared": "15 bpm above her baseline of 60, which is under 20% and 20 bpm"
+      }
+    ],
+    "answers": [],
+    "said": {
+      "en": "",
+      "pt": ""
+    },
+    "expected": {
+      "flag": false,
+      "level": null,
+      "notify": null,
+      "card": null,
+      "next_question": "",
+      "must_not": [
+        "alert anyone",
+        "show a card",
+        "suggest a diagnosis"
+      ]
+    },
+    "why": "The rule is more than 20% or 20 bpm above her baseline: a difference of 10 to 15 bpm does not count, so nothing should happen.",
+    "status": "approved",
+    "en_checked": false,
+    "notes": "Nothing should happen. Built from the medical lead's rule (14 Nov): resting heart rate counts only above 20% or 20 bpm over her baseline; exercise is normal. Test values are invented."
+  }
+]

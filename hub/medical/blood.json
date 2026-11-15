@@ -1,1 +1,377 @@
-[]
+[
+  {
+    "id": "glucose",
+    "name": {
+      "en": "Glucose",
+      "pt": "Glicose"
+    },
+    "unit": "mg/dL",
+    "reference_range": {
+      "low": 70,
+      "high": 105,
+      "condition": "fasting"
+    },
+    "flag_below": 70,
+    "flag_above": 105,
+    "urgent_below": 54,
+    "urgent_above": 250,
+    "what_it_means": {
+      "en": "Glucose is the sugar in your blood. It is the main source of energy for the body and the brain.\n\nWhen fasting, the expected value is between 70 and 99 mg/dL. After eating it rises a little and goes back to normal within a few hours. Up to 139 mg/dL after eating is also expected.\n\nA value outside the range is not a diagnosis. It can be just the meal, stress or exercise. That is why the system asks whether you are fasting.\n\nGlucose above expected (140 to 249 mg/dL after eating, or above 99 when fasting): measure again later. Drink water. If it is high again, the medical officer will be notified.\n\nVery high glucose (250 mg/dL or more): the medical officer is notified. The signs are confusion, vomiting, fast deep breathing, heavy sleepiness and prostration. If any of them appear, everyone on board is notified.\n\nLow glucose (below 70 mg/dL): you feel weak, with tremor, dizziness and cold sweat. Do not stay alone, because you may faint. Below 54 mg/dL is very low, and everyone on board is notified.\n\nLarge variation between measurements: the system warns when glucose swings a lot over the days, because this raises the risk of a drop in glucose.",
+      "pt": "A glicose é o açúcar no seu sangue. É a principal fonte de energia do corpo e do cérebro.\n\nEm jejum, o valor esperado fica entre 70 e 99 mg/dL. Depois de comer, ele sobe um pouco e volta ao normal em algumas horas. Até 139 mg/dL depois de comer também é esperado.\n\nUm valor fora da faixa não é um diagnóstico. Pode ser só a refeição, o estresse ou o exercício. Por isso o sistema pergunta se você está em jejum.\n\nGlicose acima do esperado (140 a 249 mg/dL depois de comer, ou acima de 99 em jejum): repita a medida mais tarde. Beba água. Se ficar alta de novo, o responsável médico será avisado.\n\nGlicose muito alta (250 mg/dL ou mais): o responsável médico é avisado. Os sinais são confusão, vômito, respiração rápida e profunda, muito sono e prostração. Se aparecer algum deles, todos a bordo são avisados.\n\nGlicose baixa (abaixo de 70 mg/dL): você fica fraco, com tremor, tontura e suor frio. Não fique sozinho, porque você pode desmaiar. Abaixo de 54 mg/dL é muito baixa, e todos a bordo são avisados.\n\nVariação grande entre medidas: o sistema avisa quando a glicose oscila muito ao longo dos dias, porque isso aumenta o risco de queda de glicose."
+    },
+    "spaceflight_note": "",
+    "sources": [
+      {
+        "name": "SBD (via Afya): diagnostic criteria, type 2 diabetes",
+        "url": "https://portal.afya.com.br/endocrinologia/sbd-atualiza-diretriz-de-diagnostico-do-diabetes-tipo-2",
+        "quote": "Glicemia de jejum ≥ 100 mg/dL e < 126",
+        "is_nasa": false
+      },
+      {
+        "name": "Battelino et al. 2019, international consensus on time in range (CGM)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6973648",
+        "quote": "Glycemic variability (%CV) target ≤36%",
+        "is_nasa": false
+      },
+      {
+        "name": "2024 consensus on hyperglycemic crises in adults (CCJM)",
+        "url": "https://www.ccjm.org/content/92/3/152",
+        "quote": "glucose level of 200 mg/dL or greater",
+        "is_nasa": false
+      },
+      {
+        "name": "Endotext: DKA and hyperosmolar hyperglycemic state",
+        "url": "https://www.endotext.org/wp-content/uploads/pdfs/diabetic-ketoacidosis-and-hyperosmolar-hyperglycemic-state.pdf",
+        "quote": "Kussmaul breathing (deep, labored breathing)",
+        "is_nasa": false
+      },
+      {
+        "name": "ADA Standards of Care 2026, Section 2 (PMC)",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12690167",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "StatPearls: diagnosis of diabetes",
+        "url": "https://www.statpearls.com/ArticleLibrary/viewarticle/23176",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "APPROVED by the medical lead (pt) on 14 Nov. en_checked: false. Source quotes not yet checked against the texts; sources supplied by the medical lead, not verified. No NASA source yet. FASTING (crew answers 'are you fasting?'): normal 70-99; outside that = unusual, notify self. NOT FASTING (one table, any time after eating): <54 = dangerous, everyone; 54-69 = concerning, medical_officer; 70-139 = normal, no alert; 140-249 = unusual, self (mild alert); >=250 = concerning, medical_officer (urgent_above=250 means concerning, NOT everyone). ESCALATE >=250 to dangerous/everyone if any of: Kussmaul (fast deep breathing, even early), vomiting (aspiration risk), drowsiness/confusion/prostration (possible acidosis, risk of stroke or cardiac arrest). Other questions asked for the medical officer, level unchanged: nausea, abdominal pain, ketone breath, dehydration signs. LOW glucose 54-69: drowsiness/confusion = medical_officer only and keep monitoring heart rate; escalate to dangerous/everyone if heart_rate < 40 bpm (reference_range, medical lead's choice, no source). VARIABILITY: coefficient of variation (SD/mean x100) > 36% with at least 3 measurements = unusual, with note of higher hypoglycemia risk (consensus CGM limit; designed for continuous data, so noisy with few i-STAT readings). 140 and 200 cutoffs come from the 2 h oral glucose tolerance test, not from an ordinary meal. 300 mg/dL has no guideline cutoff and is no longer a separate step. i-STAT does not measure ketones (from memory, unverified): ketone steps become 'call medical officer'. XABCDE protocol: from the medical lead, no source. The medical lead's own wording is kept in the conversation notes, not yet saved. what_it_means pt approved 14 Nov (English is a translation, not checked). Spaceflight note still to be written. SOURCE CHECK 14 Nov: CONFIRMED in text: SBD/Afya (fasting <100, 100-125 pre-diabetes, 2h OGTT 140-199 and >=200; quote read by a subagent); Battelino 2019 (hypoglycemia 54-69 level 1 and <54 level 2; 70-180 target; 181-250 level 1 and >250 level 2 hyperglycemia; CV target <=36%, but it recommends 14 days and 70% of data, so it is not designed for 3 readings); CCJM 2024 (DKA glucose >=200; no symptom list, no aspiration or stroke statements); Endotext (nausea, vomiting, abdominal pain, confusion, lethargy, Kussmaul breathing as DKA features; no text found linking vomiting to aspiration). NOT CHECKED: ADA Section 2 and StatPearls (blocked by the sites; kept with empty quote, ask before relying on them). REMOVED: SBD goals page (link returns 404), ADA 'Section 6' link (it is Section 9 and has no glucose thresholds), ISPAD sick day guide (about children with type 1 diabetes; did not state a ketone check at 250 in the text read). The 40 bpm heart-rate cutoff, the stroke/arrest reasoning and the 250/300 mg/dL escalation have no source in the documents read. Update 14 Nov (medical lead): below 60 mg/dL (fasting or not) = concerning, the medical officer is alerted and she is NOT left alone, because she may faint. 60-69 stays as before: the person is still fine. CHANGED 14 Nov (after Caio's check against the i-STAT range, medical lead chose B): the fasting upper limit is now 105 (before: 99), so a fasting glucose of 100 to 105 is normal and only above 105 is unusual (self). Fasting lower limit 70 and everything for not fasting did not change. Caio's i-STAT number came from search snippets: confirm in the package insert.",
+    "en_checked": false
+  },
+  {
+    "id": "sodium",
+    "name": {
+      "en": "Sodium",
+      "pt": "Sódio"
+    },
+    "unit": "mmol/L",
+    "reference_range": {
+      "low": 138,
+      "high": 146,
+      "condition": "i-STAT range (Caio's check, from search snippets, not the package insert); the earlier lab range was 135 to 146"
+    },
+    "flag_below": 138,
+    "flag_above": 146,
+    "urgent_below": 125,
+    "urgent_above": 160,
+    "what_it_means": {
+      "en": "Sodium is the salt level in the blood. Too low or too high can cause headache, nausea, vomiting, slow thinking and confusion.",
+      "pt": "O sódio é o nível de sal no sangue. Muito baixo ou muito alto pode causar dor de cabeça, náusea, vômito, raciocínio lento e confusão."
+    },
+    "spaceflight_note": "Smith 1997 (NASA, Shuttle, i-STAT): sodium in flight about 142 mmol/L, read from a chart (approximate). Inspiration4 crew: 137 to 142 before/after flight.",
+    "sources": [
+      {
+        "name": "Spasovski G et al. Clinical practice guideline on diagnosis and treatment of hyponatraemia. ESE/ESICM/ERA-EDTA, 2014",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Verbalis JG et al. Diagnosis, evaluation, and treatment of hyponatremia: expert panel recommendations. Am J Med, 2013",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Adrogue HJ, Madias NE. Hypernatremia. N Engl J Med 2000;342:1493-9",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Sterns RH. Disorders of plasma sodium: causes, consequences, and correction. N Engl J Med 2015;372:55-65",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Renneboog B et al. Mild chronic hyponatremia is associated with falls, unsteadiness, and attention deficits. Am J Med 2006;119:71.e1-8",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Waikar SS et al. Mortality after hospitalization with mild, moderate, and severe hyponatremia. Am J Med 2009;122:857-65",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Medical lead pasted the four sources, 14 Nov. She said they are the origin of the treatment (hypertonic saline, correction limits), not necessarily of the flag numbers; not opened, unverified. Proposed flags, not yet confirmed by her: below 135 and above 146; urgent below 125 and above 160. Management tables she pasted had no named source. Numbers confirmed by the medical lead, 14 Nov: flag below 135 / above 146; urgent below 125 / above 160. Her severity table also lists below 120 (very severe), below 110 (imminent risk to life), above 170 (very severe), above 180 (imminent risk to life); these are not cut-offs, only recorded here. Levels from the medical lead (low side): below 125 = concerning, notify the medical officer, the person must not be left alone; below 120 = dangerous, notify everyone; seizure or seizure risk at any value = call someone, not unusual. Levels for 125-134, and for the high side (147-160, above 160), not decided yet. Update from the medical lead: 125-129 (moderate) = concerning, notify the medical officer without waiting for symptom answers (a person having a seizure cannot answer); act before the seizure. 130-134 (mild) = unusual, self only (not yet confirmed by her). Confirmed by the medical lead: 130-134 = unusual, self only, and it is usually without symptoms. If there are symptoms (mild headache, nausea, slow thinking), it is no longer mild: treated like the moderate range (concerning, medical officer). The symptom handling is a reading of her words; ask her to confirm. FINAL LEVELS (medical lead, 14 Nov). Low: 130-134 unusual (self), usually no symptoms; 125-129 concerning (medical officer) without waiting for answers; below 125 concerning, medical officer, person not left alone; below 120 dangerous, everyone. High: 147-150 unusual (self), usually no symptoms; 151-160 unusual and the system asks about symptoms; above 160 concerning (seizure risk), medical officer, person not left alone, without waiting for answers; above 170 dangerous, everyone. Symptom rule for BOTH low and high: if she answers confusion or vomiting, notify the medical officer. A seizure or seizure risk at any value: call someone, never only unusual. Symptom lists from the medical lead (no named source, unverified). Mild to moderate: new confusion, slow thinking, disorientation, inattention; persistent headache; nausea and vomiting (early sign in low sodium); marked weakness, cramps, tremor, irritability, lethargy; in high sodium also intense thirst, agitation, less urine. Moderate to severe: sleepiness hard to reverse, difficulty waking; seizures; repeated vomiting with intense headache; intense disorientation, delirium, coma; breathing changes (severe low sodium); muscle rigidity and spasticity (severe high sodium). What best predicts worsening: speed of change (hours), trend in serial tests, and a persisting cause (diuretic, excess water, vomiting or diarrhea, fever, no access to water). A numeric rule for rapid change is not decided yet. Source mapping pasted by the medical lead: symptoms and progression of hyponatremia, and symptom severity classification = Spasovski 2014 (Eur J Endocrinol 170:G1-47); speed of change = Verbalis 2013 (Am J Med 126 Suppl 1:S1-42) and Sterns 2015; hypernatremia symptoms = Adrogue 2000. Her paste says WITHOUT a formal source: the numeric hypernatremia ranges 147-150, 151-160, above 160 (vary between labs); the 'very severe' levels below 120 and above 170 (clinical consensus, not a guideline threshold). Citations not opened: unverified. Symptom groups (medical lead, 14 Nov): group 1 (confusion, slow thinking, headache, nausea, vomiting) = notify the medical officer, for low and high sodium. Group 2 (sleepiness hard to reverse, difficulty waking, seizures) = concerning, medical officer only. The earlier line 'seizure or seizure risk at any value = call someone' stays as the rule for below 125 and above 160. CHANGED 14 Nov (after Caio's check against the i-STAT ranges, medical lead chose B): normal range is now 138 to 146 (before: 135 to 146). So 135 to 137 is now outside the normal range and counts as unusual (self); the other bands (130-134 unusual, 125-129 concerning, below 125 concerning, below 120 dangerous, high side) did not change. Caio's i-STAT numbers came from search snippets: confirm them in the package insert.",
+    "en_checked": false
+  },
+  {
+    "id": "potassium",
+    "name": {
+      "en": "Potassium",
+      "pt": "Potássio"
+    },
+    "unit": "mmol/L",
+    "reference_range": {
+      "low": 3.5,
+      "high": 5.3,
+      "condition": "Inspiration4 lab reference range (serum, ground lab)"
+    },
+    "flag_below": 3.5,
+    "flag_above": 5.3,
+    "urgent_below": 3.0,
+    "urgent_above": 6.0,
+    "what_it_means": {
+      "en": "Potassium helps the heart and muscles work. Too low or too high can cause weakness and change the heart rhythm.",
+      "pt": "O potássio ajuda o coração e os músculos a funcionar. Muito baixo ou muito alto pode causar fraqueza e alteração no ritmo do coração."
+    },
+    "spaceflight_note": "Smith 1997 (Clinical Chemistry, Shuttle, i-STAT): potassium rose in flight (about 4.3 before, 4.6 in flight, read from a chart, approximate); the paper says part of it was likely the sample collection technique. Inspiration4 crew: 3.9 to 4.6.",
+    "sources": [
+      {
+        "name": "Smith SM, Davis-Street JE, Fontenot TB, Lane HW. Assessment of a portable clinical blood analyzer during space flight. Clin Chem 1997;43(6):1056-1065",
+        "url": "",
+        "quote": "Potassium increased in flight compared with before flight... Changes during flight were likely related to sample collection technique.",
+        "is_nasa": false
+      },
+      {
+        "name": "Geldermann N et al. Acute hyperkalaemia in emergency care: evidence-based approaches. Emerg Med J 2026;43:305-11",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Maxwell AP et al. Management of hyperkalaemia. J R Coll Physicians Edinb 2013;43:246-51",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Greenberg A. Hyperkalemia: treatment options. Semin Nephrol 1998;18:46-57",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Pepin J, Shields C. Advances in diagnosis and management of hypokalemic and hyperkalemic emergencies. Emerg Med Pract 2012;14:1-17",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Numbers from the medical lead's table, 14 Nov (table has no named source: unverified); she confirmed them. Levels: below 3.0 concerning (medical officer); 3.0-3.4 unusual (self); 3.5-5.3 normal; 5.4-5.9 unusual (self); 6.0 or more concerning (medical officer); 6.5 or more dangerous (everyone, risk of fatal arrhythmia even without symptoms). Warnings for 5.4 or more include 'repeat the collection' because flight potassium can be high from collection technique. ECG left out: the system has none. Smith 1997 is by NASA authors and a copy is on the NASA Life Sciences Portal; is_nasa left false until Caio decides. Sources added 14 Nov by the medical lead (not opened, unverified). Geldermann 2026 supports 6.5 mmol/L as the high-risk cut-off; Pepin 2012 supports checking hemolysis and repeating the collection. They support the treatment, not all of the flag numbers. CHECKED 14 Nov against Caio's i-STAT range (3.5 to 4.9): The medical lead chose A, keep 3.5 to 5.3, because in flight potassium tends to rise from the collection technique (Smith 1997) and a cut-off of 4.9 would alert too much.",
+    "en_checked": false
+  },
+  {
+    "id": "ionized-calcium",
+    "name": {
+      "en": "Ionized calcium",
+      "pt": "Cálcio ionizado"
+    },
+    "unit": "mmol/L",
+    "reference_range": {
+      "low": 1.12,
+      "high": 1.32,
+      "condition": "Medical lead's table, 14 Nov (not Inspiration4: that file has total calcium, a different measure)"
+    },
+    "flag_below": 1.12,
+    "flag_above": 1.32,
+    "urgent_below": 0.9,
+    "urgent_above": 1.6,
+    "what_it_means": {
+      "en": "Ionized calcium is the free calcium in the blood. Too low or too high can cause tingling, cramps, weakness and changes in the heart rhythm.",
+      "pt": "O cálcio ionizado é o cálcio livre no sangue. Muito baixo ou muito alto pode causar formigamento, cãibras, fraqueza e alteração no ritmo do coração."
+    },
+    "spaceflight_note": "Smith 1997 (Clinical Chemistry, Shuttle, i-STAT): ionized calcium was lower in flight and on landing day (about 1.25 before, 1.22 in flight, read from a chart, approximate); the paper says changes in flight were likely related to sample collection technique.",
+    "sources": [
+      {
+        "name": "Kost GJ et al. Monitoring of ionized calcium during human hepatic transplantation. Am J Clin Pathol 1986;86:61-70",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Valero-Politi J et al. Annual rhythmic and non-rhythmic biological variation of magnesium and ionized calcium. Clin Chem Lab Med 2001;39:45-9",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Smith SM et al. Assessment of a portable clinical blood analyzer during space flight. Clin Chem 1997;43(6):1056-1065",
+        "url": "",
+        "quote": "Ionized calcium was decreased in flight and on landing day.",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Table from the medical lead, 14 Nov, no named source: unverified. Low: below 0.9 (some use below 0.8) urgent; 0.9-1.0 attention; 1.0-1.11 warning. High: 1.33-1.50 warning; 1.51-1.75 attention; above 1.75 (some use above 1.6) urgent. Choice of the two urgent numbers and the levels per band not decided yet. Her paste says Kost 1986 (liver transplant, not a guideline) puts the critical value at most 0.4 below the reference mean, about 0.8; Valero-Politi shows small biological variation (CV about 2%) and has no clinical thresholds. She also notes no source found for the other cut-offs. Citations not opened. Effects pasted by the medical lead (no named source, unverified). Very low (below 0.9): tingling around the mouth and in the hands, cramps, spasms, tetany; laryngospasm and bronchospasm with risk of breathlessness and asphyxia; seizures, confusion, irritability; long QT, arrhythmias, low blood pressure, possible cardiac arrest. Very high (above 1.75): polyuria, thirst, dehydration, acute kidney injury; nausea, vomiting, constipation, abdominal pain; weakness, lethargy, confusion, psychosis, coma; short QT, slow heart rate, blocks, arrhythmias, risk of arrest. CORRECTED TABLE (no overlaps), 14 Nov: below 0.9 urgent; 0.90-0.99 attention; 1.00-1.11 warning; 1.12-1.32 normal; 1.33-1.50 warning; 1.51-1.75 attention; above 1.75 urgent. Urgent numbers kept at 0.9 and 1.75 as in her table. Her paste notes 0.9 warns earlier (more conservative) than 0.8, and 1.75 is the more permissive side: many labs use above 1.6, which could be preferred for safety. Levels proposed in the draft, pending her yes: warning bands unusual (self); attention bands unusual with symptom questions, symptoms call the medical officer; urgent bands concerning, medical officer, not left alone, without waiting for answers. Levels above approved by the medical lead, 14 Nov. CHANGED by the medical lead, 14 Nov (option B, after a review of the test cases): below 0.9 and 1.60 or more are now DANGEROUS, notify everyone (they were concerning, medical officer). The high cut-off moves from 1.75 to 1.6. Bands now: below 0.9 dangerous (everyone); 0.90-0.99 unusual with symptom questions, symptoms call the medical officer; 1.00-1.11 unusual (self); 1.12-1.32 normal; 1.33-1.50 unusual (self); 1.51-1.59 unusual with symptom questions, symptoms call the medical officer; 1.60 or more dangerous (everyone). The review she pasted cites lab critical limits (CHI 0.8 or less and 1.6 or more; OHSU 0.75 and 1.62; others 1.58), not opened, unverified.",
+    "en_checked": false
+  },
+  {
+    "id": "ph",
+    "name": {
+      "en": "Blood pH",
+      "pt": "pH do sangue"
+    },
+    "unit": "pH units",
+    "reference_range": {
+      "low": 7.31,
+      "high": 7.41,
+      "condition": "i-STAT venous range (Caio's check, from search snippets, not the package insert); the earlier arterial range was 7.35 to 7.45"
+    },
+    "flag_below": 7.31,
+    "flag_above": 7.41,
+    "urgent_below": null,
+    "urgent_above": 7.6,
+    "what_it_means": {
+      "en": "pH shows how acid or basic the blood is. Too low or too high changes how the body works. With high CO2, the pH falls.",
+      "pt": "O pH mostra se o sangue está mais ácido ou mais básico. Muito baixo ou muito alto altera o funcionamento do corpo. Com CO2 alto, o pH cai."
+    },
+    "spaceflight_note": "Smith 1997 (Clinical Chemistry, Shuttle, i-STAT): pH in flight about 7.38 to 7.40, read from a chart (approximate). Links to the cabin CO2 story: high CO2 lowers the blood pH.",
+    "sources": [
+      {
+        "name": "Smith SM et al. Assessment of a portable clinical blood analyzer during space flight. Clin Chem 1997;43(6):1056-1065",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Sarwal A, Kim S, Gnanasekaran I. Life-threatening alkalosis from baking soda pica in an end stage renal disease hemodialysis patient. Hemodial Int 2021",
+        "url": "https://doi.org/10.1111/hdi.12984",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "StatPearls, Arterial Blood Gas",
+        "url": "https://dev2.statpearls.com/articlelibrary/viewarticle/17837",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "StatPearls, Point-of-Care (arterial blood gas)",
+        "url": "https://statpearls.com/point-of-care/161107",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Pharmaceutical Journal, How to interpret arterial blood gas results",
+        "url": "https://pharmaceutical-journal.com/article/ld/how-to-interpret-arterial-blood-gas-results",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "NCBI Bookshelf, Hypercapnia",
+        "url": "https://www.ncbi.nlm.nih.gov/books/NBK500012/",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "NCBI Bookshelf, Respiratory Acidosis (link inferred from a search result, check it)",
+        "url": "https://www.ncbi.nlm.nih.gov/books/NBK482430/",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Medical lead, 14 Nov: chose to REMOVE everything without a source. What stays: normal range 7.35-7.45 (acidemia below, alcalemia above) and 7.60 or more = dangerous, notify everyone (case report Sarwal 2021, not a guideline, not opened). Removed: the severity classification by pH, 7.10, 6.80, 7.80, 7.55 and all warning cut-offs below 7.35 and between 7.46 and 7.59. So the pH shows its value against the normal range and warns only at 7.60 or more. The sources listed support the normal range, the CO2 link and the 7.60 case report. The removed cut-offs can be put back if a source is found. Update 14 Nov (medical lead): outside the normal range (below 7.35 or above 7.45) = unusual, self only, instead of not warning anyone. 7.60 or more stays dangerous, everyone. No other cut-off added. CHANGED 14 Nov (after Caio's check against the i-STAT, medical lead chose B): the normal range is now 7.31 to 7.41 (venous, from a fingerstick) instead of 7.35 to 7.45 (arterial). Below 7.31 and above 7.41 are unusual (self); 7.60 or more stays dangerous (everyone). Caio's number came from search snippets: confirm in the package insert whether this cartridge reads venous or arterial pH.",
+    "en_checked": false
+  },
+  {
+    "id": "hematocrit",
+    "name": {
+      "en": "Hematocrit",
+      "pt": "Hematócrito"
+    },
+    "unit": "%PCV",
+    "reference_range": {
+      "low": 38,
+      "high": 51,
+      "condition": "i-STAT cartridge reference range (Abbott), arterial and venous"
+    },
+    "flag_below": 38,
+    "flag_above": 51,
+    "urgent_below": 20,
+    "urgent_above": 60,
+    "what_it_means": {
+      "en": "Hematocrit shows how much of the blood is red cells. Too low means less oxygen reaches the body (tiredness, shortness of breath). Too high makes the blood thicker.",
+      "pt": "O hematócrito mostra quanto do sangue são células vermelhas. Muito baixo deixa menos oxigênio chegar ao corpo (cansaço, falta de ar). Muito alto deixa o sangue mais espesso."
+    },
+    "spaceflight_note": "Smith 1997 (Clinical Chemistry, Shuttle, i-STAT): hematocrit in flight about 0.44 (44%), read from a chart (approximate). Hemoglobin is calculated by the i-STAT as hematocrit x 34.",
+    "sources": [
+      {
+        "name": "Abbott i-STAT cartridge material: reference range 38-51 %PCV and reportable range 15-75 %PCV (one source says 10-75)",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Critical value lists (Yale New Haven, UChicago, Providence Alaska, a generic list): below 20% and above 60% (Parrish uses 60% or more)",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      },
+      {
+        "name": "Smith SM et al. Assessment of a portable clinical blood analyzer during space flight. Clin Chem 1997;43(6):1056-1065",
+        "url": "",
+        "quote": "",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Medical lead, 14 Nov: only sourced numbers kept, same rule as pH. Normal 38-51; critical below 20 and above 60; no warning between 20-37 and 52-60 (value shown as out of range). i-STAT reportable range 15-75: the device does not show values outside it. Level of the critical bands not decided yet (concerning, medical officer, or dangerous, everyone). Effects pasted by her, no named source, unverified: low (anemia) = less oxygen to the tissues, tiredness, shortness of breath, fast heartbeat, pallor, and if severe heart and brain ischemia; high = thicker blood with risk of thrombosis, stroke and heart attack, and in dehydration it shows hemoconcentration. Sources not opened. Level chosen by the medical lead: below 20 and above 60 = concerning, medical officer, the person is not left alone. Update 14 Nov: outside the normal range but not critical (20-37 and 52-60) = unusual, self only (medical lead's request: warn the person instead of nobody). Open question: fixed reference range or the person's own normal. Medical lead chose the fixed range 38-51 (option A), not the person's own normal. Reference ranges differ between men and women (from memory, unverified); she knows.",
+    "en_checked": false
+  },
+  {
+    "id": "hemoglobin",
+    "name": {
+      "en": "Hemoglobin",
+      "pt": "Hemoglobina"
+    },
+    "unit": "g/dL",
+    "reference_range": {
+      "low": null,
+      "high": null,
+      "condition": "No range of its own: follows the hematocrit"
+    },
+    "flag_below": null,
+    "flag_above": null,
+    "urgent_below": null,
+    "urgent_above": null,
+    "what_it_means": {
+      "en": "Hemoglobin is the part of the blood that carries oxygen. The Astrum calculates it from the hematocrit and shows it on the screen.",
+      "pt": "A hemoglobina é a parte do sangue que carrega o oxigênio. O Astrum a calcula a partir do hematócrito e mostra na tela."
+    },
+    "spaceflight_note": "Smith 1997 (Clinical Chemistry, Shuttle, i-STAT): hemoglobin is calculated from the hematocrit, not measured: hemoglobin = hematocrit as a fraction x 34 (for example 0.44 x 34), which is the same as hematocrit in percent x 0.34. The paper's wording is 'hemoglobin = hematocrit x 34'.",
+    "sources": [
+      {
+        "name": "Smith SM et al. Assessment of a portable clinical blood analyzer during space flight. Clin Chem 1997;43(6):1056-1065",
+        "url": "",
+        "quote": "hemoglobin = hematocrit x 34",
+        "is_nasa": false
+      }
+    ],
+    "status": "approved",
+    "notes": "Medical lead, 14 Nov: option B. Hemoglobin gets NO warnings of its own; it follows the hematocrit warnings and is only shown on the screen, calculated. Unit g/dL is from memory of the i-STAT report, unverified; Caio to check how the value is calculated and displayed. CHANGED 14 Nov (after Caio's check, medical lead chose A): the formula is now written both ways, hematocrit as a fraction x 34 or hematocrit in percent x 0.34 (the hematocrit shown on the screen is a percent, so x 0.34). Caio checks how the value is calculated and shown.",
+    "en_checked": false
+  }
+]
