@@ -40,8 +40,14 @@ export interface ReplyFacts {
   minutes: number;
   /** The alert has a steps card on screen. Without one, no card is mentioned. */
   card: boolean;
-  /** The hub-written digest of the alert's incident report (engine/earth-report.ts reportDigest): what the model writes from. */
+  /** The hub-written digest of the alert's incident report (engine/earth-report.ts reportDigest): for the log and tests only. */
   digest?: string | null;
+  /** The place's name ("a Mars base"), from the string table. */
+  place?: string | null;
+  /** Why the alert reached level 3, in the report's words ("help requested"). */
+  reason?: string | null;
+  /** The triggering reading as the alert holds it, with its kind and limit. Its numbers may appear in a reply. */
+  reading?: { value: number; unit: string; kind: string; limit: number | null } | null;
   /** The alert has an incident report that is not privacy-restricted: the fallback says the report was received, by its alert and room. */
   report?: boolean;
 }
@@ -76,23 +82,37 @@ export function withAiReply(m: EarthMessage, reply: { text: string; key?: string
   return { ...m, reply: { text: reply.text, at, simulated: true, ...(reply.key ? { key: reply.key } : {}), ...(reply.vars ? { vars: reply.vars } : {}) }, simulated: 'ai' };
 }
 
+const STEPS_SENTENCE = 'Keep following the steps card on your screen.';
+
+/** Three slots, in order: the acknowledgement naming the alert and room, the steps-card sentence word for word, the "watching" sentence. */
 function system(f: ReplyFacts): string {
-  return `You write Earth's reply to a crew in space, in the voice of mission control's flight surgeon.
-Write ${f.card ? 'three' : 'two'} short sentences in plain English, nothing else:
-1. Say mission control has the message about the alert, using only the alert and room words in the FACTS.
-${f.card ? '2. Say to keep following the steps card on their screen.\n3.' : '2.'} Say Earth is watching the readings and will write again in about the minutes the FACTS give.
-Mention no other room, alert, place or reading. Never give any other instruction. Never name a medicine, a dose, a diagnosis or a cause. Never say anyone is or will be fine. Use no number except the minutes. Name no person.`;
+  const mins = `${f.minutes} minute${f.minutes === 1 ? '' : 's'}`;
+  const where = f.room ? ` in ${f.room}` : '';
+  return `You are mission control replying to a crew on ${f.place ?? 'a space mission'}. Reply in at most three short sentences.
+Start with "Mission control here" and acknowledge the incident report about ${f.alertKind ?? 'the alert'}${where}.${f.card ? `
+Then write exactly: "${STEPS_SENTENCE}"` : ''}
+Then say you are watching the readings and will write again in about ${mins}.
+Give no medical instruction, medicine, dose, diagnosis or reassurance. Name only the room and reading given. Name no person.`;
 }
 
-function factsLine(f: ReplyFacts): string {
-  if (f.digest) return `INCIDENT REPORT: ${f.digest}. Earth writes again in ${f.minutes} minute${f.minutes === 1 ? '' : 's'}.`;
-  return `FACTS: alert: ${f.alertKind ?? 'an alert'}${f.room ? `. Room: ${f.room}` : ''}. Earth writes again in ${f.minutes} minute${f.minutes === 1 ? '' : 's'}.`;
+/** The incident in plain words: what goes out with the prompt. No person's name, no typed words. */
+export function replyBrief(f: ReplyFacts): string {
+  const reading = f.reading ? ` Reading: ${f.reading.value} ${f.reading.unit} (${f.reading.kind}${f.reading.limit !== null ? `, limit ${f.reading.limit} ${f.reading.unit}` : ''}).` : '';
+  return `Incident: ${f.alertKind ?? 'an alert'}${f.room ? ` in ${f.room}` : ''}${f.reason ? `, ${f.reason}` : ''}.${reading} Steps card on screen: ${f.card ? 'yes' : 'no'}. Round trip: ${f.minutes} minute${f.minutes === 1 ? '' : 's'}. Write the reply.`;
 }
 
-/** The prompt for an alert's message: the rules and the facts. No example, so nothing in it can be copied. Never for a crew message. */
+/** The prompt for an alert's message. No example, so nothing in it can be copied. Never for a crew message or a restricted alert. */
 export function buildEarthReplyMessages(f: ReplyFacts): ChatMessage[] {
-  return [{ role: 'system', content: system(f) }, { role: 'user', content: factsLine(f) }];
+  return [{ role: 'system', content: system(f) }, { role: 'user', content: replyBrief(f) }];
 }
+
+/** Words that belong to the prompt, not to a human reply: a reply holding any of them parroted its instructions. */
+const PROMPT_TALK = /\b(facts?|using only|key moments?|top level|words from|the report says|digest|slots?|incident:|round trip|reading:|steps card on screen)\b/i;
+/** A string-table key or field name ("room.commons"). */
+const KEY_PATTERN = /\b[a-z][a-z0-9_]*\.[a-z][a-z0-9_.-]*\b/;
+/** A colon followed by a list of fields. */
+const FIELD_LIST = /:[^.!?]*,[^.!?]*,/;
+const OPENING = /^(mission control here|this is mission control|mission control)\b/i;
 
 /** Words naming a signal or kind of alert. Each found in a reply must be in this alert's facts. Synonyms share a group. */
 const SIGNAL_WORDS: string[][] = [
@@ -125,6 +145,18 @@ export function checkEarthReply(raw: string, f: ReplyFacts, ctx: { rooms: readon
   if (/^\s*(\d+[.)]|[-*•])\s+/m.test(raw)) reasons.push('a list');
   if (notEnglish(t)) reasons.push('not-english');
   if (f.kind !== 'alert') reasons.push('a crew message never takes the model\'s words');
+  if (!OPENING.test(t)) reasons.push('it does not open as a message from mission control');
+  if (PROMPT_TALK.test(t)) reasons.push('it repeats words of the prompt');
+  if (KEY_PATTERN.test(t)) reasons.push('a key or field name');
+  if (FIELD_LIST.test(t)) reasons.push('a colon-separated list');
+  for (const s of parts) if ((s.match(/\S+/g) ?? []).length > 30) reasons.push('a sentence longer than 30 words');
+  const count = (needle: string) => needle ? (t.match(new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')) ?? []).length : 0;
+  if (f.room && count(f.room) !== 1) reasons.push(`the room's name must appear once (${count(f.room)})`);
+  if (f.alertKind) {
+    const group = SIGNAL_WORDS.find((g) => g.some((w) => new RegExp(`\\b${w}\\b`, 'i').test(f.alertKind!))) ?? [f.alertKind];
+    const n = [...new Set([f.alertKind, ...group].map((w) => w.toLowerCase()))].reduce((sum, w) => sum + count(w), 0);
+    if (n !== 1) reasons.push(`the alert's name must appear once (${n})`);
+  }
   if (f.card && !/\bsteps card\b/i.test(t)) reasons.push('it does not point to the steps card');
   if (!f.card && /\bcard\b/i.test(t)) reasons.push('it mentions a card this alert does not have');
   const known = (f.alertKind ?? '').toLowerCase();
@@ -137,7 +169,7 @@ export function checkEarthReply(raw: string, f: ReplyFacts, ctx: { rooms: readon
   }
   if (!new RegExp(`\\b${f.minutes} minutes?\\b`).test(t)) reasons.push('it does not say when Earth writes again');
   const numbers = [...t.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0]);
-  const allowed = new Set([String(f.minutes), ...[...`${f.room ?? ''} ${f.alertKind ?? ''}`.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0])]);
+  const allowed = new Set([String(f.minutes), ...(f.reading ? [String(f.reading.value), ...(f.reading.limit !== null ? [String(f.reading.limit)] : [])] : []), ...[...`${f.room ?? ''} ${f.alertKind ?? ''}`.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => m[0])]);
   const stray = numbers.filter((n) => !allowed.has(n));
   if (stray.length) reasons.push(`numbers that are not the hub's (${stray.join(', ')})`);
   for (const name of ctx.names) if (name && new RegExp(`(?<!\\p{L})${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\p{L})`, 'iu').test(t)) reasons.push('it names a person');

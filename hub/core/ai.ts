@@ -633,6 +633,8 @@ export interface AskContext {
    * last one, or 'fresh'. Unset: the hub cannot tell, and a question about it is answered as before.
    */
   signalState?: (person: string, signal: string) => { state: 'none' } | { state: 'stale'; at: number; live: boolean } | { state: 'fresh' };
+  /** The station's rooms, for the shared screen's room questions (askShared). Unset: rooms are not named, and every room question gets the choose-a-person line. */
+  rooms?: () => { id: string; name: string }[];
 }
 
 /** A question Astra asked and waits on: her follow-up and card questions, "Did it get better?", or "which one?". */
@@ -671,7 +673,7 @@ export interface AskResult {
   by: 'model' | 'hub' | 'fixed';
   /** English. For fixed text, `key` names it in the string table. */
   text: string;
-  key: keyof typeof FIXED_TEXTS | 'ai.urgentNoCard' | 'ai.conversation' | 'ai.noRecent' | null;
+  key: keyof typeof FIXED_TEXTS | 'ai.urgentNoCard' | 'ai.conversation' | 'ai.noRecent' | 'ai.choosePerson' | null;
   /** The cited passage, when the answer cites one. */
   source: string | null;
   /** Every passage sent to the model (or that would have been), with its source. */
@@ -729,6 +731,8 @@ export interface AskResult {
    * Already at the end of `text`; a screen that draws facts or its own fixed text instead of `text` shows it under them.
    */
   aside?: string;
+  /** The shared screen (askShared): the question needs a person chosen first; a screen opens its "Asking as" picker. */
+  choosePerson?: true;
 }
 
 /** The reason a screen shows under a reply. Never "set aside" unless a model answer was in fact set aside. */
@@ -782,8 +786,16 @@ export async function handleAsk(req: IncomingMessage, res: ServerResponse, url: 
   if (url.pathname !== '/api/ask') return false;
   if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' });
 
-  const b = (await readJson(req)) as { person?: unknown; about?: unknown; question?: unknown; lang?: unknown; history?: unknown; stepsDone?: unknown } | undefined;
-  if (!b || typeof b !== 'object') return send(res, 400, { error: 'body must be JSON: { person, question, about?, lang?, history?, stepsDone? }' });
+  const b = (await readJson(req)) as { person?: unknown; about?: unknown; question?: unknown; lang?: unknown; history?: unknown; stepsDone?: unknown; shared?: unknown } | undefined;
+  if (!b || typeof b !== 'object') return send(res, 400, { error: 'body must be JSON: { person, question, about?, lang?, history?, stepsDone? } or { shared: true, question, lang? }' });
+  // The shared screen: no person, rooms and NASA's text only (askShared). Nothing is kept, raised or stored.
+  if (b.shared === true) {
+    if (b.person !== undefined || b.about !== undefined || b.stepsDone !== undefined) return send(res, 400, { error: 'a shared question has no person' });
+    if (typeof b.question !== 'string') return send(res, 400, { error: 'needs a question' });
+    const shared = askShared(ctx, { question: b.question, lang: b.lang === 'pt' ? 'pt' : 'en' });
+    shared.reason = replyReason(shared);
+    return stream(res).end(shared);
+  }
   // The person went through a card's steps (the phone's "Done"): Astra's next message, no question typed.
   if (b.stepsDone !== undefined) {
     if (typeof b.person !== 'string' || !b.person || typeof b.stepsDone !== 'string') return send(res, 400, { error: 'stepsDone needs a person and a card id' });
@@ -807,6 +819,54 @@ export async function handleAsk(req: IncomingMessage, res: ServerResponse, url: 
   if ('error' in result) return out.end(result, 404);
   result.reason = replyReason(result);
   return out.end(result);
+}
+
+/** Words that make a message about a person: the asker, their body, or how they feel. Any of them sends a shared question to the choose-a-person line. */
+const PERSONAL = /\b(i|i'm|im|i've|i'd|me|my|mine|myself|we|us|our|you|your|he|she|him|her|his|they|them|their|feel\w*|felt|hurt\w*|pain\w*|ache\w*|sick|ill|unwell|dizz\w*|faint\w*|nause\w*|vomit\w*|tired\w*|sleep\w*|slept|heart|pulse|blood|temperature of|fever\w*|breath\w*|headache\w*|symptom\w*|medic\w*|doctor|drug\w*|dose\w*|pill\w*|reading\w* of|eu|meu|minha|meus|minhas|me|mim|comigo|voc[eê]s?|sinto|senti|estou|tenho|dor|tontur\w*|enjo\w*|cansad\w*|sono|febre|cora[cç][aã]o|rem[eé]dio\w*)\b/iu;
+/** A room or NASA question: the cabin's air and the station's limits. */
+const ROOM_TOPIC = /\b(air|co2|c02|carbon dioxide|oxygen|o2|humidity|pressure|cabin|room|rooms|module|station|limit\w*|nasa|ar|umidade|press[aã]o|sala|salas|m[oó]dulo|esta[cç][aã]o|limite\w*)\b/iu;
+
+/** True for a question the shared screen may answer: about rooms or NASA's text, and about no one. Unsure: false. */
+export function sharedAnswerable(question: string, rooms: { id: string; name: string }[], crew: CrewName[] = []): boolean {
+  const q = question.toLowerCase();
+  if (!q.trim() || PERSONAL.test(q) || isComplaint(question)) return false;
+  if (crew.some((p) => q.includes(p.id.toLowerCase()) || q.includes(p.name.toLowerCase()))) return false;
+  if (asksAmountOrTreatment(question) || asksAdviceOrDiagnosis(question)) return false;
+  return ROOM_TOPIC.test(q) || rooms.some((r) => q.includes(r.name.toLowerCase()) || q.includes(r.id.toLowerCase()));
+}
+
+/**
+ * A question on the shared screen, asked as no one: the hub's own sentences from the rooms' readings and NASA's
+ * passages, never the model, a person's readings, a card, a finding, a follow-up or a stored answer. A crisis
+ * phrase still gets the crisis text at once (no one can be named, so no one is told: it sends the reader to a
+ * person). Anything not clearly about rooms or NASA gets the fixed "Choose who is asking" line.
+ */
+export function askShared(ctx: AskContext, q: { question: string; lang: CardLang }): AskResult {
+  const started = Date.now();
+  const lang = messageLang(q.question, q.lang);
+  const empty = { type: 'result' as const, source: null, passages: [], readings: [], card: null, check: null, facts: null };
+  if (screenInput(q.question).route === 'crisis') {
+    return { ...empty, route: 'crisis', by: 'fixed', text: FIXED_TEXTS['ai.crisis'], key: 'ai.crisis', urgent: true, ms: Date.now() - started };
+  }
+  const rooms = ctx.rooms?.() ?? [];
+  const choose = (): AskResult => ({ ...empty, route: 'fixed', by: 'fixed', text: t('ai.choosePerson', lang), key: 'ai.choosePerson', urgent: false, choosePerson: true, ms: Date.now() - started });
+  if (!sharedAnswerable(q.question, rooms, ctx.crew?.() ?? [])) return choose();
+  const ql = q.question.toLowerCase();
+  const named = rooms.filter((r) => ql.includes(r.name.toLowerCase()) || ql.includes(r.id.toLowerCase()));
+  const roomReadings = (named.length ? named : rooms).flatMap((r) => (ctx.roomReadings?.(r.id) ?? []).map((x) => ({ ...x, room: r.id, here: false })));
+  const readings: PersonReadings = { name: '', pronoun: 'their', readings: roomReadings };
+  const passages: AskPassage[] = search(ctx.index, q.question, { readings: [], limit: 2 }).hits
+    .map((hit) => ({ id: hit.id, name: hit.name, url: hit.passage.url, heading: hit.passage.heading, text: hit.passage.text }));
+  const who: Who = { name: '', pronouns: 'they', self: false };
+  const answer = composeAnswer({
+    name: '', who, question: q.question, readings, evidence: null, lang, roomName: ctx.roomName, personName: ctx.personName,
+    passages: passages.map((p) => ({ name: p.name, url: p.url, text: p.text })), gravity: ctx.gravity ?? null, gravityMatters: false, quarters: null,
+  });
+  if (!answer.relevant) return choose();
+  return {
+    ...empty, route: 'answer', by: 'hub', text: replyText(answer, lang), key: null, passages,
+    readings: roomReadings.map((r) => ({ line: readingLine(r, 'their'), label: r.label })), facts: answer, urgent: false, ms: Date.now() - started,
+  };
 }
 
 export type AskEvent = { type: 'status'; state: 'queued'; position: number } | { type: 'status'; state: 'thinking'; ms: number };

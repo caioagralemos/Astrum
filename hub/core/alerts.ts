@@ -110,6 +110,9 @@ export class AlertWatcher {
     }
     // Their messages to Earth, listed again under the same ids.
     this.earth = stepEarth([], saved, saved.filter((a) => a.level === 3).map((alert) => ({ type: 'escalated', alert })), now);
+    // The screens are told now: the next check finds nothing changed and would never publish them, leaving an
+    // open emergency (and a declared event that blocks a new one) that no screen shows.
+    this.hub.setAlerts(this.alerts);
   }
 
   private save(): void {
@@ -226,6 +229,17 @@ export class AlertWatcher {
     this.alerts = out.alerts;
     this.hub.setAlerts(this.alerts);
     this.save();
+    // Settled also silences the board for it: its room's alarm (every room of a station-wide event) is
+    // acknowledged, as POST /api/alarms/acknowledge does. The alarm stays shown over the limit.
+    const alert = this.alerts.find((a) => a.id === id)!;
+    const rooms = new Set<string>();
+    if (alert.room) rooms.add(alert.room);
+    if (alert.stationWide) {
+      for (const a of this.alerts) if (a.stationWide && a.signal === alert.signal && a.room) rooms.add(a.room);
+      for (const a of this.roomAlarms.list()) if (a.signal === alert.signal) rooms.add(a.room);
+    }
+    for (const room of rooms) this.roomAlarms.acknowledge(room);
+    this.hub.soundBoard(true);
     return true;
   }
 

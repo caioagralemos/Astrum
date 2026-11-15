@@ -42,7 +42,8 @@ export class EarthReports {
         this.reports.set(m.id, r);
         changed = true;
       }
-      return { ...m, report: r };
+      // The message's own line is the report's one-line summary.
+      return { ...m, report: r, text: r.summary };
     });
     for (const [id, r] of this.reports) if (now - r.filedAt > KEEP_MS) { this.reports.delete(id); changed = true; }
     if (changed) this.save();

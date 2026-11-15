@@ -82,6 +82,10 @@ export interface Person {
   pronouns?: 'she' | 'he' | 'they';
   /** A photo of them (an image address), if the mission gives one. Screens draw a plain outline without it. */
   portrait?: string;
+  /** The same as `pronouns`, under the name the phone reads; set by the first-run setup. */
+  pronoun?: 'she' | 'he' | 'they';
+  /** The crew's medical officer: private alerts go to them. One per crew; set by the first-run setup. */
+  medicalOfficer?: boolean;
 }
 
 /**
@@ -124,6 +128,8 @@ export interface Profile {
   chips: Record<string, string>;
   /** Present when the hub runs a mission file. Older profiles and recordings have none. */
   mission?: MissionFacts;
+  /** False only on a new hub whose first-run setup has not been done yet (core/setup.ts). Absent means done. */
+  setupDone?: boolean;
 }
 
 /** What a sensor source says about itself when it connects. */

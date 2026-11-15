@@ -36,8 +36,8 @@ const answer = (question: string, a: string) => ({ question, answer: a });
 
 // ---------- her files load ----------
 
-test('her export loads: 39 approved cards, 7 blood entries with ionized-calcium, no blood problem', () => {
-  assert.equal(cards.length, 39);
+test('her export loads: 42 approved cards, 7 blood entries with ionized-calcium, no blood problem', () => {
+  assert.equal(cards.length, 42);
   assert.deepEqual(blood.problems, []);
   assert.deepEqual(blood.entries.map((e) => e.id), ['glucose', 'sodium', 'potassium', 'ionized-calcium', 'ph', 'hematocrit', 'hemoglobin']);
 });

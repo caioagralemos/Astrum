@@ -49,7 +49,8 @@ import type { Profile } from '../engine/types.ts';
 import { AiRuntime, handleAsk } from './ai.ts';
 import { EarthReplies } from './earth-reply.ts';
 import { EarthReports } from './earth-report.ts';
-import { buildReport, reportDigest } from '../engine/earth-report.ts';
+import { cloudReplyModel } from './earth-cloud.ts';
+import { buildReport, reasonPhrase, reportDigest } from '../engine/earth-report.ts';
 import { Threads } from '../engine/conversation.ts';
 import { checkinRows } from '../engine/checkin.ts';
 import { buildIndex } from '../engine/search.ts';
@@ -61,6 +62,9 @@ import type { Reading } from '../engine/prompt.ts';
 import { LIMITS, QUIET_MS, windowAverage } from '../engine/cabin.ts';
 import { t } from '../engine/strings.ts';
 import { SensorRegistry, handleSensors } from './sensors.ts';
+import { markFreshInstall, setupDone, setupRoute } from './setup.ts';
+import { applyPendingReset, resetRoute } from './reset.ts';
+import { withPortraits } from '../engine/portraits.ts';
 import { SerialJsonAdapter } from './serial-json.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -70,6 +74,10 @@ const port = Number(process.env.ASTRUM_PORT ?? 4310);
 const dataDir = appDataDir();
 
 mkdirSync(dataDir, { recursive: true });
+// "Reset Astrum" was pressed before this start (core/reset.ts): the stored data goes now, before anything is opened.
+if (applyPendingReset(dataDir)) console.log('Reset: everything this hub had stored was erased. Starting at the first-run setup.');
+// A hub started on an empty data folder still has its first-run setup to do (core/setup.ts).
+markFreshInstall(dataDir);
 const missionsDir = join(hubDir, 'profiles', 'missions');
 const customDir = customMissionsDir(dataDir);
 let missionFile = missionName(dataDir);
@@ -110,13 +118,16 @@ if (missionFile === null) {
 }
 // The station clock: the hub's time zone, which the simulated crew keeps (core/crew.ts). The mission day turns at its midnight.
 if (profile.mission) profile.mission.clockOffsetMinutes = -new Date().getTimezoneOffset();
+if (!setupDone(dataDir)) profile.setupDone = false;
+// Every crewmate carries a face in the state (engine/portraits.ts): their own, else the default pairing, so the hub's screens and the phone show the same one.
+profile.crew = withPortraits(profile.crew);
 /** Which room plays each part of the simulated crew's day. An old profile with no mission file keeps the ship's, as before. */
 const places = mission ? placesOf(mission) : SHIP_PLACES;
 const gravity = mission?.gravity ?? null;
 const dbFile = databaseFile(dataDir, missionFile);
-const store = new Store(dbFile);
-// ASTRUM_MODE=production: the hub makes no simulated value and keeps none. Anything else is demo mode.
+// ASTRUM_MODE=production: the hub makes no simulated value, keeps none, and reads none back from a file a demo-mode hub wrote. Anything else is demo mode.
 const production = process.env.ASTRUM_MODE === 'production';
+const store = new Store(dbFile, { realOnly: production });
 const hub = new Hub(store, profile, join(hubDir, 'ui', 'dist'), production);
 
 const chip = new ChipAdapter(
@@ -160,6 +171,7 @@ const drill = new Drill({
   profile, alarms, alerts, production,
   storyPlaying: () => scenarios.status().playing !== null,
   roomOf: (person, now) => store.stays(now, now, person).find((s) => s.until === null)?.room ?? null,
+  soundBoard: () => hub.soundBoard(true),
 });
 hub.routes.push(drillRoute(drill));
 // A base-wide event a crewmate declares (core/events.ts): one level 3 for everyone. A real report, so production too.
@@ -183,14 +195,41 @@ hub.routes.push(missionsRoute(missionsDir, missionFile, missionFile === null ? p
   },
 }));
 
+// "Reset Astrum" in Settings, production mode only (core/reset.ts): erases what is stored and starts at the setup again.
+hub.routes.push(resetRoute({
+  dataDir, production, supervised,
+  restart: () => {
+    console.log('Reset asked for: restarting to erase what is stored.');
+    hub.sendToScreens({ type: 'restarting', to: 'reset' });
+    shutdown(RESTART_CODE);
+  },
+}));
+
+// The first-run setup saves the whole place at once and restarts the hub on it (core/setup.ts).
+hub.routes.push(setupRoute({
+  dir: missionsDir, customDir, dataDir, supervised, port,
+  storyPlaying: () => scenarios.status().playing !== null,
+  addresses: () => Object.values(networkInterfaces()).flat().filter((a) => a && a.family === 'IPv4' && !a.internal).map((a) => a!.address),
+  restart: (to) => {
+    console.log(`Setup saved: restarting on the mission "${to}".`);
+    hub.sendToScreens({ type: 'restarting', to });
+    shutdown(RESTART_CODE);
+  },
+}));
+
 // Contact Earth: messages a crewmate writes. The simulated reply exists in demo mode only.
+/** A room's name as screens show it (the string table, in English), never its key. */
+const roomDisplayName = (id: string): string | null => {
+  const room = profile.rooms.find((r) => r.id === id);
+  return room ? t(room.name, 'en') : null;
+};
 // Each level 3 message to Earth carries an incident report: the hub's own facts at that moment (core/earth-report.ts).
 alerts.reports = new EarthReports({
   file: `${dbFile}.earth-reports.json`,
   build: (alert, message, now) => buildReport({
     alert, message, now,
     mission: { name: missionFile ?? profile.id, day: (() => { try { return dayOf(profile, now); } catch { return null; } })(), lightDelaySeconds: profile.delayToEarthSeconds },
-    roomName: (id) => profile.rooms.find((r) => r.id === id)?.name ?? null,
+    roomName: (id) => roomDisplayName(id),
     personName: (id) => profile.crew.find((p) => p.id === id)?.name ?? null,
     signalName: (signal) => t(`signal.${signal}`, 'en'),
     roomRows: alert.room ? store.rows({ room: alert.room, from: now - QUIET_MS, to: now, limit: 5000 }) : [],
@@ -243,16 +282,25 @@ const earthReplies = production ? null : new EarthReplies({
   },
   // An alert's reply is written from its incident report: its room, its alert name, its card, and the hub's digest of it.
   facts: (m) => m.report && !m.report.restricted
-    ? { room: m.report.where.roomName, alertKind: m.report.alert.name, card: m.report.card !== null, digest: reportDigest(m.report), report: true }
+    ? {
+      room: m.report.where.roomName, alertKind: m.report.alert.name, card: m.report.card !== null, digest: reportDigest(m.report), report: true,
+      place: t(profile.place, 'en'), reason: reasonPhrase(m.report.alert.reason),
+      reading: (() => {
+        const r = m.report.readings.find((x) => x.signal === m.about.signal);
+        return r && r.value !== null ? { value: r.value, unit: r.unit, kind: r.kind, limit: r.limit } : null;
+      })(),
+    }
     : {
-      room: m.about.room ? profile.rooms.find((r) => r.id === m.about.room)?.name ?? null : null,
+      room: m.about.room ? roomDisplayName(m.about.room) : null,
       alertKind: m.kind === 'alert' && m.about.signal ? t(`signal.${m.about.signal}`, 'en') : null,
       card: m.kind === 'alert' && Boolean(alerts.list().find((a) => a.earthId === m.id)?.card),
     },
   delayMs: profile.delayToEarthSeconds * 1000,
   demoSeconds: Number.isFinite(demoReplySeconds) && demoReplySeconds > 0 ? demoReplySeconds : null,
-  rooms: profile.rooms.map((r) => r.name),
+  rooms: profile.rooms.map((r) => t(r.name, 'en')),
   names: profile.crew.map((p) => p.name),
+  // Demo only, and only when the key is in the environment at start: a cloud model tried first, from the same brief and checks.
+  cloud: process.env.GROQ_API_KEY ? cloudReplyModel({ key: process.env.GROQ_API_KEY, model: process.env.ASTRUM_DEMO_EARTH_MODEL }) : null,
   model: {
     ready: () => ai.state === 'ready',
     chat: (messages) => ai.enqueue(() => ai.client.chat({ messages, maxTokens: 110, firstTokenMs: ai.firstTokenMs, totalMs: 20_000, stop: ['\n\n', '<think>'] }), () => {}),
@@ -450,6 +498,8 @@ hub.routes.push((req, res, url) => handleAsk(req, res, url, {
   // Each crewmate's conversation with Astra, kept here for 30 minutes of quiet (engine/conversation.ts).
   threads: askThreads,
   crew: () => profile.crew.map((p) => ({ id: p.id, name: p.name })),
+  // The shared screen's room questions (askShared): each room's id and English name.
+  rooms: () => profile.rooms.map((r) => ({ id: r.id, name: t(r.name, 'en') })),
   // Whether a body signal has a current reading, by the baseline's own freshness rule: a question about one
   // that has gone quiet gets "I have no … reading from the last hour; the last one was at …".
   signalState: (person, signal) => {

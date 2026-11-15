@@ -192,11 +192,12 @@ export class Hub {
    * engine/alerts.ts boardSounds). It looks at what the screens are shown:
    * the live alarms and alerts, or a playing scenario's.
    */
-  soundBoard(): void {
+  soundBoard(force = false): void {
     const shown = this.scenarioState?.();
     const [alarms, alerts] = shown?.type === 'state' ? [shown.alarms, shown.alerts] : [this.alarms, this.alerts];
     const should = boardSounds(this.boardRooms(), alarms, alerts);
-    if (should === this.sounding) return;
+    // `force` sends the decision again even if unchanged (an emergency settled, a drill stopped): the board is told to be quiet.
+    if (should === this.sounding && !force) return;
     this.sounding = should;
     this.buzz(should ? 'alarm' : 'off');
   }

@@ -40,6 +40,8 @@ export interface EarthRepliesOptions {
   rooms: string[];
   names: string[];
   model: ReplyModel | null;
+  /** Demo mode only, when GROQ_API_KEY is set: a cloud model tried before the on-board one (core/earth-cloud.ts). */
+  cloud?: ReplyModel | null;
   clock?: () => number;
   tickMs?: number;
   log?: (line: string) => void;
@@ -47,9 +49,11 @@ export interface EarthRepliesOptions {
 
 /** How long the model has for one reply before the fallback is used. */
 const MODEL_MS = 20_000;
+/** The cloud model's own timeout is 6 s; this is the outer guard. */
+const CLOUD_MS = 7_000;
 
 export class EarthReplies {
-  private replies = new Map<string, EarthMessage['reply']>();
+  private replies = new Map<string, { reply: NonNullable<EarthMessage['reply']>; by: 'cloud' | 'onboard' | 'fixed' }>();
   private fixedOnly = new Map<string, boolean>();
   private working = new Set<string>();
   /** Whether each alert had a steps card, decided when first seen. */
@@ -90,8 +94,8 @@ export class EarthReplies {
         const arrivesAt = m.sentAt + this.o.demoSeconds * 500;
         out = { ...out, arrivesAt, replyAt, delivered: now >= arrivesAt, simulatedDelay: true };
       }
-      const reply = this.replies.get(m.id);
-      return reply && !m.reply ? { ...out, reply, simulated: 'ai' } : out;
+      const made = this.replies.get(m.id);
+      return made && !m.reply ? { ...out, reply: made.reply, simulated: 'ai', simulatedBy: made.by } : out;
     });
   }
 
@@ -119,28 +123,35 @@ export class EarthReplies {
     for (const id of this.replies.keys()) if (!listed.has(id)) { this.replies.delete(id); this.fixedOnly.delete(id); this.cards.delete(id); }
   }
 
-  /** The reply for one message: the model's if it passes, else the fixed fallback. */
-  async make(m: EarthMessage, at: number): Promise<NonNullable<EarthMessage['reply']>> {
+  /** The reply for one message: the cloud model's (demo, key set), else the on-board model's, else the fixed sentence. Each model's text must pass every check. */
+  async make(m: EarthMessage, at: number): Promise<{ reply: NonNullable<EarthMessage['reply']>; by: 'cloud' | 'onboard' | 'fixed' }> {
     const facts: ReplyFacts = { kind: m.kind, ...this.o.facts(m), minutes: replyMinutes(this.o.delayMs) };
     facts.card = this.cards.get(m.id) ?? facts.card;
-    // The hub's fixed sentence is the default; the model's text replaces it only if it passes every check on its one try.
-    const fallback = () => {
+    // The hub's fixed sentence is the default; a model's text replaces it only if it passes every check on its one try.
+    const fixed = (why: string) => {
+      this.log(`reply: fixed (${why})`);
       const f = fallbackReply(facts);
-      return withAiReply(m, { text: t(f.key, 'en', f.vars), key: f.key, vars: f.vars }, at).reply!;
+      return { reply: withAiReply(m, { text: t(f.key, 'en', f.vars), key: f.key, vars: f.vars }, at).reply!, by: 'fixed' as const };
     };
-    if (this.fixedOnly.get(m.id)) { this.log('reply: fixed (not sent to the model)'); return fallback(); }
-    if (!this.o.model || !this.o.model.ready()) { this.log('reply: fixed (model not ready)'); return fallback(); }
-    let raw: string | null = null;
-    try {
-      raw = await Promise.race([
-        this.o.model.chat(buildEarthReplyMessages(facts)),
-        new Promise<null>((done) => setTimeout(() => done(null), MODEL_MS).unref()),
-      ]);
-    } catch { raw = null; }
-    if (raw === null) { this.log('reply: fixed (no model answer in time)'); return fallback(); }
-    const verdict = checkEarthReply(raw, facts, { rooms: this.o.rooms, names: this.o.names });
-    if (!verdict.ok) { this.log(`reply: fixed (${verdict.reasons.length} check(s) failed)`); return fallback(); }
-    this.log('reply: model, all checks passed');
-    return withAiReply(m, { text: verdict.text }, at).reply!;
+    // Restricted, crisis and crew messages: nothing is sent anywhere.
+    if (this.fixedOnly.get(m.id)) return fixed('not sent to any model');
+    const writers: { by: 'cloud' | 'onboard'; model: ReplyModel | null; ms: number }[] = [
+      { by: 'cloud', model: this.o.cloud ?? null, ms: CLOUD_MS },
+      { by: 'onboard', model: this.o.model, ms: MODEL_MS },
+    ];
+    const messages = buildEarthReplyMessages(facts);
+    for (const w of writers) {
+      if (!w.model || !w.model.ready()) continue;
+      let raw: string | null = null;
+      try {
+        raw = await Promise.race([w.model.chat(messages), new Promise<null>((done) => setTimeout(() => done(null), w.ms).unref())]);
+      } catch { raw = null; }
+      if (raw === null) { this.log(`reply: ${w.by} gave no answer in time`); continue; }
+      const verdict = checkEarthReply(raw, facts, { rooms: this.o.rooms, names: this.o.names });
+      if (!verdict.ok) { this.log(`reply: ${w.by} failed ${verdict.reasons.length} check(s)`); continue; }
+      this.log(`reply: ${w.by}, all checks passed`);
+      return { reply: withAiReply(m, { text: verdict.text }, at).reply!, by: w.by };
+    }
+    return fixed('no model text passed');
   }
 }

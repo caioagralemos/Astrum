@@ -182,13 +182,17 @@ export type EventKind = (typeof EVENT_KINDS)[number];
 /**
  * The medical lead's card that plainly covers an event, by its own id and title:
  * "Smoke and toxic air" for a fire, "Pressure drop and radiation" for a loss of
- * pressure or a solar particle event. A dust storm, a quake, a meteoroid impact
- * and "other" have none of hers, so they get no card; no steps are ever made up here.
+ * pressure or a solar particle event, and her three base event cards (her events
+ * export, 15 Nov 2026) for a dust storm, a quake and a meteoroid impact. "Other"
+ * has none of hers, so it gets no card; no steps are ever made up here.
  */
 export const EVENT_CARD: Readonly<Partial<Record<EventKind, string>>> = {
   fire: 'smoke-toxic-air',
   pressure_loss: 'decompression-radiation',
   solar_particle_event: 'decompression-radiation',
+  dust_storm: 'dust-storm',
+  quake: 'ground-tremor',
+  meteoroid_impact: 'meteoroid-impact',
 };
 
 /**
@@ -292,6 +296,8 @@ export interface EarthMessage {
   reply: { text: string; at: number; simulated: true; key?: string; vars?: Record<string, string | number> } | null;
   /** Demo mode only: the reply was written by the on-board model or is its fixed fallback. Every screen shows "Reply simulated by AI" beside it. */
   simulated?: 'ai';
+  /** Which writer made the simulated reply: a cloud model (demo only), the on-board model, or the hub's fixed sentence. The label follows it. */
+  simulatedBy?: 'cloud' | 'onboard' | 'fixed';
   /** An alert's message: the incident report the hub filed with it at level 3 (engine/earth-report.ts). Absent on a crew message. */
   report?: IncidentReport;
   /** Demo mode only: arrivesAt and replyAt are the demo's shortened delay (demoEarthReplySeconds), not the mission's. Screens say "simulated delay". */

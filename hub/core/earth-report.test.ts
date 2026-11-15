@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildReport, reportDigest } from '../engine/earth-report.ts';
 import type { ReportInput } from '../engine/earth-report.ts';
-import { checkEarthReply, fallbackReply } from '../engine/earth-reply.ts';
+import { buildEarthReplyMessages, checkEarthReply, fallbackReply } from '../engine/earth-reply.ts';
 import type { ReplyFacts } from '../engine/earth-reply.ts';
 import { EarthReports } from './earth-report.ts';
 import { EarthReplies } from './earth-reply.ts';
@@ -75,7 +75,7 @@ test('a room-limit level 3: the reading with its kind and limit, the room\'s oth
   assert.deepEqual(r.timeline.map((e) => e.event).slice(0, 4), [`${t('signal.co2', 'en')} crossed the limit`, 'question asked: "Are you OK?"', 'no answer', 'level 3']);
   assert.deepEqual(r.card, { id: 'high-co2', title: 'High CO2', approvedBy: 'medical_lead', unverified: [] });
   assert.deepEqual(r.crewTold, ['everyone']);
-  assert.match(r.summary, /^Incident report: .+ in Quarters 2, level 3, everyone told\.$/);
+  assert.equal(r.summary, "Incident report: CO2 in Quarters 2, level 3, no answer, crew told.");
 });
 
 test('a privacy-restricted alert: no readings, no body readings, no card; only what its Earth message already says', () => {
@@ -109,7 +109,7 @@ test('the reply from a report names only the report\'s room and signal; the fall
   });
   replies.step();
   await new Promise((done) => setTimeout(done, 5));
-  assert.match(prompt, /INCIDENT REPORT: alert: .+\. room: Quarters 2\. why it reached the top level: did not answer/);
+  assert.match(prompt, /acknowledge the incident report about CO2 in Quarters 2/);
   assert.doesNotMatch(prompt, /Ana Reyes|Reyes/);
   assert.equal(replies.apply([m])[0].reply?.text, good);
 });
@@ -131,4 +131,127 @@ test('a report is filed once and kept across a restart', () => {
     assert.equal(back[0].report?.filedAt, filedAt);
     assert.equal(again.get(a.earthId!)?.alert.id, 'a1');
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------- the live drill's defects (Mars base, reyes, Commons, "I need help") ----------
+
+import { loadMission } from './missions.ts';
+import { hubProfileOf } from '../engine/mission.ts';
+import { cloudReplyModel } from './earth-cloud.ts';
+import type { ReplyModel } from './earth-reply.ts';
+
+const base = hubProfileOf(loadMission(new URL('../profiles/missions', import.meta.url).pathname, 'base-mars'), 'base-mars');
+const baseRooms = base.rooms.map((r) => t(r.name, 'en'));
+const commons = base.rooms.find((r) => r.id === 'commons')!;
+
+function drillInput(): ReportInput {
+  const a = alert({ room: 'commons', value: 4, unit: 'mmHg', kind: 'simulated', limit: 3, over: 1, answer: 'help', drill: true, card: 'high-co2' });
+  const i = input(a);
+  return {
+    ...i,
+    roomName: (id) => { const r = base.rooms.find((x) => x.id === id); return r ? t(r.name, 'en') : null; },
+    // The room's stored replayed row is lower than the drill's value: the report must not take it for the trigger.
+    roomRows: [{ t: T0 + MIN, signal: 'co2', value: 2.32, unit: 'mmHg', kind: 'replayed', source: 'nasa:osdr-rr1', person: null, room: 'commons' },
+      { t: T0 + MIN, signal: 'temperature', value: 22, unit: '°C', kind: 'simulated', source: 'standin', person: null, room: 'commons' }],
+  };
+}
+
+test('Mars base: the report names the room as screens do, the trigger is the drill\'s own 4 mmHg, and the message line is the summary', () => {
+  const r = buildReport(drillInput());
+  assert.equal(r.where.roomName, t(commons.name, 'en'));
+  assert.doesNotMatch(JSON.stringify(r), /room\.commons/);
+  assert.deepEqual({ value: r.readings[0].value, kind: r.readings[0].kind, limit: r.readings[0].limit, over: r.readings[0].over }, { value: 4, kind: 'simulated', limit: 3, over: 1 });
+  assert.equal(r.readings.filter((x) => x.signal === 'co2').length, 1);
+  assert.equal(r.summary, `Incident report: CO2 in ${t(commons.name, 'en')}, level 3, help requested, crew told.`);
+  const store = new EarthReports({ file: null, build: () => r });
+  const a = drillInput().alert;
+  assert.equal(store.attach([message(a)], [a], T0)[0].text, r.summary);
+});
+
+const LIVE_PARROT = 'Mission control has the message about the alert, using only the alert and room words from the facts: CO2, room.commons, asked for help, top level, key moments include help requested and top level reached. Keep following the steps card on your screen. Earth is watching the readings and will write again in 40 minutes.';
+
+function baseFacts(): ReplyFacts {
+  const r = buildReport(drillInput());
+  return { kind: 'alert', room: r.where.roomName, alertKind: r.alert.name, card: true, report: true, minutes: 40, place: 'a Mars base', reason: 'help requested', reading: { value: 4, unit: 'mmHg', kind: 'simulated', limit: 3 } };
+}
+const baseCtx = { rooms: baseRooms, names: base.crew.map((p) => p.name) };
+const GOOD_BASE = () => `Mission control here: we have your incident report on the CO2 alert in ${t(commons.name, 'en')}. Keep following the steps card on your screen. We are watching the readings with you and will write again in about 40 minutes.`;
+
+test('the parroted live reply is rejected; a natural reply with the report\'s room and alert once each passes', () => {
+  const v = checkEarthReply(LIVE_PARROT, baseFacts(), baseCtx);
+  assert.equal(v.ok, false);
+  assert.ok(!v.ok && v.reasons.some((x) => /prompt|key or field|colon/.test(x)));
+  assert.equal(checkEarthReply(GOOD_BASE(), baseFacts(), baseCtx).ok, true);
+  assert.equal(checkEarthReply(GOOD_BASE().replace('readings with you', `readings with you in ${t(commons.name, 'en')}`), baseFacts(), baseCtx).ok, false, 'room twice');
+  const brief = buildEarthReplyMessages(baseFacts()).map((x) => x.content).join('\n');
+  assert.doesNotMatch(brief, /Reyes|room\.|my own words/);
+  assert.match(brief, /4 mmHg \(simulated, limit 3 mmHg\)/);
+});
+
+function chain(over: { cloud?: ReplyModel | null; onboardText?: string; restricted?: boolean }) {
+  let onboard = 0;
+  const m = { ...message(alert({ room: 'commons' })) };
+  const replies = new EarthReplies({
+    messages: () => [m], publish: () => {}, storyPlaying: () => false, restricted: () => over.restricted === true,
+    facts: () => baseFacts(), delayMs: 20 * MIN, demoSeconds: null, rooms: baseCtx.rooms, names: baseCtx.names,
+    cloud: over.cloud ?? null,
+    model: { ready: () => true, chat: async () => { onboard++; return over.onboardText ?? 'Not a reply.'; } },
+    clock: () => m.replyAt, log: () => {},
+  });
+  return { replies, m, onboard: () => onboard };
+}
+const settle = () => new Promise((done) => setTimeout(done, 20));
+function stubFetch(answer: () => Promise<Response>): { fetcher: typeof fetch; calls: () => number; body: () => string } {
+  let calls = 0; let body = '';
+  const fetcher = (async (_url: unknown, init?: RequestInit) => { calls++; body = String(init?.body ?? ''); return answer(); }) as typeof fetch;
+  return { fetcher, calls: () => calls, body: () => body };
+}
+const okResponse = (text: string) => async () => new Response(JSON.stringify({ choices: [{ message: { content: text } }] }), { status: 200 });
+
+test('cloud writer: success is used and marked "cloud"; the brief sent has no name and no typed words', async () => {
+  const stub = stubFetch(okResponse(GOOD_BASE()));
+  const c = chain({ cloud: cloudReplyModel({ key: 'test-key', fetcher: stub.fetcher }) });
+  c.replies.step(); await settle();
+  const out = c.replies.apply([c.m])[0];
+  assert.equal(stub.calls(), 1);
+  assert.equal(c.onboard(), 0);
+  assert.equal(out.simulatedBy, 'cloud');
+  assert.equal(out.reply?.text, GOOD_BASE());
+  const sent = JSON.parse(stub.body()) as { model: string; temperature: number; max_completion_tokens: number };
+  assert.equal(sent.model, 'qwen/qwen3.8-27b');
+  assert.equal(sent.temperature, 0.3);
+  assert.equal(sent.max_completion_tokens, 200);
+  assert.doesNotMatch(stub.body(), /Reyes|test-key/);
+});
+
+test('cloud writer: a reply that fails a check falls to the on-board model, then to the fixed sentence marked "fixed"', async () => {
+  const stub = stubFetch(okResponse(LIVE_PARROT));
+  const c = chain({ cloud: cloudReplyModel({ key: 'k', fetcher: stub.fetcher }), onboardText: GOOD_BASE() });
+  c.replies.step(); await settle();
+  assert.equal(c.replies.apply([c.m])[0].simulatedBy, 'onboard');
+  const d = chain({ cloud: cloudReplyModel({ key: 'k', fetcher: stubFetch(okResponse(LIVE_PARROT)).fetcher }) });
+  d.replies.step(); await settle();
+  const out = d.replies.apply([d.m])[0];
+  assert.equal(out.simulatedBy, 'fixed');
+  assert.match(out.reply!.text, /^Mission control here\. We have your incident report for CO2 in /);
+});
+
+test('cloud writer: a timeout falls back', async () => {
+  const stub = stubFetch(() => new Promise<Response>(() => {}));
+  const c = chain({ cloud: cloudReplyModel({ key: 'k', fetcher: (async (u: unknown, init?: RequestInit) => {
+    stub.fetcher(u as string, init);
+    return new Promise<Response>((_, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('timeout'))));
+  }) as typeof fetch, timeoutMs: 30 }), onboardText: GOOD_BASE() });
+  c.replies.step(); await new Promise((done) => setTimeout(done, 120));
+  assert.equal(stub.calls(), 1);
+  assert.equal(c.replies.apply([c.m])[0].simulatedBy, 'onboard');
+});
+
+test('a restricted alert: no call to the cloud or the on-board model', async () => {
+  const stub = stubFetch(okResponse(GOOD_BASE()));
+  const c = chain({ cloud: cloudReplyModel({ key: 'k', fetcher: stub.fetcher }), restricted: true });
+  c.replies.step(); await settle();
+  assert.equal(stub.calls(), 0);
+  assert.equal(c.onboard(), 0);
+  assert.equal(c.replies.apply([c.m])[0].simulatedBy, 'fixed');
 });

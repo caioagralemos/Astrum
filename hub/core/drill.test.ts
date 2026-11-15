@@ -31,6 +31,7 @@ async function setUp(t: TestContext, opts: { production?: boolean; story?: () =>
   const drill = new Drill({
     profile, alarms, alerts, production: opts.production ?? false, storyPlaying: opts.story ?? (() => false),
     roomOf: (person, at) => store.stays(at, at, person).find((s) => s.until === null)?.room ?? null, clock: () => now,
+    soundBoard: () => hub.soundBoard(true),
   });
   hub.routes.push(drillRoute(drill));
   // NASA's record plays in every room: a real sensor wanders by a few hundredths.

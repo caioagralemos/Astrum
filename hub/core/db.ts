@@ -15,6 +15,11 @@ const PRUNE_EVERY_MS = 10 * 60_000;
 export interface StoreOptions {
   /** Writes only what the persistence rule keeps (core/persist.ts). On unless turned off. */
   thin?: boolean;
+  /**
+   * Production mode: nothing replayed or simulated is ever read back, even from a file a demo-mode hub wrote
+   * before (the two modes can share a data folder). The rows stay in the file; they are only never returned.
+   */
+  realOnly?: boolean;
 }
 
 /**
@@ -55,7 +60,12 @@ export class Store {
   /** Hears every batch of rows the database wrote (they carry ids), after the write. */
   private writtenListeners: ((rows: Row[]) => void)[] = [];
 
+  private realOnly: boolean;
+  /** SQL that leaves out replayed and simulated rows, when the store is real-only. */
+  private get real(): string { return this.realOnly ? "AND kind NOT IN ('replayed','simulated')" : ''; }
+
   constructor(file: string, options: StoreOptions = {}) {
+    this.realOnly = options.realOnly === true;
     this.persistence = options.thin === false ? null : new Persistence();
     this.db = new DatabaseSync(file);
     // A new file returns the space retention frees (core/retention.ts); an existing one keeps its setting until "npm run compact".
@@ -289,6 +299,7 @@ export class Store {
     if (q.kind) { where.push('kind = ?'); args.push(q.kind); }
     if (q.from != null) { where.push('t >= ?'); args.push(q.from); }
     if (q.to != null) { where.push('t <= ?'); args.push(q.to); }
+    if (this.realOnly) where.push("kind NOT IN ('replayed','simulated')");
     // Without statistics SQLite picks the room index and reads every signal of the room; name the better one.
     // One person's signal (blood oxygen, a check-in answer, exercise minutes): by signal. Those are rare, and through
     // readings_person_t SQLite read every row of the person in the window, every alert check (10 to 40 ms, more
@@ -310,7 +321,7 @@ export class Store {
   sampled(signal: string, from: number, to: number, everyMs: number, limit = 400_000): Row[] {
     return shape(this.prepared(`
       SELECT id, MIN(t) AS t, signal, value, text, unit, kind, source, person, room, summary FROM readings
-      WHERE signal = ? AND person IS NULL AND t >= ? AND t <= ?
+      WHERE signal = ? AND person IS NULL AND t >= ? AND t <= ? ${this.real}
       GROUP BY room, source, CAST(t / ? AS INTEGER)
       ORDER BY t LIMIT ?`).all(signal, from, to, everyMs, limit) as unknown as Row[]);
   }
@@ -323,7 +334,7 @@ export class Store {
    */
   recent(since: number): Row[] {
     const out: Row[] = [];
-    for (const row of this.newest.values()) if (row.t >= since) out.push(row);
+    for (const row of this.newest.values()) if (row.t >= since && !(this.realOnly && (row.kind === 'replayed' || row.kind === 'simulated'))) out.push(row);
     // In the order the database grouped them before, so screens and recordings see the same list.
     const text = (v: string | null | undefined) => v ?? '';
     const order = (a: string | null | undefined, b: string | null | undefined) => (a == null ? (b == null ? 0 : -1) : b == null ? 1 : text(a) < text(b) ? -1 : text(a) > text(b) ? 1 : 0);
@@ -367,7 +378,7 @@ export class Store {
 
   /** A person's most recent stay, open or ended. */
   lastStay(person: string): Stay | undefined {
-    return this.db.prepare('SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM stays WHERE person = ? ORDER BY t_from DESC, id DESC LIMIT 1').get(person) as unknown as Stay | undefined;
+    return this.db.prepare(`SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM stays WHERE person = ? ${this.real} ORDER BY t_from DESC, id DESC LIMIT 1`).get(person) as unknown as Stay | undefined;
   }
 
   private stay(id: number): Stay {
@@ -380,9 +391,9 @@ export class Store {
     // that ended at or after `from`. The same rows as "t_until IS NULL OR t_until >= from", in the same order.
     const who = person ? 'AND person = ?' : '';
     const sql = `SELECT id, person, room, t_from AS "from", t_until AS until, kind, source FROM (
-      SELECT * FROM stays WHERE t_until IS NULL AND t_from <= ? ${who}
+      SELECT * FROM stays WHERE t_until IS NULL AND t_from <= ? ${who} ${this.real}
       UNION ALL
-      SELECT * FROM stays WHERE t_until >= ? AND t_from <= ? ${who}
+      SELECT * FROM stays WHERE t_until >= ? AND t_from <= ? ${who} ${this.real}
     ) ORDER BY t_from, id`;
     const args: (string | number)[] = person ? [to, person, from, to, person] : [to, from, to];
     return this.prepared(sql).all(...args) as unknown as Stay[];

@@ -80,9 +80,11 @@ export interface MissionOverride {
   crew?: CrewSpec[];
   /** Crew ids whose pronouns were chosen by hand: a new random name leaves them as they are. */
   pronounsChosen?: string[];
+  /** Which room each sensor board sits in, over the file's (the first-run setup, core/setup.ts). */
+  chips?: Record<string, string>;
 }
 
-const EDIT_KEYS = ['nameText', 'where', 'delayToEarthSeconds', 'missionStart', 'plannedDays', 'destination', 'crew'] as const;
+const EDIT_KEYS = ['nameText', 'where', 'delayToEarthSeconds', 'missionStart', 'plannedDays', 'destination', 'crew', 'chips'] as const;
 
 /** Where a built-in place's override is kept, from the folder of crew-made missions. */
 export function overrideFile(customDir: string, id: string): string {
@@ -112,6 +114,7 @@ export function withOverride(base: Mission, o: MissionOverride): Mission {
   if (o.destination === null) delete m.destination;
   else if (o.destination !== undefined) m.destination = o.destination;
   if (o.crew) m.crew = o.crew;
+  if (o.chips && typeof o.chips === 'object') m.chips = { ...o.chips };
   return m;
 }
 
@@ -143,7 +146,7 @@ export function readOverride(builtIn: string, customDir: string | null, id: stri
   return { override: problems.length ? {} : raw as MissionOverride, problems };
 }
 
-function writeOverride(customDir: string, id: string, o: MissionOverride): void {
+export function writeOverride(customDir: string, id: string, o: MissionOverride): void {
   const file = overrideFile(customDir, id);
   const kept = Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
   if (!Object.keys(kept).length) return void rmSync(file, { force: true });
@@ -482,7 +485,7 @@ export function missionsRoute(dir: string, running: string | null, profile: stri
 
 const MAX_BODY = 200_000;
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+export async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {

@@ -68,6 +68,8 @@ export interface DrillDeps {
   roomOf: (person: string, now: number) => string | null;
   /** The hub's clock. Tests give their own. */
   clock?: () => number;
+  /** Tells the board again whether to sound, once the drill has ended (core/server.ts soundBoard(true)). */
+  soundBoard?: () => void;
 }
 
 export class Drill {
@@ -119,6 +121,7 @@ export class Drill {
     this.timer = null;
     this.deps.alarms.check(now);
     this.deps.alerts.check(now);
+    this.deps.soundBoard?.();
     this.lastEnded = { id, reason, at: now };
     return true;
   }

@@ -45,7 +45,7 @@ test('a declared dust storm is one level 3 alert every viewer sees, with a messa
   assert.equal(a.level, 3);
   assert.equal(a.kind, 'reported');
   assert.equal(a.value, null);
-  assert.equal(a.card, null, 'no card of hers covers a dust storm');
+  assert.equal(a.card, 'dust-storm', 'her dust storm card');
   assert.equal(a.askKey, null);
   assert.equal(a.declared?.stage, 'event');
   assert.equal(a.declared?.note, 'All inside.');
@@ -58,9 +58,25 @@ test('a declared dust storm is one level 3 alert every viewer sees, with a messa
 
 test('a card is attached only where one of hers plainly covers the kind', (t) => {
   const { events, declared } = setUp(t);
-  const expected: Record<string, string | null> = { dust_storm: null, solar_particle_event: 'decompression-radiation', pressure_loss: 'decompression-radiation', fire: 'smoke-toxic-air', quake: null, meteoroid_impact: null, other: null };
+  const expected: Record<string, string | null> = { dust_storm: 'dust-storm', solar_particle_event: 'decompression-radiation', pressure_loss: 'decompression-radiation', fire: 'smoke-toxic-air', quake: 'ground-tremor', meteoroid_impact: 'meteoroid-impact', other: null };
   for (const kind of EVENT_KINDS) assert.ok('event' in events.declare({ kind, by: crew[0] }), kind);
   for (const a of declared()) assert.equal(a.card, expected[a.declared!.kind], a.declared!.kind);
+});
+
+test('each of her three base event cards comes with its event, first step word for word as she wrote it', (t) => {
+  const { events, declared } = setUp(t);
+  // Her first steps as in her file (cards.new.json, 15 Nov 2026), copied here word for word.
+  const bleeding = { en: 'Heavy bleeding that does not stop: treat it first, following the cut card.', pt: 'Sangramento forte que não para: trate primeiro, seguindo o cartão de corte.' };
+  const first: Record<string, { en: string; pt: string }> = { 'dust-storm': { en: 'Do not rub your eyes.', pt: 'Não esfregue os olhos.' }, 'ground-tremor': bleeding, 'meteoroid-impact': bleeding };
+  const installed = new Map((JSON.parse(readFileSync(new URL('../medical/cards.json', import.meta.url), 'utf8')) as { id: string; en_checked: boolean; steps: { en: string; pt: string }[] }[]).map((c) => [c.id, c]));
+  const byKind = { dust_storm: 'dust-storm', quake: 'ground-tremor', meteoroid_impact: 'meteoroid-impact' } as const;
+  for (const kind of Object.keys(byKind) as (keyof typeof byKind)[]) assert.ok('event' in events.declare({ kind, by: crew[0] }), kind);
+  for (const [kind, id] of Object.entries(byKind)) {
+    assert.equal(declared().find((a) => a.declared!.kind === kind)?.card, id, kind);
+    const card = installed.get(id)!;
+    assert.equal(card.en_checked, true, `${id}: English checked, so it shows in English`);
+    assert.deepEqual(card.steps[0], first[id], `${id}: first step`);
+  }
 });
 
 test('unknown kind, person, room, a long note and a story playing are refused', (t) => {
@@ -121,7 +137,7 @@ test('declared ahead: a level 2 notice with no question, no card, no buzzer, no 
   assert.equal(boardSounds([room], [], alerts.list()), true);
 });
 
-test('a quake and a meteoroid impact: warning ahead, then the event with its words only, then ended', (t) => {
+test('a quake and a meteoroid impact: warning ahead with no card, then the event with her card, then ended', (t) => {
   for (const kind of ['quake', 'meteoroid_impact'] as const) {
     const { events, at, declared } = setUp(t);
     const out = events.declare({ kind, by: crew[0], expectedAt: START + HOUR });
@@ -137,7 +153,7 @@ test('a quake and a meteoroid impact: warning ahead, then the event with its wor
     a = declared()[0];
     assert.equal(a.level, 3);
     assert.equal(a.declared?.stage, 'event');
-    assert.equal(a.card, null, 'no card of hers covers it: no steps are made up');
+    assert.equal(a.card, kind === 'quake' ? 'ground-tremor' : 'meteoroid-impact', 'her base event card');
     assert.ok('ended' in events.end(out.event.id, crew[1]));
     assert.equal(declared().length, 0);
     assert.notEqual(word(`event.${kind}`, 'en'), `event.${kind}`);

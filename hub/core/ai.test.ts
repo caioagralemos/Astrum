@@ -996,3 +996,53 @@ test('with her question pending, a new symptom ("I have a headache") is a new me
     assert.doesNotMatch(r.text, /didn'?t catch that/i);
   }, true);
 });
+
+test('the shared screen answers a room question from the room and NASA, and sends a symptom to "choose who is asking"', async () => {
+  const model = new FakeModel();
+  const ai = new AiRuntime({ log: () => {}, client: model, warm: false });
+  await ai.start();
+  const crisis: string[] = [];
+  const findings: unknown[] = [];
+  const stored: unknown[] = [];
+  const ctx: AskContext = {
+    ...context(ai, crisis),
+    rooms: () => [{ id: 'lab', name: 'Lab' }, { id: 'galley', name: 'Galley' }],
+    roomReadings: (room) => [{ type: 'limit', name: 'cabin CO2', value: room === 'lab' ? 1.9 : 2.2, unit: 'mmHg', label: 'replayed', window: '1-hour average', limit: 3, room, here: false }],
+    crew: () => [{ id: 'reyes', name: 'Reyes' }],
+    onFinding: (f) => { findings.push(f); },
+    storeCheckin: (p, a) => { stored.push([p, a]); return true; },
+  };
+  const { server, url } = await serve(ctx);
+  try {
+    const room = await ask(url, { shared: true, question: 'is the air in the lab fine?' });
+    assert.equal(room.status, 200);
+    assert.equal(room.result.route, 'answer');
+    assert.equal(room.result.by, 'hub');
+    assert.match(room.result.text, /CO2 in lab reads 1.9/);
+    assert.ok(room.result.readings.every((r) => !/Reyes|heart/i.test(r.line)));
+    assert.equal(model.answers, 0, 'the model is never asked on the shared screen');
+
+    for (const question of ['i feel dizzy', 'how is Reyes doing?', 'what is my heart rate?', 'estou com tontura']) {
+      const { result } = await ask(url, { shared: true, question, lang: 'en' });
+      assert.equal(result.key, 'ai.choosePerson', question);
+      assert.equal(result.choosePerson, true);
+      assert.equal(result.pendingQuestion, undefined);
+      assert.equal(result.followUp, undefined);
+      assert.equal(result.card, null);
+    }
+    const pt = await ask(url, { shared: true, question: 'eu sinto tontura', lang: 'pt' });
+    assert.equal(pt.result.text, 'Escolha quem está perguntando para eu olhar as suas leituras.');
+    assert.deepEqual(findings, []);
+    assert.deepEqual(stored, []);
+
+    // A crisis phrase keeps its crisis text on the shared screen; it is never the choose-a-person line.
+    const c = await ask(url, { shared: true, question: 'I want to kill myself' });
+    assert.equal(c.result.route, 'crisis');
+    assert.equal(c.result.urgent, true);
+
+    assert.equal((await ask(url, { shared: true, person: 'reyes', question: 'hi' })).status, 400);
+  } finally {
+    await close(server);
+    await ai.stop();
+  }
+});

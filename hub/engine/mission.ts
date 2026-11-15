@@ -241,6 +241,14 @@ export function placeNameOf(mission: Pick<Mission, 'kind' | 'name' | 'where'>): 
   return mission.name;
 }
 
+/**
+ * Where a ship in transit is going, as a world: the Moon when its destination key names the Moon
+ * ("place.moon-orbit.short"), else Mars, as every trip was before. The transit sky draws it.
+ */
+export function destinationBody(destination: string | undefined): 'moon' | 'mars' {
+  return destination?.startsWith('place.moon') ? 'moon' : 'mars';
+}
+
 const DAY_MS = 24 * 3600_000;
 
 /**

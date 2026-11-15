@@ -459,9 +459,15 @@ test('"Emergency settled" over HTTP: level 3 only, the alert and its room alarm 
   const three = watcher.list()[0];
   assert.equal(three.level, 3);
   assert.equal((await post('/api/alerts/settle', { id: three.id, by: 'nobody' })).status, 400);
+  const buzzes: string[] = [];
+  hub.chipCommand = (command) => { buzzes.push((command as { buzz: string }).buzz); return true; };
+  hub.soundBoard(true);
+  assert.deepEqual(buzzes, ['alarm'], 'level 3 and the room over: the board sounds');
   assert.equal((await post('/api/alerts/settle', { id: three.id, by: 'leo' })).status, 200);
   assert.deepEqual([watcher.list()[0].settledBy, watcher.list()[0].level], ['leo', 3], 'who settled it is recorded; the level stays');
   assert.equal(alarms.list().length, 1, 'the room alarm stays');
+  assert.equal(alarms.list()[0].acknowledged, true, 'settling acknowledges the room alarm');
+  assert.equal(buzzes.at(-1), 'off', 'the board is told to be quiet, with no alarm pending');
   assert.equal((await post('/api/alerts/settle', { id: three.id })).status, 404, 'settled once');
 
   watcher.check(now + COUNTDOWN_MS + 5000);
@@ -470,6 +476,10 @@ test('"Emergency settled" over HTTP: level 3 only, the alert and its room alarm 
   const again = new AlertWatcher(new Hub(store, profile, '/nonexistent'), store, profile, alarms);
   assert.equal(again.list()[0].settledBy, 'leo');
   assert.equal(isSettled(again.list()[0]), true, 'settled across a restart');
+  // A new occurrence (the same alert at level 3 from a later levelSince) sounds again.
+  hub.setAlerts([{ ...watcher.list()[0], levelSince: (watcher.list()[0].settledAt ?? 0) + 10_000 }]); // the route settles on the hub's clock
+  assert.equal(buzzes.at(-1), 'alarm', 'a new occurrence sounds again');
+  hub.buzz('off');
 });
 
 test('the hub tells screens its clock every 10 seconds', async (t) => {

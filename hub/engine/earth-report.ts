@@ -70,6 +70,18 @@ export interface ReportInput {
   quietMs: number;
 }
 
+/** How far past the limit, by the reading and the limit themselves (2 decimals, rounded up), or null when not past it. */
+export function overBy(value: number | null, limit: number | null, direction: 'high' | 'low' | null): number | null {
+  if (value === null || limit === null) return null;
+  const d = direction === 'low' ? limit - value : value - limit;
+  return d > 0 ? Math.ceil(d * 100 - 1e-9) / 100 : null;
+}
+
+/** Why it reached level 3, in a few plain words, or null for a plain limit or finding. */
+export function reasonPhrase(reason: IncidentReport['alert']['reason']): string | null {
+  return reason === 'asked for help' ? 'help requested' : reason === 'did not answer' ? 'no answer' : reason === 'several rooms' ? 'several rooms' : reason === 'declared' ? 'declared' : null;
+}
+
 function reasonOf(a: Alert): IncidentReport['alert']['reason'] {
   if (a.declared) return 'declared';
   if (a.answer === 'help' || a.signal === 'asked-help') return 'asked for help';
@@ -86,7 +98,7 @@ function latest(rows: Row[], input: ReportInput): ReportReading[] {
     const alarm = input.alarms.find((x) => x.room === r.room && x.signal === r.signal);
     return {
       signal: r.signal, name: input.signalName(r.signal), value: r.value, unit: r.unit, kind: r.kind,
-      limit: alarm?.limit ?? null, limitSource: alarm?.limitSource ?? null, over: alarm?.over ?? null, at: r.t, stale: input.now - r.t > input.quietMs,
+      limit: alarm?.limit ?? null, limitSource: alarm?.limitSource ?? null, over: overBy(r.value, alarm?.limit ?? null, alarm?.direction === 'below' ? 'low' : 'high'), at: r.t, stale: input.now - r.t > input.quietMs,
     };
   });
 }
@@ -99,13 +111,13 @@ export function buildReport(input: ReportInput): IncidentReport {
   let readings: ReportReading[] = [];
   let bodyReadings: ReportReading[] = [];
   if (!restricted) {
+    // The triggering reading is the alert's own (a drill's simulated value stays the drill's), never a newer stored row.
     const own: ReportReading | null = a.value === null ? null : {
       signal: a.signal, name, value: a.value, unit: a.unit ?? '', kind: a.kind, limit: a.limit, limitSource: a.limitSource,
-      over: a.over ?? null, at: a.levelSince, stale: false,
+      over: overBy(a.value, a.limit, a.direction), at: a.levelSince, stale: false,
     };
-    const fresh = latest(input.roomRows.filter((r) => !a.room || r.room === a.room), input);
-    const ownLatest = fresh.find((r) => r.signal === a.signal);
-    readings = [...(own ? [ownLatest ? { ...ownLatest, limit: own.limit, limitSource: own.limitSource, over: own.over ?? ownLatest.over } : own] : []), ...fresh.filter((r) => r.signal !== a.signal)];
+    const fresh = latest(input.roomRows.filter((r) => !a.room || r.room === a.room), input).filter((r) => r.signal !== a.signal);
+    readings = [...(own ? [own] : []), ...fresh];
     bodyReadings = latest(input.bodyRows.filter((r) => r.person === a.person), input);
   }
   const timeline: { at: number; event: string }[] = [];
@@ -121,11 +133,13 @@ export function buildReport(input: ReportInput): IncidentReport {
   timeline.sort((x, y) => x.at - y.at);
   const crewTold = a.toldTo === 'everyone' ? ['everyone'] : a.toldTo.map((id) => input.personName(id) ?? id);
   const card = !restricted && a.card ? input.card(a.card) : null;
-  const summary = `Incident report: ${name}${roomName ? ` in ${roomName}` : ''}, level ${a.level}, ${a.toldTo === 'everyone' ? 'everyone told' : 'crew told'}.`;
+  const reason = reasonOf(a);
+  const why = reasonPhrase(reason);
+  const summary = `Incident report: ${name}${roomName ? ` in ${roomName}` : ''}, level ${a.level}${why ? `, ${why}` : ''}, crew told.`;
   return {
     report: 1, mission: input.mission.name, missionDay: input.mission.day, filedAt: input.now, lightDelaySeconds: input.mission.lightDelaySeconds,
     drill: Boolean(a.drill || input.message.drill), restricted, summary,
-    alert: { id: a.id, name, level: a.level, reason: reasonOf(a), since: a.since, levelSince: a.levelSince, stationWide: a.stationWide },
+    alert: { id: a.id, name, level: a.level, reason, since: a.since, levelSince: a.levelSince, stationWide: a.stationWide },
     where: { room: a.room, roomName },
     who: { person: a.person, name: input.personName(a.person) },
     readings, bodyReadings, timeline, card, crewTold,
