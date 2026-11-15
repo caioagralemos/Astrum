@@ -22,6 +22,10 @@ struct HubWorld: Codable, Sendable {
     var scenario: ScenarioFlag?
     /// Set when the hub said it is restarting; cleared by its next state.
     var restarting: String?
+    /// The medical lead's follow-up question waiting for this phone's owner, or nil.
+    var followUp: FollowUpAsk?
+    /// Every crewmate's radiation dose, by crew id. Nil from a hub that never sends one (and in a world saved before it existed).
+    var dose: [String: PersonDose]?
     /// The hub's clock minus this phone's, in milliseconds.
     var clockOffset: Double = 0
     /// This phone's clock when the last message arrived, in milliseconds.
@@ -53,7 +57,10 @@ struct HubWorld: Codable, Sendable {
             activity = message.activity ?? [:]
             evidence = message.evidenceByPerson ?? [:]
             sources = message.sources
+            dose = message.dose
             restarting = nil
+            // A recorded story's state carries none: the live question stays, unanswerable, until the story ends.
+            if message.scenario == nil { followUp = message.followUp }
         case "rows":
             merge(rows: message.rows ?? [])
         case "stay":
@@ -72,8 +79,12 @@ struct HubWorld: Codable, Sendable {
             if let person = message.person, let card = message.evidence { evidence[person] = card }
         case "sources":
             sources = message.sources ?? sources
+        case "dose":
+            dose = message.dose ?? dose
         case "restarting":
             restarting = message.to ?? ""
+        case "followUp":
+            followUp = message.followUp
         default:
             break
         }

@@ -182,6 +182,7 @@ final class AppModel {
             waitingCount = await queue.count
             await notifier.requestPermission()
             await refreshPermissions()
+            rescheduleCheckInReminder()
             if healthState == .asked { await health.start(person: person) }
         }
     }
@@ -193,6 +194,7 @@ final class AppModel {
         flush()
         flushCheckins()
         flushStays()
+        rescheduleCheckInReminder()
         Task { await refreshPermissions() }
     }
 
@@ -316,7 +318,10 @@ final class AppModel {
             if let data = try? JSONEncoder().encode(crew) { UserDefaults.standard.set(data, forKey: Key.crew) }
         }
         // Room alarms sound the room's buzzer. Phones announce alerts, which carry who is told.
-        if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew, rooms: message.profile?.rooms ?? world.profile?.rooms ?? []) }
+        if let alerts = message.alerts { notifier.handle(alerts, owner: person, crew: crew, rooms: message.profile?.rooms ?? world.profile?.rooms ?? [], now: hubNow()) }
+        if message.scenario == nil, message.type == "state" || message.type == "followUp" {
+            notifier.handle(followUp: message.followUp, owner: person, lang: lang)
+        }
         apply(message)
         // The hub's view of where everyone is just arrived: send waiting room changes, then check it against ours.
         if message.type == "state", message.scenario == nil { flushStays() }

@@ -48,24 +48,26 @@ struct HubLoadingMark: View {
 
     /// Squashed back to a circle, the band is a ring 45 out and 17 wide: the light
     /// runs round that circle at an even pace, which reads as an orbit seen at a tilt.
-    private static let flatten: CGFloat = 0.1869
+    static let flatten: CGFloat = 0.1869
     private static let orbit: CGFloat = 45
-    private static let lightWidth: CGFloat = 18
+    static let lightWidth: CGFloat = 18
     /// Spans of the orbit (out of 100) around the head at 50, with their opacity:
     /// a long faint tail behind, a bright core, a short soft edge ahead.
-    private static let light: [(from: Double, to: Double, opacity: Double)] = [
+    static let light: [(from: Double, to: Double, opacity: Double)] = [
         (-40, 0, 0.08), (-30, 0, 0.1), (-22, 0, 0.13), (-15, 0, 0.17), (-9, 0, 0.24), (-4.5, 0.5, 0.4),
         (-2, 1, 0.8), (0, 2, 0.35), (0, 3.2, 0.15),
     ]
     /// A blurred copy of the head, so it glows a little past the edges of the band.
-    private static let glow: [(from: Double, to: Double, opacity: Double)] = [(-10, 0, 0.35), (-4, 1.5, 0.7)]
-    private static let glowBlur: CGFloat = 1.6
+    static let glow: [(from: Double, to: Double, opacity: Double)] = [(-10, 0, 0.35), (-4, 1.5, 0.7)]
+    static let glowBlur: CGFloat = 1.6
     private static let head: Double = 50
+    /// At rest: the light's core alone, a short bright segment.
+    static var core: [(from: Double, to: Double, opacity: Double)] { Array(light.suffix(4)) }
     static let lapSeconds: Double = 1.8
 
     /// How far round the light is, 0 to 1, on the one clock all copies share.
-    static func lap(at date: Date) -> Double {
-        date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: lapSeconds) / lapSeconds
+    static func lap(at date: Date, seconds: Double = lapSeconds) -> Double {
+        date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: seconds) / seconds
     }
 
     /// Draws the mark fitted to the middle of `size`, the light `lap` (0 to 1) of the way round.
@@ -99,13 +101,18 @@ struct HubLoadingMark: View {
         // The glow is clipped to the band first, then blurred, so it spills just past it.
         frame.drawLayer { glowLayer in
             glowLayer.addFilter(.blur(radius: glowBlur))
-            drawLight(glowLayer, band: band, width: width, spans: glow, lap: lap, ink: ink)
+            drawLight(glowLayer, band: band, width: width, pieces: pieces(glow, lap: lap), ink: ink)
         }
-        drawLight(frame, band: band, width: width, spans: rest ? Array(light.suffix(4)) : light, lap: lap, ink: ink)
+        drawLight(frame, band: band, width: width, pieces: pieces(rest ? core : light, lap: lap), ink: ink)
+    }
+
+    /// The spans placed round the whole orbit, the head at its half-way point plus `lap`.
+    private static func pieces(_ spans: [(from: Double, to: Double, opacity: Double)], lap: Double) -> [(start: Double, length: Double, opacity: Double)] {
+        spans.map { ((head + $0.from) / 100 + lap, ($0.to - $0.from) / 100, $0.opacity) }
     }
 
     /// The ring's band, grown by `grow` on each edge; at 0, the logo's exact path.
-    private static func ring(grow: CGFloat) -> Path {
+    static func ring(grow: CGFloat) -> Path {
         guard grow > 0 else { return ring }
         let outer = CGSize(width: 53.56 + grow, height: 10.01 + grow)
         let inner = CGSize(width: 36.44 - grow, height: 6.76 - grow)
@@ -116,14 +123,15 @@ struct HubLoadingMark: View {
         return path
     }
 
-    private static func drawLight(_ context: GraphicsContext, band: Path, width: CGFloat, spans: [(from: Double, to: Double, opacity: Double)], lap: Double, ink: GraphicsContext.Shading) {
+    /// The light in a ring's own frame, clipped to its band: each piece a stretch of the orbit
+    /// (`start` and `length` in laps of the circle, from (45, 0) with increasing angle).
+    static func drawLight(_ context: GraphicsContext, band: Path, width: CGFloat, pieces: [(start: Double, length: Double, opacity: Double)], ink: GraphicsContext.Shading) {
         context.drawLayer { layer in
             layer.clip(to: band, style: FillStyle(eoFill: true))
-            for span in spans {
-                let start = (head + span.from) / 100 + lap
-                var piece = layer
-                piece.opacity = span.opacity
-                piece.fill(stretch(from: start, length: (span.to - span.from) / 100, width: width), with: ink)
+            for piece in pieces where piece.length > 0 {
+                var stroke = layer
+                stroke.opacity = piece.opacity
+                stroke.fill(stretch(from: piece.start, length: piece.length, width: width), with: ink)
             }
         }
     }

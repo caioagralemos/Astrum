@@ -43,7 +43,19 @@ struct MeAlertBanners: View {
         let room = alert.room.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) } ?? ""
         let headline = AlertText.headline(alert, viewer: model.person, name: world.name(of: alert.person), room: room)
         let text: String
-        if let card = AlertText.findingCard(alert), alert.level < 3 || model.closedAlerts.contains(alert.key) {
+        if alert.isSettled {
+            // "Emergency settled": the alert stays listed with who and when, as on the hub.
+            let time = settledTime(alert.settledAt ?? model.hubNow())
+            let settled = alert.settledBy.map { String(localized: "Settled by \(world.name(of: $0)) at \(time)") }
+                ?? String(localized: "Settled at the shared screen at \(time)")
+            text = (alert.declared != nil ? signal : headline) + "\n" + settled
+        } else if let event = alert.declared, alert.level < 3 || model.closedAlerts.contains(alert.key) {
+            // A base-wide event, for everyone: a warning's notice, or the event itself once closed (tap to open it again).
+            let shelter = event.shelter.map { Signals.roomName($0, rooms: world.profile?.rooms ?? []) }
+            let lines = AlertText.eventLines(event, by: world.name(of: alert.person), shelter: shelter, now: model.hubNow())
+            let first = event.stage == "warning" ? [] : [alert.level == 3 ? String(localized: "Dangerous: \(signal)") : signal]
+            text = (first + lines).joined(separator: "\n")
+        } else if let card = AlertText.findingCard(alert), alert.level < 3 || model.closedAlerts.contains(alert.key) {
             let match = AlertText.cardMatch(alert, viewer: model.person, name: world.name(of: alert.person),
                                             cardTitle: cards.first { $0.id == card }?.title)
             text = alert.level == 3 ? String(localized: "Dangerous: \(match) Open") : match
@@ -70,7 +82,9 @@ struct MeAlertBanners: View {
         let mine = alert.person == model.person
         let text = Self.text(for: alert, model: model, cards: cards) ?? ""
 
-        if let card = AlertText.findingCard(alert), alert.level < 3 {
+        if alert.isSettled {
+            row(text, mark: .symbol("checkmark.circle"), tone: .quiet, kind: alert.kind)
+        } else if let card = AlertText.findingCard(alert), alert.level < 3 {
             // A card's match has no reading behind it: it opens the card it names.
             Button { openCard(card) } label: {
                 row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
@@ -82,6 +96,8 @@ struct MeAlertBanners: View {
             }
         } else if alert.level == 1 && mine {
             // Nothing behind it to open ("needs someone"): a plain row.
+            row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
+        } else if alert.declared != nil && alert.level < 3 {
             row(text, mark: .symbol("exclamationmark.triangle.fill"), tone: .watch, kind: alert.kind)
         } else if alert.level == 2 && mine {
             row(text, mark: .symbol("checkmark.circle"), tone: .watch, kind: alert.kind)
@@ -95,6 +111,13 @@ struct MeAlertBanners: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// A settled time as the hub writes it: 24-hour HH:MM.
+    private static func settledTime(_ ms: Double) -> String {
+        let format = DateFormatter()
+        format.dateFormat = "HH:mm"
+        return format.string(from: Date(timeIntervalSince1970: ms / 1000))
     }
 
     /// A status sign, or the hub's trend arrow for a reading above or below the usual.

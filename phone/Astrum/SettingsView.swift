@@ -10,6 +10,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var typedAddress = ""
     @State private var addressProblem: String?
+    @AppStorage(CheckInReminder.enabledKey) private var reminderOn = true
+    @AppStorage(CheckInReminder.minutesKey) private var reminderMinutes = CheckInReminder.defaultMinutes
 
     var body: some View {
         NavigationStack {
@@ -18,6 +20,7 @@ struct SettingsView: View {
                 personSection
                 healthSection
                 alertSection
+                reminderSection
                 languageSection
                 hubPageSection
             }
@@ -187,6 +190,33 @@ struct SettingsView: View {
                 Text("The hub's own interface, as the station's screens show it.")
             }
         }
+    }
+
+    // MARK: Daily check-in reminder
+
+    private var reminderTime: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: reminderMinutes / 60, minute: reminderMinutes % 60, second: 0, of: .now) ?? .now },
+            set: {
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                reminderMinutes = (parts.hour ?? 9) * 60 + (parts.minute ?? 0)
+            }
+        )
+    }
+
+    private var reminderSection: some View {
+        ProjectionSection {
+            Toggle("Remind me every day", isOn: $reminderOn)
+            if reminderOn {
+                DatePicker("Reminder time", selection: reminderTime, displayedComponents: .hourAndMinute)
+            }
+        } header: {
+            ProjectionHeader(.mood, "Daily check-in reminder")
+        } footer: {
+            Text("A quiet notification at this time, phone time. It is skipped on a day you have already checked in.")
+        }
+        .onChange(of: reminderOn) { _, _ in model.rescheduleCheckInReminder() }
+        .onChange(of: reminderMinutes) { _, _ in model.rescheduleCheckInReminder() }
     }
 
     // MARK: Alerts

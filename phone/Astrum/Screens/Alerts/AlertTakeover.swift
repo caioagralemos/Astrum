@@ -32,7 +32,7 @@ extension AppModel {
         if let ask = alerts.first(where: { !$0.isNotice && $0.person == person && $0.level == 2 && ($0.answer == nil || pendingAnswers[$0.id] != nil) && $0.answerBy != nil }) {
             return AlertPresentation(alertID: ask.id, style: .ask)
         }
-        let open = alerts.filter { $0.level == 3 && !closedAlerts.contains($0.key) }
+        let open = alerts.filter { $0.level == 3 && !$0.isSettled && !closedAlerts.contains($0.key) }
         // The owner's own first, then the rest in a stable order.
         if let danger = open.first(where: { $0.person == person }) ?? open.min(by: { $0.id < $1.id }) {
             return AlertPresentation(alertID: danger.id, style: .danger)

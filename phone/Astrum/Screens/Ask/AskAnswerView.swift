@@ -27,24 +27,48 @@ struct AskAnswerView: View {
     var replies: Replies = .past(next: nil)
     /// Sends a quick reply's label as the next message.
     var onReply: (String) -> Void = { _ in }
+    /// "Call for help" was sent from under this reply: the hub's line for it.
+    var helpSent: String? = nil
+    /// Whether the hub can be reached for "Call for help".
+    var canCall = false
+    /// The owner already went through this reply's steps: "Steps shown" in place of "Start help".
+    var stepsShown = false
+    /// The owner tapped Done on the last page of a card's steps (its id); only the first time.
+    var onStepsDone: (String) -> Void = { _ in }
+    /// Sends "Call for help"; throws when it was not sent.
+    var onCallHelp: () async throws -> Void = {}
+    @State private var openCard: CardView?
+    @State private var confirmingHelp = false
+    @State private var calling = false
+    @State private var callFailed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             let pieces = self.pieces
             ForEach(Array(pieces.enumerated()), id: \.offset) { index, piece in
-                ChatRow(isMine: false) {
-                    view(for: piece, hasTail: index == pieces.count - 1)
+                if case .card(let card) = piece {
+                    startHelp(card)
+                } else {
+                    ChatRow(isMine: false) {
+                        view(for: piece, hasTail: index == pieces.count - 1)
+                    }
                 }
             }
-            if let pending = result.pendingQuestion, !pending.options.isEmpty {
+            if let pending = result.pendingQuestion, !pending.options.isEmpty, helpSent == nil {
                 quickReplies(pending)
             }
+            callForHelp
             caption
                 .padding(.leading, 12)
                 .padding(.top, 3)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(summary))
+        .stepsModal(item: $openCard, onDone: { card in if !stepsShown { onStepsDone(card) } })
+        .alert("Call everyone for help?", isPresented: $confirmingHelp) {
+            Button("Cancel", role: .cancel) {}
+            Button("Call") { call() }
+        }
     }
 
     // MARK: Pieces
@@ -61,6 +85,9 @@ struct AskAnswerView: View {
 
     private var pieces: [Piece] {
         var out: [Piece] = []
+        // The hub's facts drawn instead of `text`: Astra's opening sentence goes above them.
+        let drawsFacts = answerText == nil && showsFacts && !facts.isEmpty
+        if drawsFacts, let lead = result.lead?.text, !lead.isEmpty { out.append(.text(lead)) }
         if let answer = answerText {
             let paragraphs = answer.components(separatedBy: "\n\n")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -71,6 +98,8 @@ struct AskAnswerView: View {
             out.append(.facts(facts))
         }
         if let card = result.card { out.append(.card(card)) }
+        // The quiet help line after a crisis phrase: `text` holds it already, facts and fixed texts do not.
+        if let aside = result.aside, !aside.isEmpty, answerText.map({ !$0.contains(aside) }) ?? true { out.append(.text(aside)) }
         if let pending = result.pendingQuestion {
             // Her ask-first intro before her first question; the question itself unless the words already hold it.
             if pending.purpose == "askFirst", let intro = result.askFirst?.intro, !isConversation {
@@ -95,11 +124,133 @@ struct AskAnswerView: View {
                 .accessibilityLabel(Text("Astra: \(text)"))
         case .facts(let facts):
             FactsBubble(facts: facts, hasTail: hasTail)
-        case .card(let card):
-            StepsCardView(card: card, otherLanguage: card.lang != lang)
-                .padding(12)
-                .background(ChatBubbleShape(isMine: false, hasTail: hasTail).fill(ChatBubbleShape.incomingFill))
-                .accessibilityElement(children: .contain)
+        case .card:
+            EmptyView()
+        }
+    }
+
+    // MARK: Start help
+
+    /// A steps card is not laid out in the chat: Astra's words are above, and this opens the steps one at a time.
+    /// Urgent: the same button, filled, the strongest thing in the run.
+    @ViewBuilder
+    private func startHelp(_ card: CardView) -> some View {
+        if stepsShown {
+            stepsShownCaption(card)
+        } else {
+            startHelpChip(card)
+        }
+    }
+
+    /// After Done: one quiet caption where the chip was, still opening the steps, so the help is never lost.
+    private func stepsShownCaption(_ card: CardView) -> some View {
+        Button { StepsPresentation.open { openCard = card } } label: {
+            Text("Steps shown")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 44, alignment: .leading)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, 12)
+        .padding(.vertical, -8)
+        .keepsKeyboard()
+        .accessibilityLabel(Text("Steps shown: \(card.title)"))
+        .accessibilityHint(Text("Opens the steps again"))
+    }
+
+    private func startHelpChip(_ card: CardView) -> some View {
+        let urgent = AskThread.isUrgent(result)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(card.title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if card.lang != lang {
+                Text("This card is only written in another language.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            // A reply chip, like Yes and No under a question: the chat's own scale, never a banner.
+            Button { StepsPresentation.open { openCard = card } } label: {
+                Label("Start help", systemImage: "list.number")
+                    .font(.callout.weight(urgent ? .semibold : .regular))
+                    .foregroundStyle(ChatBubbleShape.outgoingFill)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .modifier(ComposerPill(cornerRadius: 16))
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .keepsKeyboard()
+            .accessibilityLabel(Text("Start help: \(card.title)"))
+            .accessibilityHint(Text("Opens the steps one at a time"))
+        }
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Call for help
+
+    /// Offered only after a "no" to "Are you feeling better?": a reply chip like Yes and No, which tells everyone,
+    /// as "I need help" does. A standard dialog confirms first. Once sent, the hub's line takes its place.
+    @ViewBuilder
+    private var callForHelp: some View {
+        if let helpSent {
+            ChatRow(isMine: false) {
+                ChatTextBubble(text: helpSent, isMine: false, hasTail: true)
+                    .accessibilityLabel(Text("Astra: \(helpSent)"))
+            }
+            .padding(.top, 4)
+        } else {
+            // A typed "yes" to the offer: the chip alone, under the hub's line.
+            if result.offerHelp == true, case .live(let enabled) = replies {
+                helpChip(String(localized: "Call for help"), enabled: enabled)
+                    .padding(.leading, 4)
+                    .padding(.top, 2)
+            }
+            if callFailed {
+                Text("Not sent. Try again.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 12)
+            }
+        }
+    }
+
+    /// "Call for help" as a reply chip: it opens the confirmation instead of sending its words.
+    private func helpChip(_ label: String, enabled: Bool) -> some View {
+        let live = enabled && canCall && !calling
+        return Button { confirmingHelp = true } label: { chipLabel(label, enabled: live) }
+            .buttonStyle(.plain)
+            .disabled(!live)
+            .keepsKeyboard()
+            .accessibilityLabel(Text(label))
+            .accessibilityHint(Text("Tells everyone on the crew. You confirm first."))
+    }
+
+    private func chipLabel(_ label: String, enabled: Bool) -> some View {
+        Text(label)
+            .font(.callout)
+            .foregroundStyle(enabled ? AnyShapeStyle(ChatBubbleShape.outgoingFill) : AnyShapeStyle(.secondary))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .modifier(ComposerPill(cornerRadius: 16))
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
+    }
+
+    private func call() {
+        calling = true
+        callFailed = false
+        Task {
+            do { try await onCallHelp() } catch { callFailed = true }
+            calling = false
         }
     }
 
@@ -117,7 +268,7 @@ struct AskAnswerView: View {
             .padding(.leading, 4)
             .padding(.top, 2)
         case .past(let next):
-            let labels = pending.options.map(\.label)
+            let labels = Self.replyOptions(pending).map(\.label)
             Group {
                 if let next, let chosen = labels.first(where: { $0.caseInsensitiveCompare(next.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame }) {
                     Text("Replied: \(chosen)")
@@ -132,24 +283,27 @@ struct AskAnswerView: View {
         }
     }
 
+    /// A single offer ("Want to see your heart rate?") is answered Yes or No, which the hub reads in both
+    /// languages; any other question keeps the hub's own options.
+    private static func replyOptions(_ pending: AskResult.PendingQuestion) -> [AskResult.PendingQuestion.Option] {
+        guard pending.options.count == 1 else { return pending.options }
+        return [.init(value: "yes", label: String(localized: "Yes")), .init(value: "no", label: String(localized: "No"))]
+    }
+
+    @ViewBuilder
     private func chips(_ pending: AskResult.PendingQuestion, enabled: Bool) -> some View {
-        ForEach(pending.options, id: \.value) { option in
-            Button { onReply(option.label) } label: {
-                Text(option.label)
-                    .font(.callout)
-                    .foregroundStyle(enabled ? AnyShapeStyle(ChatBubbleShape.outgoingFill) : AnyShapeStyle(.secondary))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .modifier(ComposerPill(cornerRadius: 16))
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(.rect)
+        ForEach(Self.replyOptions(pending), id: \.value) { option in
+            // "Do you want to call for help?": its "Call for help" confirms and calls; it is never sent as words.
+            if pending.purpose == "offerHelp" && option.value == "help" {
+                helpChip(option.label, enabled: enabled)
+            } else {
+                Button { onReply(option.label) } label: { chipLabel(option.label, enabled: enabled) }
+                    .buttonStyle(.plain)
+                    .disabled(!enabled)
+                    .keepsKeyboard()
+                    .accessibilityLabel(Text("Reply: \(option.label)"))
+                    .accessibilityHint(Text("Sends this as your answer"))
             }
-            .buttonStyle(.plain)
-            .disabled(!enabled)
-            .keepsKeyboard()
-            .accessibilityLabel(Text("Reply: \(option.label)"))
-            .accessibilityHint(Text("Sends this as your answer"))
         }
     }
 
@@ -358,10 +512,10 @@ struct AskAnswerView: View {
 
     private static func fixedText(_ key: String) -> String? {
         switch key {
-        case "ai.refusal": String(localized: "I don't have that in NASA's text or in your readings, so I won't guess. Tap Contact Earth and the question goes to your flight surgeon.")
-        case "ai.unavailable": String(localized: "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
-        case "ai.slow": String(localized: "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
-        case "ai.busy": String(localized: "Too many questions are waiting. Ask again in a moment, or tap Contact Earth.")
+        case "ai.refusal": String(localized: "That's one I can't answer from your readings or NASA's text, and I won't guess at it. Tap Contact Earth and your question goes to your flight surgeon.")
+        case "ai.unavailable": String(localized: "I can't put an answer into words right now, so here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
+        case "ai.slow": String(localized: "I couldn't finish my answer in time, so here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.")
+        case "ai.busy": String(localized: "A few questions are ahead of yours. Ask me again in a moment, or tap Contact Earth.")
         case "ai.card": String(localized: "This needs the steps card, not an answer from me. The card is on screen.")
         case "ai.crisis": String(localized: "This needs a person, not me. Please go to a crewmate or your Crew Medical Officer now.")
         case "ai.crisisTold": String(localized: "This needs a person, not me. I've asked a crewmate to come and be with you.")

@@ -27,6 +27,9 @@ enum AlertText {
             case "low": return String(localized: "\(signal): below your usual")
             default: return String(localized: "\(signal): unusual for you")
             }
+        case "declared":
+            // A base-wide event: its kind's name ("Dust storm"); eventLines say the rest.
+            return signal
         default:
             return finding(alert, mine: mine, name: name, signal: signal)
         }
@@ -37,6 +40,8 @@ enum AlertText {
         switch alert.signal {
         case "needs-someone":
             return mine ? String(localized: "You need someone with you.") : String(localized: "\(name) needs someone with them.")
+        case "asked-help":
+            return mine ? String(localized: "You asked for help.") : String(localized: "\(name) asked for help.")
         case "checkin.got_better":
             return mine ? String(localized: "You said it did not get better.") : String(localized: "\(name) said it did not get better.")
         case "":
@@ -94,12 +99,53 @@ enum AlertText {
         return [applies, told].compactMap { $0 }.joined(separator: " ")
     }
 
+    // MARK: A declared event
+
+    /// A base-wide event in the hub's own sentences (strings.ts event.*, as ui/src/panels/Events.tsx puts them),
+    /// one line each: when, where to go, the crewmate's note, who declared it. `by`: the declarer's name;
+    /// `shelter`: the room's name; `now`: the hub's clock, for the warning's "in about N h".
+    static func eventLines(_ event: HubAlert.Declared, by: String, shelter: String?, now: Double) -> [String] {
+        let kind = Signals.name("event.\(event.kind)")
+        var lines: [String] = []
+        if event.stage == "warning", let expected = event.expectedAt {
+            lines.append(String(localized: "\(kind) expected at \(clock(expected)), in about \(hoursAhead(expected - now)) h."))
+        } else if let expected = event.expectedAt {
+            lines.append(String(localized: "Now") + ". " + String(localized: "Expected at \(clock(expected))"))
+        } else {
+            lines.append(String(localized: "Now"))
+        }
+        if let shelter { lines.append(String(localized: "Go to \(shelter)")) }
+        // event.quoted is the same in both languages: the note in curly quotes, as the crewmate wrote it.
+        if let note = event.note, !note.isEmpty { lines.append("“\(note)”") }
+        lines.append(event.source == "earth"
+            ? String(localized: "Forecast from Earth") + ". " + String(localized: "Entered by \(by) at \(clock(event.at))")
+            : String(localized: "Declared by \(by) at \(clock(event.at))"))
+        return lines
+    }
+
+    /// A time on the hub's clock, as the phone shows times.
+    private static func clock(_ ms: Double) -> String {
+        Date(timeIntervalSince1970: ms / 1000).formatted(date: .omitted, time: .shortened)
+    }
+
+    /// Hours ahead as the hub rounds them: one decimal under an hour, whole hours after.
+    private static func hoursAhead(_ ms: Double) -> String {
+        let hours = max(0, ms / 3_600_000)
+        return Signals.number(hours < 1 ? (hours * 10).rounded() / 10 : hours.rounded())
+    }
+
     // MARK: Notifications
 
-    /// A notification's title and body for an alert.
-    static func notification(_ alert: HubAlert, viewer: String, name: String, room: String) -> (title: String, body: String) {
+    /// A notification's title and body for an alert. `shelter`: a declared event's room name; `now`: the hub's clock.
+    static func notification(_ alert: HubAlert, viewer: String, name: String, room: String,
+                             shelter: String? = nil, now: Double = Date.now.timeIntervalSince1970 * 1000) -> (title: String, body: String) {
         let mine = alert.person == viewer
         let signal = Signals.name(alert.signal)
+        if let event = alert.declared {
+            // Never "Are you OK?": a warning is a notice to acknowledge, the event itself is level 3 for everyone.
+            let body = eventLines(event, by: name, shelter: shelter, now: now).joined(separator: "\n")
+            return (alert.level >= 3 ? String(localized: "Dangerous: \(signal)") : signal, body)
+        }
         switch alert.reason {
         case "room-limit":
             if alert.stationWide == true {

@@ -139,6 +139,12 @@ enum Readings {
         return marked
     }
 
+    /// The regions drawn in the danger colour: a level 3 alert of the owner's belongs to them.
+    /// Every other marked region is drawn in the watch colour (hub/ui/src/person/regions.ts).
+    static func dangerRegions(alerts: [HubAlert], person: String) -> Set<BodyRegion> {
+        Set(alerts.filter { $0.level >= 3 }.compactMap { region(of: $0, person: person) })
+    }
+
     /// The region of the owner's body an alert belongs to: the air of a room is Lungs and air,
     /// a reading its own region, a card's match the region its card is about. None for someone
     /// else's alert or one with no reading or card behind it.

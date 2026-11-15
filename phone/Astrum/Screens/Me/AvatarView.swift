@@ -1,6 +1,8 @@
 // The body on Me: the hub's 3D crew avatar (hub/ui/src/avatar), built into
 // Resources/avatar.html and shown in a web view, offline. Tapping a region
-// selects it; marked regions are outlined in orange. To VoiceOver it is one
+// selects it. With or without a selection, every marked region is drawn in the
+// watch colour (the danger colour for a level 3 alert), and a marked Blood draws
+// the vessels: hub/ui/src/person/regions.ts, the same table as Signals.swift. To VoiceOver it is one
 // element: the region buttons under it are the way to choose.
 
 import SwiftUI
@@ -8,12 +10,14 @@ import WebKit
 
 struct AvatarView: View {
     let marked: Set<BodyRegion>
+    /// Marked regions with a level 3 alert.
+    let danger: Set<BodyRegion>
     @Binding var selected: BodyRegion?
     /// What each region holds now, for VoiceOver: "2 readings outside your usual".
     let status: (BodyRegion) -> String
 
     var body: some View {
-        AvatarWebView(marked: marked, selected: $selected)
+        AvatarWebView(marked: marked, danger: danger, selected: $selected)
             .frame(height: 440)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Body"))
@@ -25,6 +29,7 @@ struct AvatarView: View {
 
 private struct AvatarWebView: UIViewRepresentable {
     let marked: Set<BodyRegion>
+    let danger: Set<BodyRegion>
     @Binding var selected: BodyRegion?
 
     func makeCoordinator() -> Coordinator { Coordinator(selected: $selected) }
@@ -53,7 +58,7 @@ private struct AvatarWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.selected = $selected
-        context.coordinator.send(selected: selected, marked: marked, to: webView)
+        context.coordinator.send(selected: selected, marked: marked, danger: danger, to: webView)
     }
 
     static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
@@ -72,9 +77,12 @@ private struct AvatarWebView: UIViewRepresentable {
         }
 
         /// Hands the page the state, once it has loaded and only when it changed.
-        func send(selected: BodyRegion?, marked: Set<BodyRegion>, to webView: WKWebView) {
+        func send(selected: BodyRegion?, marked: Set<BodyRegion>, danger: Set<BodyRegion>, to webView: WKWebView) {
             let names = marked.map(\.rawValue).sorted().map { "\"\($0)\"" }.joined(separator: ",")
-            state = "{\"selected\":\(selected.map { "\"\($0.rawValue)\"" } ?? "null"),\"marked\":[\(names)]}"
+            let level = { (region: BodyRegion) in danger.contains(region) ? "over" : "watch" }
+            let states = marked.sorted { $0.rawValue < $1.rawValue }.map { "\"\($0.rawValue)\":\"\(level($0))\"" }.joined(separator: ",")
+            let blood = marked.contains(.blood) ? "\"\(level(.blood))\"" : "null"
+            state = "{\"selected\":\(selected.map { "\"\($0.rawValue)\"" } ?? "null"),\"marked\":[\(names)],\"states\":{\(states)},\"blood\":\(blood)}"
             guard loaded, state != sent else { return }
             sent = state
             webView.evaluateJavaScript("window.astrum.setState(\(state))")

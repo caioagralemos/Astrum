@@ -1,6 +1,6 @@
 // The hub's wire format as the phone reads it (hub/engine/types.ts).
 // Incoming: every socket message (state, rows, stay, alarms, alerts, earth,
-// asleep, activity, evidence, clock, restarting), decoded into typed models.
+// asleep, activity, evidence, dose, clock, restarting, followUp), decoded into typed models.
 // Outgoing: the `hello` the phone sends on connecting and the readings it posts.
 
 import Foundation
@@ -34,9 +34,14 @@ struct HubIncoming: Decodable, Sendable {
     let scenario: ScenarioFlag?
     /// state and sources: the hub's devices, each with the room it is in.
     let sources: [HubSource]?
+    /// state and followUp, on this phone's own socket only: the medical lead's question waiting for its owner.
+    /// Nil when there is none, and from a hub that never sends one.
+    let followUp: FollowUpAsk?
+    /// state and dose: every crewmate's radiation dose, by crew id. Nil from a hub that never sends one.
+    let dose: [String: PersonDose]?
 
     private enum CodingKeys: String, CodingKey {
-        case type, now, profile, latest, stays, rows, alarms, alerts, earthMessages, asleep, activity, evidence, person, to, scenario, sources
+        case type, now, profile, latest, stays, rows, alarms, alerts, earthMessages, asleep, activity, evidence, person, to, scenario, sources, followUp, dose
     }
 
     init(from decoder: Decoder) throws {
@@ -62,6 +67,8 @@ struct HubIncoming: Decodable, Sendable {
             return recorded
         }
         sources = try? c.decodeIfPresent([HubSource].self, forKey: .sources)
+        followUp = try? c.decodeIfPresent(FollowUpAsk.self, forKey: .followUp)
+        dose = try? c.decodeIfPresent([String: PersonDose].self, forKey: .dose)
         // `evidence` is a map in `state` and a single card in `evidence`.
         if type == "state" {
             evidenceByPerson = try? c.decodeIfPresent([String: Evidence].self, forKey: .evidence)
@@ -198,6 +205,9 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
     var declared: Declared? = nil
     /// Information to acknowledge ("I've seen it"), never a question: the warning stage of a declared event.
     var notice: Bool? = nil
+    /// "Emergency settled" (hub/engine/alerts.ts): who marked it (nil: the shared screen) and when.
+    var settledBy: String? = nil
+    var settledAt: Double? = nil
 
     struct Declared: Codable, Sendable, Hashable {
         let kind: String
@@ -215,6 +225,11 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
     var isDrill: Bool { drill == true }
     var isNotice: Bool { notice == true }
     var isRecorded: Bool { recorded == true }
+    /// Marked settled at this level 3 (the hub's isSettled): the takeover no longer shows it.
+    var isSettled: Bool {
+        guard level == 3, let settledAt, let levelSince else { return false }
+        return settledAt >= levelSince
+    }
 
     enum Audience: Codable, Sendable, Hashable {
         case everyone
@@ -251,6 +266,40 @@ struct HubAlert: Codable, Sendable, Hashable, Identifiable {
     /// One occurrence of it: the hub reuses an alert's id, so the same alert happening again later
     /// (another night, another drill) must be announced again. `since` is when this one began.
     var occurrenceKey: String { "\(key)|\(Int64(since ?? 0))" }
+}
+
+/// The medical lead's follow-up question waiting for this phone's owner (FollowUpAsk in
+/// hub/engine/followup.ts). Her words, shown as given; the answer goes to POST /api/checkin under `signal`.
+struct FollowUpAsk: Codable, Sendable, Hashable {
+    struct Words: Codable, Sendable, Hashable { let en: String; let pt: String }
+
+    let person: String
+    /// "checkin.<key>".
+    let signal: String
+    /// "yes_no" (1 yes, 0 no) or "value" (a typed reading, in `unit`).
+    let kind: String
+    var unit: String? = nil
+    let text: Words
+    /// When the hub started asking, by its clock.
+    let since: Double
+    /// "person" (they typed a symptom to Ask Astra) or "hub" (the hub needs data from them). Missing = "person".
+    var origin: String = "person"
+
+    enum CodingKeys: String, CodingKey { case person, signal, kind, unit, text, since, origin }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        person = try c.decode(String.self, forKey: .person)
+        signal = try c.decode(String.self, forKey: .signal)
+        kind = try c.decode(String.self, forKey: .kind)
+        unit = try c.decodeIfPresent(String.self, forKey: .unit)
+        text = try c.decode(Words.self, forKey: .text)
+        since = try c.decode(Double.self, forKey: .since)
+        origin = (try? c.decodeIfPresent(String.self, forKey: .origin)) ?? "person"
+    }
+
+    /// One asking of one question: the same question asked again later shows again.
+    var key: String { "\(Int64(since))|\(signal)" }
 }
 
 struct HubHello: Encodable {

@@ -21,6 +21,8 @@ struct AskView: View {
     /// Questions sent while this screen was open: only they arrive with motion.
     @State private var sent: Set<UUID> = []
     @FocusState private var typing: Bool
+    /// Bumped on every send: a new field drops any autocorrection the old one had pending.
+    @State private var fieldGeneration = 0
 
     private static let bottom = "bottom"
 
@@ -66,15 +68,17 @@ struct AskView: View {
 
     // MARK: Header
 
-    /// As Messages heads a thread: Astra's mark (the orbit light, no face),
-    /// her name, and her state. The light runs while she is working.
+    /// As Messages heads a thread: Astra's mark (three rings and one light, no
+    /// face), her name, and her state as a small lowercase word. The light makes
+    /// a slow lap while she is ready, a fast one while she is working.
     private var header: some View {
         VStack(spacing: 0) {
-            AstraMark(width: 28, working: isWorking)
+            AstraMark(width: 24, activity: markActivity)
                 .padding(.bottom, 1)
             Text("Astra").font(.caption.bold())
             Text(statusText)
                 .font(.caption2)
+                .textCase(.lowercase)
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
@@ -161,7 +165,9 @@ struct AskView: View {
                 ChatTimeLabel(date: exchange.askedAt)
                     .padding(.bottom, 2)
             }
-            question(exchange)
+            if exchange.afterSteps == nil {
+                question(exchange)
+            }
             Group {
                 switch exchange.state {
                 case .pending(let stage):
@@ -169,7 +175,10 @@ struct AskView: View {
                 case .answered(let result, let at):
                     AskAnswerView(
                         result: result, answeredAt: at, lang: model.lang,
-                        replies: replies(at: index), onReply: { label in send(label) }
+                        replies: replies(at: index), onReply: { label in send(label) },
+                        helpSent: exchange.helpSent, canCall: canAsk, stepsShown: exchange.stepsShown == true,
+                        onStepsDone: { card in stepsDone(card, from: exchange.id) },
+                        onCallHelp: { try await callForHelp(exchange.id) }
                     )
                     .padding(.top, 12)
                 case .failed(let reason, let reached):
@@ -275,6 +284,7 @@ struct AskView: View {
                     .padding(.leading, 14)
                     .padding(.vertical, 10)
                     .accessibilityLabel(Text("Your question to Astra"))
+                    .id(fieldGeneration)
                 Button(action: { send(draft) }) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title)
@@ -365,6 +375,11 @@ struct AskView: View {
         thread.isAsking || (model.isConnected && status?.state == "loading")
     }
 
+    private var markActivity: AstraMark.Activity {
+        if isWorking { return .working }
+        return model.isConnected && status?.state == "ready" ? .ready : .rest
+    }
+
     private var statusText: String {
         guard let status, model.isConnected else { return String(localized: "Out of reach") }
         let state = if thread.isAsking {
@@ -384,10 +399,31 @@ struct AskView: View {
     private func send(_ text: String) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canAsk, !thread.isAsking, !text.isEmpty, let api = model.api else { return }
-        // The keyboard stays up, as in Messages.
+        // Clear now, before anything else. A vertical-axis field can still hold a pending
+        // autocorrection that it writes back into the binding after the clear, so the field is
+        // also replaced (a fresh one has nothing pending) and focused again, and the binding is
+        // cleared once more on the next tick. The keyboard stays up, as in Messages.
+        let wasTyping = typing
         draft = ""
+        fieldGeneration += 1
+        Task { @MainActor in
+            draft = ""
+            if wasTyping { typing = true }
+        }
         let id = thread.ask(text, api: api, lang: model.lang, finished: announce)
         sent.insert(id)
+    }
+
+    /// Done on a card's steps: Astra's next message, if the hub can be reached now. Nothing is kept for later.
+    private func stepsDone(_ card: String, from id: UUID) {
+        thread.markStepsShown(id)
+        guard canAsk, !thread.isAsking, let api = model.api else { return }
+        thread.stepsDone(card: card, api: api, lang: model.lang, finished: announce)
+    }
+
+    private func callForHelp(_ id: UUID) async throws {
+        guard canAsk, let api = model.api else { throw HubError.unreachable }
+        try await thread.callForHelp(id, api: api, lang: model.lang)
     }
 
     private func retry(_ id: UUID) {

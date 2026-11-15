@@ -94,6 +94,7 @@ extension AppModel {
         if let rows = await history.refresh(api: api, person: owner, now: hubNow()) {
             await store.save(rows: rows, person: owner)
         }
+        rescheduleCheckInReminder()
     }
 
     // MARK: Check-in
@@ -103,6 +104,8 @@ extension AppModel {
         if let api {
             do {
                 try await api.checkin(person: person, answers: answers)
+                CheckInReminder.markDone()
+                rescheduleCheckInReminder()
                 return .sent
             } catch HubError.refused(let words) {
                 return .refused(words)
@@ -112,6 +115,8 @@ extension AppModel {
         }
         await store.add(PendingCheckin(person: person, t: Date().timeIntervalSince1970 * 1000, answers: answers))
         pendingCheckins = await store.pendingCheckins().count
+        CheckInReminder.markDone()
+        rescheduleCheckInReminder()
         return .queued
     }
 
@@ -210,6 +215,8 @@ extension AppModel {
 
     /// From a tapped notification. Its identifier is "<alert id>|<level>" (AlarmNotifier).
     func openAlert(notification identifier: String) {
+        if identifier.hasPrefix(CheckInReminder.prefix) { startTodaysCheckIn(); return }
+        if identifier.hasPrefix(AlarmNotifier.followUpPrefix) { selectedTab = .me; return }
         guard let bar = identifier.lastIndex(of: "|") else { return }
         openedAlertID = String(identifier[..<bar])
         selectedTab = .me

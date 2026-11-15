@@ -152,6 +152,38 @@ struct HubAPI: Sendable {
         }
     }
 
+    /// POST /api/ask with `stepsDone`: the owner went through a card's steps (Done). Astra's next message, one result line.
+    @concurrent
+    func stepsDone(person: String, card: String, lang: String) async throws -> AskResult {
+        struct Body: Encodable { let person: String; let stepsDone: String; let lang: String }
+        var request = URLRequest(url: url("/api/ask"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(Body(person: person, stepsDone: card, lang: lang))
+        let data = try await send(request)
+        let line = data.split(separator: UInt8(ascii: "\n")).last.map { Data($0) } ?? data
+        guard case .result(let result) = try Self.askEvent(line) else {
+            throw HubError.refused(String(localized: "The hub sent something the app cannot read."))
+        }
+        return result
+    }
+
+    /// POST /api/ask/help: "Call for help" in the chat. Everyone is told, as after "I need help". Returns the hub's line.
+    @concurrent
+    func askForHelp(person: String, lang: String) async throws -> String {
+        struct Body: Encodable { let person: String; let lang: String }
+        struct Reply: Decodable { let text: String }
+        var request = URLRequest(url: url("/api/ask/help"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(Body(person: person, lang: lang))
+        let data = try await send(request)
+        guard let reply = try? JSONDecoder().decode(Reply.self, from: data) else {
+            throw HubError.refused(String(localized: "The hub sent something the app cannot read."))
+        }
+        return reply.text
+    }
+
     /// The hub reads at most 10,000 bytes of a body: the oldest history goes first until it fits.
     private static func askBody(person: String, question: String, lang: String, history: [AskHistoryItem]) throws -> Data {
         struct Body: Encodable { let person: String; let question: String; let lang: String; let history: [AskHistoryItem] }
@@ -316,11 +348,25 @@ struct AskResult: Codable, Sendable, Hashable {
     var remark: String? = nil
     /// Why this reply reads as it does ("model", "setAside", "hub", "smallTalk", "remark", …).
     var reason: String? = nil
+    /// Astra's opening sentence and who wrote it ("model": passed every check; "fixed": the hub's line).
+    /// Already at the start of `text`; shown above the facts when the phone draws them instead of `text`.
+    var lead: Lead? = nil
+    /// The quiet help line after a crisis phrase earlier in the thread. Already at the end of `text`;
+    /// shown under the facts or under the phone's own fixed text.
+    var aside: String? = nil
+    /// A typed "yes" to "Do you want to call for help?": "Call for help" is offered under this reply.
+    var offerHelp: Bool? = nil
+
+    struct Lead: Codable, Sendable, Hashable {
+        let text: String
+        /// "model" or "fixed".
+        let by: String
+    }
 
     /// A question Astra asked back (PendingQuestion in core/ai.ts), in the asker's language.
     struct PendingQuestion: Codable, Sendable, Hashable {
         struct Option: Codable, Sendable, Hashable { let value: String; let label: String }
-        /// "askFirst", "card", "better" or "clarify".
+        /// "askFirst", "card", "better", "clarify", "note", "feeling" or "offerHelp" (its "help" option confirms and calls).
         let purpose: String
         /// "yes_no", "value" or "choice".
         let kind: String
@@ -390,6 +436,8 @@ struct CardView: Codable, Sendable, Hashable, Identifiable {
     let unverified: [String]
     /// Who approved it: always "medical_lead", since only approved cards are sent. Nil from an older hub.
     var approvedBy: String? = nil
+    /// Where it applies: "weightless", "partial_gravity", "earth_gravity". Nil: everywhere, or an older hub.
+    var appliesIn: [String]? = nil
 }
 
 struct CardsReply: Decodable, Sendable, Hashable {

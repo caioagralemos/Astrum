@@ -166,8 +166,17 @@ enum Signals {
         // The rest the hub can send in an alert or a message.
         case "earth.message": String(localized: "Message to Earth")
         case "needs-someone": String(localized: "Needs someone with them")
+        case "asked-help": String(localized: "Asked for help")
         case "time_alone": String(localized: "Time alone")
         case "conflict": String(localized: "Conflict with a crewmate")
+        // A base-wide event a crewmate declared: the alert's signal is "event.<kind>" (strings.ts event.*).
+        case "event.dust_storm": String(localized: "Dust storm")
+        case "event.solar_particle_event": String(localized: "Solar particle event")
+        case "event.pressure_loss": String(localized: "Loss of pressure")
+        case "event.fire": String(localized: "Fire")
+        case "event.quake": String(localized: "Quake")
+        case "event.meteoroid_impact": String(localized: "Meteoroid impact")
+        case "event.other": String(localized: "Other event")
         default: nil
         }
     }

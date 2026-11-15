@@ -100,6 +100,9 @@ private struct TodayCheckIn: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Today's check-in")
                         .font(.title3)
+                    Text("Not done yet today")
+                        .font(.footnote)
+                        .foregroundStyle(HubStyle.muted)
                     Text("About a minute. Five questions.")
                         .foregroundStyle(HubStyle.muted)
                 }

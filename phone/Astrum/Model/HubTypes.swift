@@ -109,6 +109,22 @@ struct EarthMessage: Codable, Sendable, Hashable, Identifiable {
         let at: Double
         let simulated: Bool
         let key: String?
+        /// The values the hub filled into `key`'s sentence ({min}).
+        var vars: [String: Double]? = nil
+
+        /// The reply in the phone's language: the hub's fixed sentence when it sent a key, else its text.
+        var shownText: String {
+            let min = Int(vars?["min"] ?? 0)
+            switch key {
+            case "earth.aiFallback": return String(localized: "Mission control here. We have your message and we are watching the readings with you. Keep following the steps card on your screen. We will write again in about \(min) minutes.")
+            case "earth.aiFallbackOne": return String(localized: "Mission control here. We have your message and we are watching the readings with you. Keep following the steps card on your screen. We will write again in about 1 minute.")
+            case "earth.aiFallbackNoCard": return String(localized: "Mission control here. We have your message and we are watching the readings with you. We will write again in about \(min) minutes.")
+            case "earth.aiFallbackNoCardOne": return String(localized: "Mission control here. We have your message and we are watching the readings with you. We will write again in about 1 minute.")
+            case "earth.crewReply": return String(localized: "Mission control here. We have your message. We will write again in about \(min) minutes.")
+            case "earth.crewReplyOne": return String(localized: "Mission control here. We have your message. We will write again in about 1 minute.")
+            default: return text
+            }
+        }
     }
 
     let id: String
@@ -123,6 +139,10 @@ struct EarthMessage: Codable, Sendable, Hashable, Identifiable {
     let delivered: Bool
     let reply: Reply?
     let resolvedAt: Double?
+    /// Demo mode only: "ai" when the reply was simulated by the on-board model or is its fixed fallback.
+    var simulated: String? = nil
+    /// Demo mode only: the reply time is the demo's shortened delay, not the mission's.
+    var simulatedDelay: Bool? = nil
 }
 
 // MARK: Evidence

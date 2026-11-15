@@ -61,16 +61,19 @@ struct MeView: View {
 
     private func content(readings: [Reading]) -> some View {
         let marked = Readings.markedRegions(readings, alerts: model.visibleAlerts, person: model.person)
+        let danger = Readings.dangerRegions(alerts: model.visibleAlerts, person: model.person)
         let shown = region.map { r in readings.filter { $0.region == r } } ?? readings
         let widgets = MeWidgets.items(readings: readings, world: model.world, person: model.person, region: region)
         return List {
             // Nothing above the body: warnings sit under the region buttons, for the chosen region.
             Section {
-                AvatarView(marked: marked, selected: $region) { status(of: $0, in: readings) }
+                AvatarView(marked: marked, danger: danger, selected: $region) { status(of: $0, in: readings) }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 RegionPicker(selected: $region, marked: marked) { status(of: $0, in: readings) }
                 ConnectionBanner()
+                // The medical lead's question for the owner, first among what asks for attention, under every region.
+                FollowUpCard()
                 MeAlertBanners(region: region, cards: cards) { openCard = CardID(id: $0) }
                 TodayLine(readings: readings, region: region, blood: blood)
             }
@@ -101,12 +104,22 @@ struct MeView: View {
             } header: {
                 ProjectionHeader(region?.icon ?? .vibration, region?.title ?? String(localized: "All readings"))
             }
+
+            // The whole body's, not a region's: under "All" only, last. Hidden from a hub that sends no dose.
+            if region == nil, let doses = model.world.dose {
+                ProjectionSection {
+                    DoseCard(dose: doses[model.person])
+                } header: {
+                    ProjectionHeader(.radiation, String(localized: "Radiation dose"))
+                }
+            }
         }
         // The region's warnings, widgets and readings change as rows inserted and removed, keyed on
         // the region alone (never on the 10-second refresh); so do banners arriving or leaving.
         .animation(Motion.reduced(Motion.content, reduceMotion), value: region)
         .animation(Motion.reduced(Motion.content, reduceMotion), value: MeAlertBanners.alerts(in: region, model: model, cards: cards).map(\.id))
         .animation(Motion.reduced(Motion.content, reduceMotion), value: model.isConnected)
+        .animation(Motion.reduced(Motion.content, reduceMotion), value: model.world.followUp?.key)
         .sensoryFeedback(.selection, trigger: region)
     }
 

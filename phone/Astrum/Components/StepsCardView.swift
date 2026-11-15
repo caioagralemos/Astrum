@@ -9,11 +9,20 @@ struct StepsCardView: View {
     let card: CardView
     /// True when the card is shown in the other language because this one has none.
     var otherLanguage = false
+    /// When set, a tap on the card opens its steps one at a time (StepsModal).
+    var onOpen: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ProjectionHeader(.warn, "Steps card: \(card.title)")
-                .accessibilityAddTraits(.isHeader)
+            if let onOpen {
+                ProjectionHeader(.warn, "Steps card: \(card.title)")
+                    .accessibilityAddTraits([.isHeader, .isButton])
+                    .accessibilityAction { onOpen() }
+                    .accessibilityHint(Text("Opens the steps one at a time"))
+            } else {
+                ProjectionHeader(.warn, "Steps card: \(card.title)")
+                    .accessibilityAddTraits(.isHeader)
+            }
             if otherLanguage {
                 Text("This card is only written in another language.")
                     .font(.footnote)
@@ -48,6 +57,8 @@ struct StepsCardView: View {
                 unchecked
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { onOpen?() }
     }
 
     /// Her list of the parts not checked against a source; a long one folds away.

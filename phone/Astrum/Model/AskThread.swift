@@ -27,6 +27,12 @@ struct AskExchange: Codable, Sendable, Hashable, Identifiable {
     /// The quick reply of the first chat pass (sent as a check-in). Read from older saved
     /// threads only, to show what was answered; replies now go through the ask call.
     var followUpReply: Bool?
+    /// Not a question: the owner went through this card's steps (Done), and this is Astra's next message. No bubble of theirs.
+    var afterSteps: String?
+    /// "Call for help" was sent from under this reply: the hub's line for it.
+    var helpSent: String?
+    /// The owner went through this reply's steps (Done): "Start help" gives way to a quiet "Steps shown".
+    var stepsShown: Bool?
 
     var isPending: Bool {
         if case .pending = state { true } else { false }
@@ -41,6 +47,10 @@ struct AskExchange: Codable, Sendable, Hashable, Identifiable {
 @MainActor
 @Observable
 final class AskThread {
+    /// The least time between a question appearing and its answer appearing, so it reads as a
+    /// conversation. The hub's own time counts toward it. An urgent answer is never held.
+    static let minimumReplyTime: TimeInterval = 2.0
+
     /// How many exchanges the phone keeps.
     static let cap = 50
 
@@ -98,7 +108,41 @@ final class AskThread {
     func retry(_ id: UUID, api: HubAPI, lang: String, finished: @escaping @MainActor (AskExchange.State) -> Void) {
         guard let index = exchanges.firstIndex(where: { $0.id == id }) else { return }
         exchanges[index].state = .pending(Self.sending)
+        if let card = exchanges[index].afterSteps {
+            runSteps(id, card: card, api: api, lang: lang, finished: finished)
+            return
+        }
         run(id, question: exchanges[index].question, history: history(before: index, now: .now), api: api, lang: lang, finished: finished)
+    }
+
+    /// The owner tapped Done on `card`'s steps: the hub is told, and Astra's next message arrives after the usual typing time.
+    func stepsDone(card: String, api: HubAPI, lang: String, finished: @escaping @MainActor (AskExchange.State) -> Void) {
+        var exchange = AskExchange(question: "", askedAt: .now, state: .pending(Self.sending))
+        exchange.afterSteps = card
+        exchanges.append(exchange)
+        if exchanges.count > Self.cap {
+            let dropped = exchanges.prefix(exchanges.count - Self.cap)
+            for old in dropped { tasks.removeValue(forKey: old.id)?.cancel() }
+            exchanges.removeFirst(dropped.count)
+        }
+        runSteps(exchange.id, card: card, api: api, lang: lang, finished: finished)
+        save()
+    }
+
+    /// Done on the steps opened from `id`'s reply: its "Start help" goes away for good.
+    func markStepsShown(_ id: UUID) {
+        guard let index = exchanges.firstIndex(where: { $0.id == id }) else { return }
+        exchanges[index].stepsShown = true
+        save()
+    }
+
+    /// "Call for help" under `id`'s reply. Throws when the hub did not raise it; otherwise keeps the hub's line there.
+    func callForHelp(_ id: UUID, api: HubAPI, lang: String) async throws {
+        let owner = person
+        let text = try await api.askForHelp(person: owner, lang: lang)
+        guard owner == person, let index = exchanges.firstIndex(where: { $0.id == id }) else { return }
+        exchanges[index].helpSent = text
+        save()
     }
 
     /// The question Astra is waiting on: the newest exchange's, while nothing came after it.
@@ -118,7 +162,7 @@ final class AskThread {
         var out: [AskHistoryItem] = []
         var after = now
         for exchange in exchanges.prefix(index).reversed() {
-            guard case .answered(let result, let at) = exchange.state else { continue }
+            guard exchange.afterSteps == nil, case .answered(let result, let at) = exchange.state else { continue }
             guard after.timeIntervalSince(at) <= Self.memory else { break }
             out.append(AskHistoryItem(exchange.question, result: result))
             after = exchange.askedAt
@@ -142,6 +186,7 @@ final class AskThread {
         let person = self.person
         tasks[id] = Task {
             var outcome = AskExchange.State.failed(String(localized: "The hub ended without an answer."), reached: true)
+            let started = ContinuousClock.now
             do {
                 for try await event in api.ask(person: person, question: question, lang: lang, history: history) {
                     switch event {
@@ -155,12 +200,47 @@ final class AskThread {
             } catch {
                 outcome = .failed(String(localized: "The hub is out of reach."), reached: false)
             }
+            if case .answered(let answer, _) = outcome, !Self.isUrgent(answer) {
+                let wait = Self.minimumReplyTime - (ContinuousClock.now - started).seconds
+                if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+                if case .answered(let answer, _) = outcome { outcome = .answered(answer, at: .now) }
+            }
             guard !Task.isCancelled else { return }
             update(id, outcome)
             tasks[id] = nil
             save()
             finished(outcome)
         }
+    }
+
+    private func runSteps(_ id: UUID, card: String, api: HubAPI, lang: String, finished: @escaping @MainActor (AskExchange.State) -> Void) {
+        let person = self.person
+        tasks[id] = Task {
+            var outcome: AskExchange.State
+            let started = ContinuousClock.now
+            do {
+                outcome = .answered(try await api.stepsDone(person: person, card: card, lang: lang), at: .now)
+            } catch HubError.refused(let words) {
+                outcome = .failed(String(localized: "The hub refused it: \(words)"), reached: true)
+            } catch {
+                outcome = .failed(String(localized: "The hub is out of reach."), reached: false)
+            }
+            if case .answered(let answer, _) = outcome {
+                let wait = Self.minimumReplyTime - (ContinuousClock.now - started).seconds
+                if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+                outcome = .answered(answer, at: .now)
+            }
+            guard !Task.isCancelled else { return }
+            update(id, outcome)
+            tasks[id] = nil
+            save()
+            finished(outcome)
+        }
+    }
+
+    /// Safety first: an urgent answer, or one with an urgent card, shows at once.
+    static func isUrgent(_ answer: AskResult) -> Bool {
+        answer.urgent || answer.card?.level == "dangerous"
     }
 
     private func update(_ id: UUID, _ state: AskExchange.State) {
@@ -215,4 +295,8 @@ struct AskHistoryItem: Encodable, Sendable, Hashable {
         }
         return out
     }
+}
+
+private extension Duration {
+    var seconds: Double { Double(components.seconds) + Double(components.attoseconds) / 1e18 }
 }

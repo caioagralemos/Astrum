@@ -84,16 +84,30 @@ final class AlarmNotifier {
         }
     }
 
+    /// The hub itself needs data from the owner: one quiet notification per asking, never for a question they started. Tapping opens Me.
+    static let followUpPrefix = "followup:"
+    func handle(followUp ask: FollowUpAsk?, owner: String, lang: String) {
+        guard let ask, ask.origin == "hub", !owner.isEmpty, ask.person == owner else { return }
+        let key = "followUp|\(ask.key)"
+        guard !notified.contains(key) else { return }
+        remember(key)
+        post(id: Self.followUpPrefix + ask.key, title: String(localized: "Astra has a question for you"), body: lang == "pt" ? ask.text.pt : ask.text.en, delay: nil, interruption: .active)
+    }
+
     /// Announces every alert this phone's owner is told about and has not heard at this level.
-    func handle(_ alerts: [HubAlert], owner: String, crew: [CrewMember], rooms: [HubRoom] = []) {
+    func handle(_ alerts: [HubAlert], owner: String, crew: [CrewMember], rooms: [HubRoom] = [], now: Double = Date.now.timeIntervalSince1970 * 1000) {
         guard !owner.isEmpty else { return }
         for alert in alerts where !alert.held && alert.toldTo.includes(owner) && !notified.contains(alert.occurrenceKey) {
             remember(alert.occurrenceKey)
             // Every name through Signals.name and Signals.roomName, every sentence through AlertText.
             let who = crew.first(where: { $0.id == alert.person })?.name ?? alert.person
             let room = alert.room.map { Signals.roomName($0, rooms: rooms) } ?? ""
-            var (title, body) = AlertText.notification(alert, viewer: owner, name: who, room: room)
+            let shelter = alert.declared?.shelter.map { Signals.roomName($0, rooms: rooms) }
+            var (title, body) = AlertText.notification(alert, viewer: owner, name: who, room: room, shelter: shelter, now: now)
             if alert.isRecorded { title = String(localized: "Simulated: \(title)") } else if alert.isDrill { title = String(localized: "Drill: \(title)") }
+            // A level rise is announced again, in place of the lower level's notification, never beside it.
+            let lower = (1..<max(alert.level, 1)).map { "\(alert.id)|\($0)" }
+            if !lower.isEmpty { UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: lower) }
             post(id: alert.key, title: title, body: body, delay: nil, category: Self.category(of: alert, owner: owner), info: ["alertID": alert.id, "level": alert.level])
         }
         removeStale(keeping: Set(alerts.filter { Self.category(of: $0, owner: owner) != nil }.map(\.key)))
@@ -148,14 +162,14 @@ final class AlarmNotifier {
         )
     }
 
-    private func post(id: String, title: String, body: String, delay: TimeInterval?, category: String? = nil, info: [String: any Sendable] = [:]) {
+    private func post(id: String, title: String, body: String, delay: TimeInterval?, category: String? = nil, info: [String: any Sendable] = [:], interruption: UNNotificationInterruptionLevel = .timeSensitive) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         if let category { content.categoryIdentifier = category }
         if !info.isEmpty { content.userInfo = info }
         content.sound = .default
-        content.interruptionLevel = .timeSensitive
+        content.interruptionLevel = interruption
         content.threadIdentifier = "alarms"
         let trigger = delay.map { UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) }
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
