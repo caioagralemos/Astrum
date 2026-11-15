@@ -224,6 +224,9 @@ button { font: inherit; }
 .tag-room .tag-pill { color: var(--text-muted); }
 .tag-person .tag-pill { font-weight: 600; color: var(--text); border-color: color-mix(in srgb, var(--text) 22%, transparent); }
 .tag-status { font-weight: 600; }
+/* Last seen, not here now: a dashed, quieter pill (the words say it; this only echoes them). */
+.tag-person[data-ghost] .tag-pill { border-style: dashed; color: var(--text-muted); font-weight: 500; }
+.tag-person[data-ghost] .tag-status { font-weight: 500; }
 .tag[data-status='watch'] .tag-pill { border-color: var(--status-watch); color: var(--status-watch); }
 .tag[data-status='over'] .tag-pill { border-color: var(--status-over); color: var(--status-over); font-weight: 700; border-width: 2px; }
 .tag-room[data-status='unknown'] .tag-pill { color: var(--status-unknown); }
@@ -351,6 +354,20 @@ button { font: inherit; }
 .air .mod-value { font-size: 1.625rem; }
 .air .gauge { padding-top: 12px; }
 
+/* Radiation dose: words and numbers only, no bar and no colour (it never says safe or unsafe). */
+.dose { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; }
+.dose h3 { margin: 0; }
+.dose-kind { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 0.75rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.mod-head .dose-kind .kind-mark { margin-left: 0; }
+.dose-amount { display: flex; flex-direction: column; gap: 6px; }
+.dose-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.dose-grid dt { font-size: 0.75rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dose-grid dd { margin: 4px 0 0; display: flex; flex-direction: column; gap: 3px; }
+.dose .mod-value { font-size: 1.375rem; }
+.dose-share { font-size: 0.6875rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.dose-quantity { font-size: 0.75rem; color: rgb(var(--ink-hi)); }
+.dose-note { font-size: 0.75rem; line-height: 1.35; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+
 /* The rest: buttons straight on the sheet. */
 .person-strip { padding: 10px 10px 0; }
 .person-strip .mod-mini { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -362,6 +379,32 @@ button { font: inherit; }
 .person-points { padding: 6px 10px 0; font-size: 0.8125rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
 .person-points span { color: var(--text); font-weight: 500; }
 .person .kind-key { margin: 2px 10px 4px !important; }
+
+/* The medical lead's follow-up question, on the screen of the one person it is for (person/FollowUp.tsx). */
+.followup:focus { outline: none; }
+.followup .actions { margin-top: 10px; }
+.followup-label { font-size: 0.75rem; color: rgb(var(--ink) / calc(0.6 * var(--ink-k))); }
+.followup-question { margin-top: 4px !important; font-size: 1rem; font-weight: 500; line-height: 1.35; color: var(--text); }
+.followup-done { font-size: 0.875rem; color: var(--text); }
+.followup-done + .followup-label { margin-top: 10px !important; }
+.followup-note { margin-top: 6px !important; font-size: 0.75rem; line-height: 1.35; color: var(--text-muted); }
+.followup-form { align-items: center; }
+.followup-form input {
+  flex: 1 1 8rem;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--w-ctl-radius);
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+.followup-form input:focus-visible, .followup .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.followup .btn[disabled] { opacity: 0.45; cursor: default; }
+.followup-unit { font-size: 0.8125rem; color: var(--text-muted); }
 
 /* Pictures used here. */
 .ring { width: 40px; height: 40px; }
@@ -1065,3 +1108,14 @@ button { font: inherit; }
   .dock-row::-webkit-scrollbar { display: none; }
   .dock-row > .dw { flex: 0 0 84%; scroll-snap-align: center; }
 }
+
+/* The incident report filed with a level 3 message to Earth (panels/IncidentReport.tsx). Existing colours only. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.report-body { margin-top: 8px; padding: 12px; border: 1px solid var(--line); display: grid; gap: 6px; }
+.report-body h5 { margin: 6px 0 0; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.report-table th, .report-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.report-table thead th { font-weight: 500; color: var(--text-muted); }
+.report-timeline { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.report-json { max-height: 40vh; overflow: auto; white-space: pre; padding: 8px; border: 1px solid var(--line); margin: 0; }

@@ -1,0 +1,184 @@
+/* The emergency's steps: the station blurred and darkened, one projection frame inset from
+   the window; the gesture drawn straight on the dark (no box), the step's words under it,
+   Previous outlined bottom-left, Next filled white bottom-right. Monochrome. */
+.steps {
+  position: fixed;
+  inset: 0;
+  z-index: 21;
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: steps-in var(--motion-enter) var(--motion-ease) both;
+}
+.steps-frame {
+  position: absolute;
+  inset: max(20px, 6.8vh) max(16px, 2.9vw) max(20px, 6.4vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: max(16px, 3vh) max(20px, 2.6vw) calc(max(16px, 3vh) + 44px + max(20px, 4vh));
+  color: #fff;
+}
+.steps-top {
+  margin: 0;
+  font-size: clamp(12px, 1.6vh, 15px);
+  color: rgb(255 255 255 / 0.55);
+  text-align: center;
+}
+.steps-art {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 1100px;
+  display: none;
+}
+.steps-art[data-shown] { display: block; }
+.steps-canvas {
+  width: 100%;
+  height: 100%;
+  /* The floor grid dissolves at the edges instead of ending in a line. */
+  /* Only the outer rim fades (the last 7%); the figures are fitted inside the central 84% (Steps.tsx). */
+  -webkit-mask-image: linear-gradient(to bottom, #000 93%, transparent), linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 93%, transparent), linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+}
+/* A move framed as a close-up runs out at the bottom: no fade there, so nothing of the figure dims. */
+.steps-canvas[data-cropped] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+.steps-caption {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.45);
+  text-align: center;
+}
+.steps-play {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1px solid rgb(255 255 255 / 0.45);
+  border-radius: var(--w-ctl-radius);
+  background: none;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.steps-text {
+  margin-top: max(16px, 3vh);
+  max-width: 64rem;
+  text-align: center;
+  outline: none;
+}
+.steps-text:not([data-art]) { margin-block: auto; }
+/* Focus lands on the words so a screen reader reads them; they are not a control, so never a ring
+   (keyboard users are on the buttons, which keep theirs). */
+.steps .steps-text:focus, .steps .steps-text:focus-visible { outline: none !important; box-shadow: none !important; }
+.steps-label {
+  margin: 0;
+  font-size: clamp(16px, 2.3vh, 24px);
+  font-weight: 400;
+}
+.steps-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.steps-line {
+  margin: max(4px, 0.8vh) 0 0;
+  font-size: clamp(22px, 4vh, 44px);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+/* The last page: one big outlined prohibition symbol (the Emergency sign's stroke and scale),
+   the words big and bold, then her lines, each after a small outlined cross in a circle. */
+.steps-text[data-donot] {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: max(8px, 2vh) 0 0;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: none;
+  width: 100%;
+}
+.steps-donot-title {
+  flex: none;
+  display: flex;
+  flex-direction: column; /* the sign sits above the words, not beside them */
+  align-items: center;
+  gap: 0.3em;
+  margin: 0;
+  font-size: clamp(32px, 6.4vh, 72px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.steps-nosign { flex: none; width: 1em; height: 1em; color: #fff; }
+.steps-donot {
+  min-height: 0;
+  overflow-y: auto;
+  margin: max(22px, 4.4vh) 0 0;
+  padding: 0 4px;
+  list-style: none;
+  max-width: 52rem;
+  text-align: left;
+  font-size: clamp(20px, 3.1vh, 32px);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.steps-donot li { display: flex; align-items: flex-start; gap: 0.7em; }
+.steps-donot li + li { margin-top: 1.1em; }
+.steps-donot svg { flex: none; width: 1.1em; height: 1.1em; margin-top: 0.1em; color: #fff; }
+.steps-nav {
+  position: absolute;
+  left: max(20px, 2.6vw);
+  right: max(20px, 2.6vw);
+  bottom: max(16px, 3vh);
+  display: flex;
+  justify-content: space-between;
+}
+.steps-btn {
+  min-width: 140px;
+  min-height: 44px;
+  padding: 0 24px;
+  border: 1.5px solid #fff;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.steps-btn:disabled { opacity: 0.35; cursor: default; }
+.steps-btn-solid { background: #fff; color: #0f1114; }
+.steps-btn:not(:disabled):hover { background: rgb(255 255 255 / 0.12); }
+.steps-btn-solid:hover { background: rgb(255 255 255 / 0.88) !important; }
+.steps-btn:focus-visible, .steps-play:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+@keyframes steps-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .steps { animation-timing-function: linear; }
+}
+@media (prefers-contrast: more) {
+  .steps { background: rgb(0 0 0 / 0.8); }
+  .steps-top, .steps-caption { color: #fff; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .steps { background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* A long step, one sentence to a line: left-aligned in a centred block, lighter and smaller than a one-line step. */
+.steps-lines {
+  list-style: none;
+  margin: max(6px, 1.2vh) auto 0;
+  padding: 0;
+  max-width: min(46em, 92%);
+  text-align: left;
+  font-size: clamp(16px, 2.5vh, 26px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+.steps-lines li { padding-left: 1.1em; position: relative; }
+.steps-lines li::before { content: ""; position: absolute; left: 0.1em; top: 0.58em; width: 0.38em; height: 0.38em; border-radius: 50%; background: rgb(255 255 255 / 0.55); }
+.steps-lines li + li { margin-top: 0.55em; }
+.steps-lines li:first-child { font-weight: 700; }

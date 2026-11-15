@@ -150,7 +150,7 @@ export function DeclaredAlert({ alert, crew, rooms, now, viewer, recorded, s }: 
 
       {!recorded && !action && (
         <div className="actions">
-          {!alert.seenAt && <button type="button" className="btn btn-solid" onClick={() => void seen()}>{s('alert.seeIt')}</button>}
+          {viewer && !alert.seenAt && <button type="button" className="btn btn-solid" onClick={() => void seen()}>{s('alert.seeIt')}</button>}
           {warning && <button type="button" className="btn" disabled={busy} onClick={(e) => start('time', e.currentTarget)}>{s('event.changeTime')}</button>}
           {warning && <button type="button" className="btn" disabled={busy} onClick={(e) => start('cancel', e.currentTarget)}>{s('event.didNotHappen')}</button>}
           <button type="button" className="btn" disabled={busy} onClick={(e) => start('end', e.currentTarget)}>{s('event.end')}</button>

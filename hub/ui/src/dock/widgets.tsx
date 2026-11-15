@@ -25,6 +25,8 @@ import type { Kind, Person, Profile, Room, Row } from '../../../engine/types.ts'
 import type { World } from '../data.ts';
 import type { Selection } from '../scene/Station.tsx';
 import { KindMark } from '../panels.tsx';
+import type { LastSeen } from '../../../engine/timeline.ts';
+import { timeOf } from '../panels/common.tsx';
 import { SignalIcon } from '../person/icons.tsx';
 
 export type S = (key: string, vars?: Record<string, string | number>) => string;
@@ -36,6 +38,8 @@ export interface DockContext {
   /** The value shown now for every signal and place. */
   values: Row[];
   where: Record<string, string>;
+  /** Display only: where each person in no room was last seen (engine/timeline.ts lastSeen). */
+  lastSeen?: Record<string, LastSeen>;
   roomStatus: Record<string, Status>;
   personStatus: Record<string, Status>;
   now: number;
@@ -73,7 +77,7 @@ const ICON = {
   cabin: 'M3 9.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0M3 14.5c1.5-1.4 3-1.4 4.5 0s3 1.4 4.5 0 3-1.4 4.5 0 3 1.4 4.5 0',
   co2: 'M5.2 12H9M15 12h3.8M5.2 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM23 12a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z',
   alerts: 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0',
-  earth: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z',
+  earth: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM8.2 4.4c.3 1.3-.6 2-1.5 2.7-.9.7-1.2 1.7-.5 2.6.7.9 2 .7 2.8 1.5.8.8.3 2 .9 2.9.5.8 1.6.9 1.8 1.9.2 1-.6 1.8-.5 2.8.1.6.4 1.1.9 1.6M14.6 3.9c-.7.9-.3 1.9.6 2.4.9.5 2 .2 2.7 1 .6.7.2 1.7.9 2.4.4.4 1 .5 1.5.4M15.2 13.2c.9-.5 2-.2 2.5.6.5.8.1 1.8-.6 2.4-.5.4-.8.9-.8 1.6',
   mission: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5V12l3 2',
   exposure: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7v5h4.5',
   sleep: 'M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z',
@@ -201,7 +205,11 @@ const crew: Widget = {
           {c.profile.crew.map((p) => {
             const d = doing(p);
             const room = c.where[p.id];
-            const label = [p.name, room ? roomName(c, room) : '', d.text].filter(Boolean).join(', ');
+            const last = room ? undefined : c.lastSeen?.[p.id];
+            const place = room ? roomName(c, room)
+              : last ? `${c.s('person.lastSeen', { room: roomName(c, last.room), time: timeOf(last.at, 'en') })}, ${c.s(`kind.${last.kind}`)}`
+              : c.s('person.whereUnknown');
+            const label = [p.name, place, d.text].filter(Boolean).join(', ');
             return (
               <li key={p.id}>
                 <button type="button" className="dw-tile" data-tone={d.tone || undefined} onClick={() => c.onSelect({ kind: 'person', id: p.id })}
@@ -332,22 +340,30 @@ const alerts: Widget = {
 
 // ---------------------------------------------------------------- Earth
 
-const inFlight = (c: DockContext) => c.world.earthMessages.filter((m) => m.replyAt > c.now).sort((a, b) => b.sentAt - a.sentAt)[0];
+const inFlight = (c: DockContext) => c.world.earthMessages.filter((m) => m.replyAt > c.now && !m.reply).sort((a, b) => b.sentAt - a.sentAt)[0];
+/** The newest reply in the last 10 minutes. A simulated one always carries its label. */
+const replied = (c: DockContext) => c.world.earthMessages.filter((m) => m.reply && c.now - m.reply.at < 10 * 60_000).sort((a, b) => b.reply!.at - a.reply!.at)[0];
 
 const earth: Widget = {
   id: 'earth',
   sizes: ['quarter', 'third', 'half'],
   problem: () => false,
-  score: (c) => (inFlight(c) ? 85 : 40),
+  score: (c) => (inFlight(c) || replied(c) ? 85 : 40),
   render: (c) => {
     const m = inFlight(c);
+    const r = m ? undefined : replied(c);
     const delay = c.profile.delayToEarthSeconds * 1000;
     const from = m?.from ? c.profile.crew.find((p) => p.id === m.from)?.name ?? m.from : null;
     const progress = m ? Math.min(1, (c.now - m.sentAt) / (m.replyAt - m.sentAt)) : 0;
     return (
       <>
         <Head icon={ICON.earth} title={c.s('dock.earth')} s={c.s} />
-        {delay < 60_000 && !m ? (
+        {r?.reply ? (
+          <>
+            <p className="dw-sub">{c.s('emergency.earthReplied')} “{r.reply.key ? c.s(r.reply.key, r.reply.vars) : r.reply.text}”</p>
+            <Foot items={[{ key: 'ai', icon: ICON.send, text: r.simulated === 'ai' ? c.s('earth.simulatedByAi') : c.s('kind.simulated') }]} />
+          </>
+        ) : delay < 60_000 && !m ? (
           <>
             <Stat label={c.s('dock.oneWayLabel')} s={c.s}>{c.s('dock.live')}</Stat>
             <Foot items={[{ key: 'note', icon: ICON.send, text: c.s('dock.liveNote') }]} />
@@ -360,7 +376,10 @@ const earth: Widget = {
               <span className="dw-track-mid" />
             </div>
             <p className="dw-track-labels dw-not-quarter" aria-hidden="true"><span>{c.s('dock.sent')}</span><span>{c.s('dock.reachesEarth')}</span><span>{c.s('dock.reply')}</span></p>
-            {from && <Foot className="dw-not-quarter" items={[{ key: 'from', icon: ICON.send, text: c.s('dock.lastMessage', { name: from }) }]} />}
+            {(from || m.simulatedDelay) && <Foot className="dw-not-quarter" items={[
+              ...(from ? [{ key: 'from', icon: ICON.send, text: c.s('dock.lastMessage', { name: from }) }] : []),
+              ...(m.simulatedDelay ? [{ key: 'delay', icon: ICON.send, text: c.s('earth.simulatedDelay') }] : []),
+            ]} />}
           </>
         ) : (
           <>

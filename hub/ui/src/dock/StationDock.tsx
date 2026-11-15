@@ -4,6 +4,7 @@
 import type { Status } from '../../../engine/status.ts';
 import type { Profile, Row } from '../../../engine/types.ts';
 import type { World } from '../data.ts';
+import type { LastSeen } from '../../../engine/timeline.ts';
 import type { Selection } from '../scene/Station.tsx';
 import { SmartDock } from './SmartDock.tsx';
 import type { S } from './widgets.tsx';
@@ -13,6 +14,7 @@ export interface StationDockProps {
   profile: Profile;
   values: Row[];
   where: Record<string, string>;
+  lastSeen?: Record<string, LastSeen>;
   roomStatus: Record<string, Status>;
   personStatus: Record<string, Status>;
   s: S;
@@ -20,9 +22,9 @@ export interface StationDockProps {
   onAlerts: () => void;
 }
 
-export function StationDock({ world, profile, values, where, roomStatus, personStatus, s, onSelect, onAlerts }: StationDockProps) {
+export function StationDock({ world, profile, values, where, lastSeen, roomStatus, personStatus, s, onSelect, onAlerts }: StationDockProps) {
   return (
     <SmartDock
-      context={{ world, profile, values, where, roomStatus, personStatus, now: world.now, s, onSelect, onAlerts }} />
+      context={{ world, profile, values, where, lastSeen, roomStatus, personStatus, now: world.now, s, onSelect, onAlerts }} />
   );
 }

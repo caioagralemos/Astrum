@@ -137,8 +137,8 @@ export function AskPanel({ crew, selected, lang, s, onClose }: AskProps) {
 
   return (
     <Sheet id="ask" title="Astra" s={s} onClose={onClose} focus={box}
-      mark={<AstraMark size={28} working={busy || st?.state === 'loading'} />}
-      sub={<span className="status-word" data-status={st?.state === 'ready' ? 'live' : st?.state === 'unavailable' ? 'off' : undefined}>
+      mark={<AstraMark size={64} activity={busy || st?.state === 'loading' ? 'working' : st?.state === 'ready' ? 'ready' : 'rest'} />}
+      sub={<span className="status-word astra-status" data-status={st?.state === 'ready' ? 'live' : st?.state === 'unavailable' ? 'off' : undefined}>
         {busy ? s('ask.mark.working') : st ? s(`ask.mark.${st.state}`) : s('settings.loading')}
         {st && st.waiting > 0 ? ` · ${s('bench.ask.waiting', { count: st.waiting })}` : ''}
       </span>}>

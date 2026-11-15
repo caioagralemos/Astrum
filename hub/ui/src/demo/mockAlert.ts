@@ -12,13 +12,15 @@ import type { World } from '../data.ts';
 import { occupants } from '../../../engine/timeline.ts';
 import type { Alert, EarthMessage } from '../../../engine/alerts.ts';
 import type { RoomAlarm } from '../../../engine/cabin.ts';
-import type { Row } from '../../../engine/types.ts';
+import type { Row, Stay } from '../../../engine/types.ts';
 
 const MIN = 60_000;
 
 export function useMockAlert(world: World): World {
   const on = useRef(new URLSearchParams(location.search).has('demoAlert'));
+  const emergency = useRef(new URLSearchParams(location.search).get('demoEmergency'));
   const start = useRef<number | null>(null);
+  if (emergency.current !== null) return mockEmergency(world, emergency.current || 'high-co2', start);
   if (!on.current || !world.profile || world.profile.crew.length === 0) return world;
   if (start.current === null) start.current = world.now;
   const t0 = start.current;
@@ -66,6 +68,55 @@ export function useMockAlert(world: World): World {
     ...world,
     alarms: [alarm, ...world.alarms],
     alerts: [danger, ...(second.id !== first.id ? [asking] : []), ...world.alerts],
+    earthMessages: [message, ...world.earthMessages],
+    latest: [co2, ...world.latest.filter((r) => !(r.room === room && !r.person && r.signal === 'co2'))],
+  };
+}
+
+/**
+ * `?demoEmergency=<card id>` (default `high-co2`): one level 3 drill alert for a room (`quarters-2` when the
+ * place has it), its room over NASA's CO2 limit and a message to Earth on its way, so the takeover can be
+ * walked through (first screen, then the next, then the card's steps). On this screen only: nothing is sent.
+ */
+function mockEmergency(world: World, card: string, start: { current: number | null }): World {
+  if (!world.profile || world.profile.crew.length === 0) return world;
+  if (start.current === null) start.current = world.now;
+  const t0 = start.current;
+  const { profile } = world;
+  const room = profile.rooms.find((r) => r.id === 'quarters-2')?.id ?? profile.rooms[0]?.id;
+  if (!room) return world;
+  const here = occupants(world.stays, world.now);
+  const person = here[room]?.[0] ?? profile.crew[0].id;
+  // The person is in the room (on this screen only), so the zoomed view shows them there.
+  const stay: Stay = { person, room, from: t0 - 30 * MIN, until: null, kind: 'simulated', source: 'demo' };
+  const stays = here[room]?.includes(person) ? world.stays : [...world.stays.map((x) => (x.person === person && x.until === null ? { ...x, until: t0 - 30 * MIN } : x)), stay];
+  const delay = profile.delayToEarthSeconds * 1000;
+  const sentAt = t0 - 2 * MIN;
+  const earth = { sentAt, arrivesAt: sentAt + delay, replyAt: sentAt + 2 * delay };
+  const limitSource = 'NASA OCHMO-TB-004: the 1-hour average CO2 is to be "no more than 3 mmHg".';
+  const alarm = {
+    room, signal: 'co2', value: 3.5, over: 0.5, unit: 'mmHg', limit: 3, limitSource,
+    kind: 'simulated', source: 'demo', since: t0 - 12 * MIN, acknowledged: false,
+    stale: false, lastReading: { value: 3.5, t: t0 - MIN },
+  } as RoomAlarm;
+  const danger = {
+    id: 'demo-emergency', reason: 'room-limit', signal: 'co2', value: 3.5, over: 0.5, unit: 'mmHg', limit: 3,
+    limitSource, direction: 'high', kind: 'simulated', held: false, stationWide: false, lowestRoom: null,
+    card, drill: true, person, level: 3, room,
+    since: t0 - 10 * MIN, levelSince: t0 - 2 * MIN, askedAt: t0 - 4 * MIN, answerBy: t0 - 2 * MIN, answer: null,
+    toldTo: 'everyone', earth, earthId: 'demo-emergency-earth',
+  } as unknown as Alert;
+  const message = {
+    id: 'demo-emergency-earth', kind: 'alert',
+    about: { person, room, signal: 'co2', level: 3, stationWide: false },
+    sentAt, arrivesAt: earth.arrivesAt, replyAt: earth.replyAt, delivered: world.now > earth.arrivesAt,
+  } as EarthMessage;
+  const co2 = { t: world.now, signal: 'co2', value: 3.5, text: null, unit: 'mmHg', kind: 'simulated', source: 'demo', person: null, room } as Row;
+  return {
+    ...world,
+    alarms: [alarm, ...world.alarms],
+    alerts: [danger, ...world.alerts],
+    stays,
     earthMessages: [message, ...world.earthMessages],
     latest: [co2, ...world.latest.filter((r) => !(r.room === room && !r.person && r.signal === 'co2'))],
   };

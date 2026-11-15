@@ -1,6 +1,8 @@
 // The crew avatar alone, for the iPhone app's Me screen. Same figure as
 // avatar.html (same modules, unchanged), without the page around it.
-// The app sets the state with window.astrum.setState({selected, marked});
+// The app sets the state with window.astrum.setState({selected, marked, states, blood}):
+// states names each region with something to report ('watch' or 'over') and is drawn
+// with no selection too; blood draws the vessels (person/regions.ts).
 // a tap on a region is posted back through the "astrum" message handler.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -11,10 +13,12 @@ import type { BodyRegion } from './CrewAvatar.ts';
 import { createBodySystems } from './BodySystems.ts';
 import type { SystemView } from './BodySystems.ts';
 import { createPoseRig, neutralPose } from './PoseRig.ts';
+import { covers, createVessels, paintRegions } from '../person/regions.ts';
+import type { BodyStates, RegionState } from '../person/regions.ts';
 
 /** The phone's five regions (BodyRegion in phone/Astrum/Model/Signals.swift). */
 type PhoneRegion = 'head' | 'heart' | 'lungs' | 'body' | 'blood';
-interface PhoneState { selected: PhoneRegion | null; marked: PhoneRegion[] }
+interface PhoneState { selected: PhoneRegion | null; marked: PhoneRegion[]; states: BodyStates; blood: RegionState | null }
 declare global {
   interface Window {
     astrum: { setState(state: Partial<PhoneState>): void };
@@ -46,6 +50,8 @@ const avatar = createCrewAvatar();
 scene.add(avatar.root);
 const systems = createBodySystems();
 scene.add(systems.root);
+const vesselLines = createVessels();
+avatar.root.add(vesselLines.root);
 createPoseRig(avatar.root, systems.root).setPose(neutralPose);
 
 // Blood has no organ of its own: it shows the heart view's vessels without the heart.
@@ -54,33 +60,20 @@ const heartParts = (systems.root.children[0]?.children ?? []).filter(object =>
   !(object instanceof LineSegments2 && (object.material as LineMaterial).color.getHex() === vessels));
 
 const views: Record<PhoneRegion, SystemView> = { head: 'head', heart: 'heart', lungs: 'breathing', body: 'overview', blood: 'heart' };
-function covers(region: PhoneRegion, part: BodyRegion) {
-  switch (region) {
-    case 'head': return part === 'head' || part === 'ears';
-    case 'heart': case 'lungs': return part === 'chest';
-    case 'body': return part === 'pelvis' || part.endsWith('Arm') || part.endsWith('Leg');
-    case 'blood': return false;
-  }
-}
-
-let state: PhoneState = { selected: null, marked: [] };
+let state: PhoneState = { selected: null, marked: [], states: {}, blood: null };
 let dirty = true;
-const orange = 0xff9f0a;
 
 function paint() {
   const { selected, marked } = state;
+  // A marked region with no state from an older app build still shows, as 'watch'.
+  const states: BodyStates = { ...Object.fromEntries(marked.map((r) => [r, 'watch'])), ...state.states };
+  vesselLines.set(state.blood ?? states.blood ?? null);
   systems.setView(selected ? views[selected] : 'overview');
   for (const part of heartParts) part.visible = selected !== 'blood';
   const halfView = selected === 'heart' ? 'heart' : selected === 'lungs' ? 'breathing' : null;
   for (const [part, group] of avatar.regions) group.traverse(object => {
     const isSelected = selected !== null && covers(selected, part);
-    const isMarked = marked.some(region => covers(region, part));
-    if (object instanceof LineSegments2) {
-      const material = object.material as LineMaterial;
-      const color = selected === 'heart' ? 0xf0b65f : 0x9dcee8;
-      material.color.setHex(isMarked ? orange : isSelected ? color : selected === null ? 0xbfc6ce : 0x686b70);
-      material.linewidth = isSelected ? 1.8 : 1.35;
-    } else if (object instanceof THREE.Mesh) {
+    if (object instanceof THREE.Mesh) {
       const material = object.material as THREE.MeshBasicMaterial;
       material.color.setHex(isSelected ? (selected === 'heart' ? 0x30200f : 0x152b3d) : 0x030507);
       // As on the web page: the chest half over the organ in view is left open.
@@ -94,12 +87,17 @@ function paint() {
       material.needsUpdate = true;
     }
   });
+  paintRegions(avatar.regions, states, (part) => {
+    const isSelected = selected !== null && covers(selected, part);
+    const color = selected === 'heart' ? 0xf0b65f : 0x9dcee8;
+    return { color: isSelected ? color : selected === null ? 0xbfc6ce : 0x686b70, width: isSelected ? 1.8 : 1.35 };
+  });
   dirty = true;
 }
 
 window.astrum = {
   setState(next) {
-    state = { selected: next.selected ?? null, marked: next.marked ?? [] };
+    state = { selected: next.selected ?? null, marked: next.marked ?? [], states: next.states ?? {}, blood: next.blood ?? null };
     paint();
   },
 };

@@ -1,9 +1,10 @@
 // The orbit light: the ring of the mark (public/brand/mark.svg) with the
-// light that runs round it. The loading screen draws it under the cross;
-// Astra's mark is the ring alone, at the logo's own tilt and proportions.
-// Decorative: the words beside it say what is happening.
+// light that runs round it. The loading screen draws it under the cross.
+// Astra's mark is three of that same ring, crossed, with one light running
+// through all three. Decorative: the words beside it say what is happening.
 
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import './orbit.css';
 
 // The ring is drawn in its own frame (moved to the centre, turned to its tilt), where it is an ellipse band.
@@ -41,8 +42,8 @@ const HEAD = 50;
 
 export const LAP = 1800; // ms for one lap of the light
 
-/** How much to grow the band so its narrowest part stays about 1.75 px wide at `width` px. */
-const growFor = (width: number) => Math.max(0, (1.75 * BOX[0] / width - (OUTER[1] - INNER[1])) / 2);
+/** How much to grow the band so its narrowest part stays about 1.75 px wide when a box `box` units wide is drawn `width` px wide. */
+const growFor = (width: number, box: number) => Math.max(0, (1.75 * box / width - (OUTER[1] - INNER[1])) / 2);
 
 /** The ring and its light, in the mark's 88 × 68 box. Its light moves only inside an element marked [data-working]. */
 export function OrbitLight({ grow = 0, rest = false }: { grow?: number; rest?: boolean }) {
@@ -71,25 +72,84 @@ export function OrbitLight({ grow = 0, rest = false }: { grow?: number; rest?: b
   );
 }
 
-function Light({ spans, band, width }: { spans: Spans; band: string; width: number }) {
+type Course = { d: string; length: number; period: number; head: number; className: string };
+// The whole orbit: one lap is 100, the light's head at 50.
+const WHOLE: Course = { d: ORBIT, length: 100, period: 100, head: HEAD, className: 'orbit-light' };
+
+/** The light's spans, dashed along `course` (in the flattened frame), clipped to the band. */
+function Light({ spans, band, width, course = WHOLE }: { spans: Spans; band: string; width: number; course?: Course }) {
+  const { d, length, period, head, className } = course;
   return (
     <g clipPath={`url(#${band})`}>
-      <g className="orbit-light" transform={FLATTEN}>
+      <g className={className} transform={FLATTEN}>
         {spans.map(([from, to, opacity]) => (
-          <path key={from + ':' + to} d={ORBIT} pathLength={100} strokeWidth={width} strokeOpacity={opacity} strokeDasharray={`0 ${HEAD + from} ${to - from} ${100 - HEAD - to}`} />
+          <path key={from + ':' + to} d={d} pathLength={length} strokeWidth={width} strokeOpacity={opacity} strokeDasharray={`0 ${head + from} ${to - from} ${period - head - to}`} />
         ))}
       </g>
     </g>
   );
 }
 
-/** Astra's mark: the orbit light without the cross, `size` px wide. Idle, the light rests; working, it runs. */
-export function AstraMark({ size, working = false, className }: { size: number; working?: boolean; className?: string }) {
-  const grow = growFor(size);
+// Astra's mark: three of the ring, crossed about one centre, 60° apart: the
+// logo's tilt, then 120° and 240° on (an ellipse turned 180° is itself, so
+// 142.38°, 82.38° and 22.38°). One light runs through all three as one closed
+// route (worked out in /private/tmp/astra3/route.py): along a ring round its
+// tip, on to the next ring where they cross near the centre, and so on round.
+// Each ring carries the same stretch, from HALF before its tip to HALF after;
+// at each hand-over the light turns 58°, the least any route allows.
+const TILTS = [142.38, 262.38, 22.38];
+const HALF = 1.46331; // radians either side of the tip, on the orbit circle
+/** One ring's stretch, out of a whole orbit's 100; the route is three of them. */
+const SEG = (HALF / Math.PI) * 100;
+const ROUTE = 3 * SEG;
+const n2 = (v: number) => +v.toFixed(3);
+const STRETCH = `M${n2(45 * Math.cos(HALF))} ${n2(-45 * Math.sin(HALF))}A45 45 0 0 1 ${n2(45 * Math.cos(HALF))} ${n2(45 * Math.sin(HALF))}`;
+/** The three rings fit a square this far out from the centre, before growing. */
+const REACH = 54;
+
+/** Ms per trip round the whole route: the working pace is the loading light's, ready a third of it. */
+export const ASTRA_LAP = { ready: 7500, working: 2500 } as const;
+
+export type AstraActivity = 'rest' | 'ready' | 'working';
+
+/**
+ * Astra's mark, `size` px square. At rest the light holds still at the top tip, a short bright
+ * segment; ready, it makes a slow lap of the route; working, a fast one. With reduced motion it holds
+ * still at the top tip.
+ */
+export function AstraMark({ size, activity = 'rest', className }: { size: number; activity?: AstraActivity; className?: string }) {
+  const id = useId();
+  const grow = growFor(size, 2 * REACH);
+  const band = ring(grow);
+  const width = LIGHT_WIDTH + (2 * grow) / FLATTEN_Y;
+  const lap = activity === 'rest' ? 0 : ASTRA_LAP[activity];
+  // Set to the one clock every copy shares, so a copy carries on where the last one was.
+  const phase = useMemo(() => (lap ? `${-(performance.now() % lap)}ms` : '0ms'), [lap]);
+  const course: Course = { d: STRETCH, length: SEG, period: ROUTE, head: ROUTE / 2, className: 'astra-light' };
+  const box = REACH + grow;
   return (
-    <svg className={className ? `astra-mark ${className}` : 'astra-mark'} data-working={working ? '' : undefined}
-      viewBox={`${-grow} ${-grow} ${BOX[0] + 2 * grow} ${BOX[1] + 2 * grow}`} width={size} aria-hidden="true" focusable="false">
-      <OrbitLight grow={grow} rest={!working} />
+    <svg className={className ? `astra-mark ${className}` : 'astra-mark'} data-lap={lap ? '' : undefined} data-small={size < 32 ? '' : undefined}
+      style={lap ? ({ '--astra-lap': `${lap}ms`, '--orbit-phase': phase } as CSSProperties) : undefined}
+      viewBox={`${-box} ${-box} ${2 * box} ${2 * box}`} width={size} height={size} aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id={`${id}band`}>
+          <path d={band} clipRule="evenodd" />
+        </clipPath>
+        <filter id={`${id}glow`} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.6" />
+        </filter>
+      </defs>
+      <g className="astra-rings">
+        {TILTS.map((tilt) => <path key={tilt} d={band} fillRule="evenodd" transform={`rotate(${tilt})`} />)}
+      </g>
+      {TILTS.map((tilt, k) => (
+        <g key={tilt} transform={`rotate(${tilt})`} style={{ '--seg': `${k * SEG}px` } as CSSProperties}>
+          <g filter={`url(#${id}glow)`}>
+            <Light spans={GLOW} band={`${id}band`} width={width} course={course} />
+          </g>
+          <Light spans={activity === 'rest' ? CORE : LIGHT} band={`${id}band`} width={width} course={course} />
+        </g>
+      ))}
     </svg>
   );
 }

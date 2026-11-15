@@ -1,0 +1,9 @@
+/* The body figure on the person sheet (BodyFigure.tsx, the words beside the scene's coloured figure). Colours are the status tokens of app.css. */
+.body-figure { display: block; }
+.body-figure-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; line-height: 1.35; color: var(--text); }
+.body-figure-list li { display: flex; align-items: baseline; gap: 8px; }
+.body-figure-list b { font-weight: 600; }
+.body-figure-list .kind-mark { margin-left: 2px; color: var(--text-muted); }
+/* Watch: a round mark; over: a triangle. The shape says it without the colour. */
+.body-figure-mark { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--status-watch); transform: translateY(-1px); }
+.body-figure-mark.is-over { border-radius: 0; background: var(--status-over); clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 9px; height: 9px; }

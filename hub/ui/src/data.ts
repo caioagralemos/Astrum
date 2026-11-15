@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import type { HubMessage, Profile, Recording, Row, ScenarioFlag, SourceStatus, Stay } from '../../engine/types.ts';
 import { clockOffset, screenNow, scopeOf } from '../../engine/timeline.ts';
+import type { LastSeen } from '../../engine/timeline.ts';
 import { momentAfter, realOffset, speedProfile } from '../../engine/playback.ts';
 import type { RoomAlarm } from '../../engine/cabin.ts';
 import type { Alert, EarthMessage } from '../../engine/alerts.ts';
@@ -12,6 +13,7 @@ import type { Evidence } from '../../engine/evidence.ts';
 import type { CrewWatch } from '../../engine/sensors.ts';
 import type { Activity } from '../../engine/activity.ts';
 import type { PersonDose } from '../../engine/dose.ts';
+import type { FollowUpAsk } from '../../engine/followup.ts';
 
 export interface World {
   status: 'connecting' | 'live' | 'offline' | 'replay';
@@ -22,6 +24,8 @@ export interface World {
   latest: Row[];
   /** Stays that are open or just closed. */
   stays: Stay[];
+  /** Display only: each unplaced crewmate's last room, as of the hub's last state (engine/timeline.ts lastSeen). */
+  lastSeen?: Record<string, LastSeen>;
   sources: SourceStatus[];
   alarms: RoomAlarm[];
   alerts: Alert[];
@@ -58,6 +62,11 @@ export interface World {
   dose?: Record<string, PersonDose>;
   /** Set when the hub said it is restarting on another mission (a mission file); cleared by its next state. */
   restarting?: string | null;
+  /**
+   * The medical lead's follow-up question waiting for this screen's own crewmate (`?person=<id>`),
+   * or null. The hub sends it to their socket only; a shared screen never has one.
+   */
+  followUp?: FollowUpAsk | null;
 }
 
 const empty: World = { status: 'connecting', now: Date.now(), profile: null, latest: [], stays: [], sources: [], alarms: [], alerts: [], earthMessages: [], asleep: [] };
@@ -77,7 +86,9 @@ function applyOne(world: World, message: HubMessage): World {
       return {
         ...world, now: message.now, profile: message.profile, latest: message.latest, stays: message.stays, sources: message.sources, alarms: message.alarms ?? [], alerts: message.alerts ?? [],
         earthMessages: message.earthMessages ?? [], asleep: message.asleep ?? [], evidence: message.evidence ?? {}, crewWatch: message.crewWatch ?? [],
-        activity: message.activity, dose: message.dose ?? {}, restarting: null,
+        activity: message.activity, dose: message.dose ?? {}, lastSeen: message.lastSeen ?? {}, restarting: null,
+        // A recorded story's state carries none: the live question stays, unanswerable, until the story ends.
+        followUp: message.scenario ? world.followUp : message.followUp ?? null,
       };
     case 'rows': {
       const latest = new Map(world.latest.map((r) => [`${scopeOf(r)}|${r.source}`, r]));
@@ -111,6 +122,8 @@ function applyOne(world: World, message: HubMessage): World {
       return { ...world, evidence: { ...world.evidence, [message.person]: message.evidence } };
     case 'dose':
       return { ...world, dose: message.dose };
+    case 'followUp':
+      return { ...world, followUp: message.followUp };
     case 'restarting':
       return { ...world, restarting: message.to };
     default:
@@ -135,7 +148,9 @@ export class LiveSource implements DataSource {
       if (stopped) return;
       socket = new WebSocket(`ws://${hubAddress()}/ws`);
       socket.onopen = () => {
-        socket?.send(JSON.stringify({ type: 'hello', role: 'screen' }));
+        // A crewmate's own screen says who it is, so the hub sends it what only they may see (engine/privacy.ts).
+        const person = new URLSearchParams(location.search).get('person');
+        socket?.send(JSON.stringify(person ? { type: 'hello', role: 'screen', person } : { type: 'hello', role: 'screen' }));
         update((w) => ({ ...w, status: 'live' }));
       };
       socket.onmessage = (event) => {

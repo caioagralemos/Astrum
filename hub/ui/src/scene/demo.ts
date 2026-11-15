@@ -18,6 +18,10 @@
 //   ?demoPlanet=off   or   on   or   strong                   the planet below the station
 //   ?demoInset=80,0,260,0                                     insets (top, right, bottom, left, CSS pixels) as if interface
 //                                                             covered those edges; also outlines them
+//   ?demoWeather=dust_storm:event,solar_particle_event:warning,shelter:commons
+//                                                             draw a declared event (weather.ts, hazards.ts) without declaring one:
+//                                                             dust_storm | solar_particle_event | fire | pressure_loss | quake | meteoroid_impact
+//                                                             : warning | event, and shelter:<room id>
 //   ?demoMission=ship   or   iss   or   base-mars   or   base-moon
 //                                                             draw that place from its mission file (hub/profiles/missions).
 //                                                             The running hub knows only the ship's rooms, so the crew are
@@ -27,6 +31,8 @@
 
 import type { Status } from '../../../engine/status.ts';
 import type { Doing } from './layout.ts';
+import { WEATHER_KINDS } from './weather.ts';
+import type { EventStage, Weather, WeatherKind } from './weather.ts';
 
 export interface Demo {
   status: Record<string, Status>;
@@ -44,6 +50,7 @@ export interface Demo {
   mission: MissionName | null;
   /** Top, right, bottom, left, in CSS pixels. */
   inset: [number, number, number, number] | null;
+  weather: Weather | null;
 }
 
 export const MISSION_NAMES = ['ship', 'iss', 'base-mars', 'base-moon'] as const;
@@ -85,5 +92,10 @@ export function readDemo(): Demo | null {
   const insetValues = (query.get('demoInset') ?? '').split(',').map(Number);
   const inset = query.has('demoInset') && insetValues.length === 4 && insetValues.every((v) => Number.isFinite(v) && v >= 0)
     ? insetValues as [number, number, number, number] : null;
-  return { status, where, asleep, activity, select, grid, orbit, sky, nebula, planet, mission, inset };
+  const weather: Weather = {};
+  for (const [kind, stage] of pairs(query.get('demoWeather'))) {
+    if ((WEATHER_KINDS as readonly string[]).includes(kind) && (stage === 'warning' || stage === 'event')) weather[kind as WeatherKind] = stage as EventStage;
+    if (kind === 'shelter') weather.shelter = stage;
+  }
+  return { status, where, asleep, activity, select, grid, orbit, sky, nebula, planet, mission, inset, weather: query.has('demoWeather') ? weather : null };
 }

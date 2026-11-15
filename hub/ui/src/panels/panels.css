@@ -214,3 +214,5 @@
    Padded on the left by what the close button takes on the right, so the centre is the sheet's. */
 .panel-named { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding-left: 42px; }
 .panel-named .astra-mark { margin-bottom: 6px; }
+/* Astra's state under her name, as a small lowercase word: "ready". */
+.astra-status { text-transform: lowercase; }

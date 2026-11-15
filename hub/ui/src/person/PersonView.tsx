@@ -23,13 +23,20 @@ import type { Judged, SignalBaseline } from '../../../engine/baseline.ts';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
 import type { Evidence } from '../../../engine/evidence.ts';
 import type { Alert } from '../../../engine/alerts.ts';
+import type { DoseCoverage, PersonDose } from '../../../engine/dose.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Kind, Person, Room, Row } from '../../../engine/types.ts';
 import { Chart } from './Chart.tsx';
+import { FollowUp } from './FollowUp.tsx';
+import { BodyList } from './BodyFigure.tsx';
+import type { BodyLine } from './BodyFigure.tsx';
+import type { FollowUpAsk } from '../../../engine/followup.ts';
 import type { Point } from './Chart.tsx';
 import { SignalIcon } from './icons.tsx';
 import { KindKey, KindMark } from '../panels.tsx';
 import { Gauge } from '../room/viz.tsx';
+import type { LastSeen } from '../../../engine/timeline.ts';
+import { timeOf } from '../panels/common.tsx';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -62,6 +69,8 @@ export interface PersonViewProps {
   latest: Row[];
   /** The room they are in now, if known. */
   room: string | null;
+  /** Display only, when `room` is null: the last room the hub knew for them, when and how (null: never known). */
+  lastSeen?: LastSeen | null;
   now: number;
   s: S;
   lang: Lang;
@@ -69,9 +78,17 @@ export interface PersonViewProps {
   own: boolean;
   /** This person's open alerts (as the viewer may see them). An alert speaks before their readings do. */
   alerts: Alert[];
+  /** Their radiation dose (engine/dose.ts), or null when there is none. */
+  dose: PersonDose | null;
+  /** What their body shows, region by region (App.tsx, person/BodyFigure.tsx): the words beside the scene's coloured figure. */
+  body: BodyLine[];
+  /** The medical lead's follow-up question waiting for them: shown on their own screen only. */
+  followUp: FollowUpAsk | null;
+  /** A recorded story is playing: nothing can be answered. */
+  recorded: boolean;
 }
 
-export function PersonView({ person, rooms, crew, latest, room, now, s, lang, own, alerts }: PersonViewProps) {
+export function PersonView({ person, rooms, crew, latest, room, lastSeen = null, now, s, lang, own, alerts, dose, followUp, recorded, body }: PersonViewProps) {
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [person.id]);
 
@@ -200,8 +217,16 @@ export function PersonView({ person, rooms, crew, latest, room, now, s, lang, ow
       <header className="person-head">
         <h2 id="person-name">{person.name}</h2>
         <p className="person-verdict" data-tone={verdictTone}>{alert && <span className="person-level">{s(`level.${alert.level}`)}. </span>}{verdict}</p>
-        <p className="person-meta">{s(person.role)}{room ? `, ${s('person.in', { room: roomName(room) })}` : ''}</p>
+        <p className="person-meta">
+          {s(person.role)}, {room ? s('person.in', { room: roomName(room) })
+            : lastSeen ? <>{s('person.lastSeen', { room: roomName(lastSeen.room), time: timeOf(lastSeen.at, lang) })} <KindMark kind={lastSeen.kind} s={s} /></>
+            : s('person.whereUnknown')}
+        </p>
       </header>
+
+      <BodyList lines={body} s={s} />
+
+      {own && <FollowUp followUp={followUp} person={person.id} lang={lang} s={s} recorded={recorded} className="mod followup" />}
 
       {hero && heroSeries && (
         <article className="mod hero" aria-live="polite" data-unusual={isUnusual(hero) ? '' : undefined}>
@@ -235,6 +260,8 @@ export function PersonView({ person, rooms, crew, latest, room, now, s, lang, ow
         </article>
       )}
 
+      <Dose dose={dose} s={s} lang={lang} />
+
       {rest.length > 0 && (
         <nav className="mods-strip person-strip" aria-label={s('person.tracking')}>
           {rest.slice(0, 5).map((signal) => {
@@ -257,6 +284,61 @@ export function PersonView({ person, rooms, crew, latest, room, now, s, lang, ow
       {pointsTo && <p className="person-points"><span>{pointsTo}.</span> {s('evidence.notDiagnosis')}</p>}
       <KindKey kinds={kinds} s={s} />
     </section>
+  );
+}
+
+/**
+ * Their radiation dose: worked out from room rates and stays, never measured.
+ * Today, this mission and projected at mission end, each in its own unit; NASA's
+ * career limit only beside a dose made wholly of dose equivalent. No colour, no bar.
+ */
+function Dose({ dose, s, lang }: { dose: PersonDose | null; s: S; lang: Lang }) {
+  const locale = lang === 'pt' ? 'pt-BR' : 'en-GB';
+  const num = (v: number) => v.toLocaleString(locale, v !== 0 && Math.abs(v) < 1 ? { maximumSignificantDigits: 2 } : { maximumFractionDigits: 1 });
+  const percent = (share: number) => num(share * 100);
+  const hours = (ms: number) => Math.round(ms / HOUR);
+  const gaps = (c: DoseCoverage) => [
+    c.unplacedMs >= HOUR ? s('dose.unplaced', { hours: hours(c.unplacedMs) }) : '',
+    c.noRateMs >= HOUR ? s('dose.noRate', { hours: hours(c.noRateMs) }) : '',
+  ].filter(Boolean);
+  const value = (v: number, unit: string, share?: number | null) => (
+    <>
+      <span className="mod-value">{num(v)}<span className="unit">{unit}</span></span>
+      {share != null && <span className="dose-share">{s('dose.ofLimit', { percent: percent(share) })}</span>}
+    </>
+  );
+  const many = (dose?.amounts.length ?? 0) > 1;
+  const todayGaps = dose ? gaps(dose.today) : [];
+  const missionGaps = dose ? gaps(dose.mission) : [];
+  return (
+    <article className="mod dose" aria-labelledby="dose-title">
+      <h3 className="mod-head" id="dose-title">
+        <SignalIcon signal="radiation" />
+        <span>{s('dose.title')}</span>
+        {dose && <span className="dose-kind"><KindMark kind={dose.kind} s={s} /><span aria-hidden="true">{s(`dose.${dose.kind}`)}</span></span>}
+      </h3>
+      {!dose || !dose.amounts.length ? <p className="dose-note">{s('dose.none')}</p> : (
+        <>
+          {dose.amounts.map((a) => (
+            <section key={a.quantity} className="dose-amount" aria-label={many ? s(`dose.${a.quantity}`) : undefined}>
+              {many && <p className="dose-quantity" aria-hidden="true">{s(`dose.${a.quantity}`)}</p>}
+              <dl className="dose-grid">
+                <div><dt>{s('dose.today')}</dt><dd>{value(a.today, a.unit)}</dd></div>
+                <div><dt>{s('dose.mission')}</dt><dd>{value(a.mission, a.unit, dose.comparable ? dose.ofLimit?.mission : null)}</dd></div>
+                {a.projected !== null && <div><dt>{s('dose.projected')}</dt><dd>{value(a.projected, a.unit, dose.comparable ? dose.ofLimit?.projected : null)}</dd></div>}
+              </dl>
+              <p className="dose-note">{s('dose.rate', { value: num(a.ratePerDay), unit: a.unit })}</p>
+            </section>
+          ))}
+          {todayGaps.length > 0 && <p className="dose-note">{s('dose.today')}: {todayGaps.join(', ')}</p>}
+          {missionGaps.length > 0 && <p className="dose-note">{s('dose.mission')}: {missionGaps.join(', ')}</p>}
+          {dose.comparable && dose.limit
+            ? <p className="dose-note">{s('dose.limit', { value: num(dose.limit.value), unit: dose.limit.unit })}. {s('dose.careerOnly')}</p>
+            : dose.reason && <p className="dose-note">{s(`dose.notComparable.${dose.reason}`)}</p>}
+          <p className="dose-note">{s('dose.howKnown')}</p>
+        </>
+      )}
+    </article>
   );
 }
 

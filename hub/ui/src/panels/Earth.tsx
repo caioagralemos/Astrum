@@ -10,6 +10,7 @@ import type { EarthMessage } from '../../../engine/alerts.ts';
 import type { Lang } from '../../../engine/strings.ts';
 import type { Person, Room } from '../../../engine/types.ts';
 import { Sheet } from './Sheet.tsx';
+import { IncidentReport } from './IncidentReport.tsx';
 import { HubSaid, call, clock, delayText, timeOf, viewerOf } from './common.tsx';
 import type { S } from './common.tsx';
 
@@ -124,15 +125,17 @@ export function EarthPanel({ messages, delaySeconds, crew, rooms, now, selected,
                 <div className="xtrack" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, 100 - (reply / total) * 100))}%` }} /><i style={{ left: '50%' }} /></div>
                 <p className="xmessage-times">
                   <span data-done={delivered ? '' : undefined}>{delivered ? s('earth.delivered') : s('earth.arrives', { time: minutesLeft(arrive) })}</span>
-                  <span>{m.reply ? s('earth.reply') : reply > 0 ? s('earth.replyCountdown', { time: minutesLeft(reply) }) : s('earth.replyNow')}</span>
+                  <span>{m.reply ? s('earth.reply') : reply > 0 ? s('earth.replyCountdown', { time: minutesLeft(reply) }) : s('earth.replyNow')}{m.simulatedDelay && <> · {s('earth.simulatedDelay')}</>}</span>
                 </p>
+                {m.report && <IncidentReport report={m.report} s={s} lang={lang} />}
                 {m.kind === 'alert' && m.resolvedAt !== null && !m.reply && <p className="quiet">{s('earth.alertEnded')}</p>}
                 {m.reply && (
                   <blockquote className="xreply">
-                    <p>{m.reply.key ? s(m.reply.key) : m.reply.text}</p>
+                    <p>{m.reply.key ? s(m.reply.key, m.reply.vars) : m.reply.text}</p>
                     <footer className="quiet">
+                      {m.simulated === 'ai' && <><span className="kind" data-kind="simulated">{s('earth.simulatedByAi')}</span> · </>}
                       {timeOf(m.reply.at, lang)}
-                      {m.reply.simulated && <> · <span className="kind" data-kind="simulated">{s('kind.simulated')}</span></>}
+                      {m.reply.simulated && m.simulated !== 'ai' && <> · <span className="kind" data-kind="simulated">{s('kind.simulated')}</span></>}
                     </footer>
                   </blockquote>
                 )}

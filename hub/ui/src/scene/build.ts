@@ -15,6 +15,8 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { furnish } from './furniture.ts';
 import { createCrewAvatar } from '../avatar/CrewAvatar.ts';
+import type { BodyRegion as AvatarPart } from '../avatar/CrewAvatar.ts';
+import { createVessels } from '../person/regions.ts';
 import { createPoseRig, neutralPose, posePresets } from '../avatar/PoseRig.ts';
 import type { AvatarPose } from '../avatar/PoseRig.ts';
 import { COS, R, SIN, bandEdges, centreOf, radiusAt, ring, section } from './layout.ts';
@@ -80,6 +82,8 @@ export interface Figure {
   haloGlow: number;
   haloPulse: boolean;
   material: LineMaterial;
+  /** The awake body's parts, for the selected person's region colours (scene/bodyPaint.ts). */
+  regions: Map<AvatarPart, THREE.Group>;
   hit: THREE.Mesh;
   roll: number;
   phase: number;
@@ -88,6 +92,8 @@ export interface Figure {
   at: THREE.Vector3;
   placed: boolean;
   asleep: boolean;
+  /** Drawn where they were last seen, not where they are: faint, still, no halo. */
+  ghost: boolean;
 }
 
 /** Hull lines that lie across modules' back faces, and across their front faces: each shown only while far. */
@@ -770,9 +776,14 @@ export function buildShip(scene: THREE.Scene, mission: Mission, modules: ModuleF
   // person hides what is behind them and stays legible over furniture.
   const posed = (material: LineMaterial, pose: AvatarPose) => {
     const avatar = createCrewAvatar();
+    // The blood vessels, hidden until the selected person has a blood finding (bodyPaint.ts); posed with the body.
+    const vessels = createVessels();
+    vessels.root.userData.vessels = vessels;
+    avatar.root.add(vessels.root);
     const rig = createPoseRig(avatar.root, new THREE.Group());
     rig.setPose(pose);
     avatar.root.traverse((object) => {
+      if (object.userData.vessels) return;
       if (object instanceof LineSegments2) {
         (object.material as LineMaterial).dispose();
         object.material = material;
@@ -784,7 +795,7 @@ export function buildShip(scene: THREE.Scene, mission: Mission, modules: ModuleF
     // The avatar stands on y = 0; the scene places people by the middle of the body.
     avatar.root.position.y = -0.95;
     const limb = (name: 'leftArm' | 'rightArm' | 'leftLeg' | 'rightLeg') => avatar.regions.get(name) ?? new THREE.Group();
-    return { root: avatar.root, rig, limbs: { leftArm: limb('leftArm'), rightArm: limb('rightArm'), leftLeg: limb('leftLeg'), rightLeg: limb('rightLeg') } };
+    return { root: avatar.root, rig, regions: avatar.regions, limbs: { leftArm: limb('leftArm'), rightArm: limb('rightArm'), leftLeg: limb('leftLeg'), rightLeg: limb('rightLeg') } };
   };
   crew.forEach((id, i) => {
     const material = line(2);
@@ -822,8 +833,8 @@ export function buildShip(scene: THREE.Scene, mission: Mission, modules: ModuleF
     root.add(holder);
     people.set(id, {
       holder, face, turn, sleep, sit, rig: body.rig, limbs: body.limbs, neutral, poseName: '', motion: 'still', moving: false, baseRoll: gravity ? 0 : look.roll,
-      halo, haloMaterial, haloGlow: 0, haloPulse: false, material, hit,
-      baseYaw: gravity ? 0 : look.yaw, lookYaw: 0, lookPitch: 0, roll: gravity ? 0 : look.roll, phase: i * 1.9, goal: new THREE.Vector3(), at: new THREE.Vector3(), placed: false, asleep: false,
+      halo, haloMaterial, haloGlow: 0, haloPulse: false, material, hit, regions: body.regions,
+      baseYaw: gravity ? 0 : look.yaw, lookYaw: 0, lookPitch: 0, roll: gravity ? 0 : look.roll, phase: i * 1.9, goal: new THREE.Vector3(), at: new THREE.Vector3(), placed: false, asleep: false, ghost: false,
     });
   });
 

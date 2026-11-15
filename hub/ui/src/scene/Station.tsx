@@ -23,20 +23,30 @@ import { POSES, buildShip } from './build.ts';
 import type { Figure, Ship } from './build.ts';
 import { readDemo } from './demo.ts';
 import { createBackdrop } from './backdrop.ts';
+import { createWeather } from './weather.ts';
+import type { Weather } from './weather.ts';
+import { createHazards } from './hazards.ts';
 import type { Backdrop } from './backdrop.ts';
 import type { Doing, PoseName, Spot } from './layout.ts';
 import { activitySpots, bedOf, extentOf, labelEdge, layoutOf, neutralSpot, outlineOf, sleepsIn } from './layout.ts';
+import type { LastSeen } from '../../../engine/timeline.ts';
+// HH:MM, the same in both languages (24-hour).
+import { timeOf } from '../panels/common.tsx';
 import { MISSIONS, SHIP } from './missions.ts';
 import { roomsOf } from '../../../engine/mission.ts';
 import type { Mission } from '../../../engine/mission.ts';
 import type { Status } from '../../../engine/status.ts';
 import type { Person, Room } from '../../../engine/types.ts';
+import { paintFigure } from './bodyPaint.ts';
+import type { BodyStates } from '../person/regions.ts';
 
 export interface StationProps {
   rooms: Room[];
   crew: Person[];
   /** Room id for each person, if known. */
   where: Record<string, string>;
+  /** Display only: the last room of each person whose place is unknown, drawn faint as "last seen", never as there now. */
+  lastSeen?: Record<string, LastSeen>;
   roomStatus: Record<string, Status>;
   personStatus: Record<string, Status>;
   /** Crew ids asleep now: drawn still, in their sleeping bag (used only when `activity` is not given). */
@@ -52,12 +62,20 @@ export interface StationProps {
   onSelect: (selection: Selection) => void;
   /** The place to draw; the ship when absent. */
   mission?: Mission;
+  /** Declared base-wide events that have weather in the view (weather.ts): an illustration, never the only word. */
+  weather?: Weather;
   /**
    * The parts of the view covered by interface laid over it (top bar, bottom widgets), in CSS
    * pixels. The sky still fills the whole view; the place is framed in what is left. Unset sides
    * fall back to the CSS variables --scene-inset-top / -right / -bottom / -left on .station.
    */
   inset?: Inset;
+  /** A room drawn in the status red whatever its reading (the emergency's room); none when absent. */
+  alarmRoom?: string | null;
+  /** How much of the free view a selected room fills (its insets already clear of what covers it); the usual framing when absent. */
+  roomZoom?: number;
+  /** The selected person's body states (person/regions.ts): their figure is drawn as the data display. */
+  body?: { person: string; states: BodyStates } | null;
 }
 
 export interface Inset { top?: number; right?: number; bottom?: number; left?: number }
@@ -86,6 +104,8 @@ const SETTLE_MS = 3000;
 const IDLE_FRAME_MS = 30;
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const FROST = new THREE.Color(0.85, 0.93, 1);
+const WHITE = new THREE.Color(1, 1, 1);
 const COS_8 = Math.cos(Math.PI / 8);
 const turnY = new THREE.Quaternion();
 const facingDir = new THREE.Vector3();
@@ -184,12 +204,17 @@ function withDemo(props: StationProps, demo: ReturnType<typeof readDemo>): Stati
   const doing = { ...doingOf(preview ? undefined : props.activity, asleep) };
   if (demo.asleep !== null) for (const id of asleep) doing[id] = 'sleeping';
   for (const [who, what] of Object.entries(demo.activity)) for (const id of who === '*' ? ids : [who]) doing[id] = what;
-  return { ...props, where, asleep, roomStatus, personStatus, doing };
+  const weather = demo.weather ?? props.weather;
+  return { ...props, where, asleep, roomStatus, personStatus, doing, weather };
 }
 
 export function Station(raw: StationProps) {
   const demo = useMemo(readDemo, []);
-  const props = withDemo(raw, demo);
+  const shown = withDemo(raw, demo);
+  // Where each figure is drawn: the live place, or else the last one seen (`ghost`), so nobody vanishes.
+  const ghost = Object.fromEntries(Object.entries(raw.lastSeen ?? {}).filter(([id, last]) => !shown.where[id] && shown.rooms.some((r) => r.id === last.room)));
+  const seat = { ...Object.fromEntries(Object.entries(ghost).map(([id, last]) => [id, last.room])), ...shown.where };
+  const props = { ...shown, ghost, seat };
   const { rooms, crew, where, roomStatus, personStatus, doing, s, selected, onSelect } = props;
   const holder = useRef<HTMLDivElement>(null);
   const built = useRef<State | null>(null);
@@ -368,6 +393,9 @@ export function Station(raw: StationProps) {
       });
       return box;
     };
+    const weather = createWeather(root, renderer, camera, outline, viewYaw, surface, ink, bg, mission.where.body);
+    const roomBoxes = places.map((place) => ({ id: place.id, box: new THREE.Box3().setFromPoints(boxPoints(...extentOf(place), place.frame.matrix)) }));
+    const hazards = createHazards(root, renderer, outline, roomBoxes, viewYaw, surface, ink, bg, mission.where.body);
     state.aim = (selection) => {
       current.subVectors(camera.position, controls.target);
       if (reframe) turned = false;
@@ -377,8 +405,9 @@ export function Station(raw: StationProps) {
       if (selection?.kind === 'room') {
         const place = places.find((p) => p.id === selection.id);
         if (place) {
+          const zoom = latest.current.roomZoom;
           if (mission.kind === 'ship') {
-            fit(boxPoints(...extentOf(place), place.frame.matrix), place.band === 'full' ? 0.45 : 0.36, zoomYaw, zoomPitch, [0, 0], true);
+            fit(boxPoints(...extentOf(place), place.frame.matrix), zoom ?? (place.band === 'full' ? 0.45 : 0.36), zoomYaw, zoomPitch, [0, 0], zoom === undefined);
             return;
           }
           // On a station or a base, modules lie every way: look in through the room's open side nearer
@@ -386,8 +415,8 @@ export function Station(raw: StationProps) {
           const facing = place.frame.front;
           const towards = Math.sin(viewYaw) * facing.x + Math.cos(viewYaw) * facing.z >= 0 ? 1 : -1;
           const flat = Math.hypot(facing.x, facing.z) > 0.3;
-          fit(boxPoints(...extentOf(place), place.frame.matrix), place.frame.dome ? 0.42 : 0.45,
-            flat ? Math.atan2(towards * facing.x, towards * facing.z) : zoomYaw, surface ? 0.55 : flat ? 0.3 : zoomPitch, [0, 0], true);
+          fit(boxPoints(...extentOf(place), place.frame.matrix), zoom ?? (place.frame.dome ? 0.42 : 0.45),
+            flat ? Math.atan2(towards * facing.x, towards * facing.z) : zoomYaw, surface ? 0.55 : flat ? 0.3 : zoomPitch, [0, 0], zoom === undefined);
           return;
         }
       } else if (selection?.kind === 'person') {
@@ -668,7 +697,7 @@ export function Station(raw: StationProps) {
           if (samples) hidden.set(tag.key, samples.every((v) => blocked(anchor.copy(v), moduleOf.get(tag.id))));
         } else {
           const person = ship.people.get(tag.id);
-          const room = latest.current.where[tag.id];
+          const room = latest.current.seat[tag.id];
           if (person) {
             const own = room ? moduleOf.get(room) : undefined;
             head.copy(person.holder.position).y += 0.7;
@@ -693,7 +722,7 @@ export function Station(raw: StationProps) {
         if (tag.kind === 'person') {
           const person = ship.people.get(tag.id);
           if (!person?.holder.visible) continue;
-          const room = latest.current.where[tag.id];
+          const room = latest.current.seat[tag.id];
           tag.cand = false;
           if (room && !roomSeen(room)) continue;
           if (pixelsPerMetre(camera.position.distanceTo(root.localToWorld(anchor.copy(person.holder.position)))) * 1.8 < 12) continue;
@@ -992,8 +1021,10 @@ export function Station(raw: StationProps) {
       const reach = camera.position.distanceTo(controls.target);
       // The fade starts just behind what the camera looks at, so the subject itself is never dimmed;
       // a bigger place fades over a longer reach.
-      fog.near = reach + depth;
-      fog.far = reach + 9 * depth;
+      // In a dust storm the far rooms fade into the dust instead of the dark.
+      fog.near = reach + depth * (1 - 0.8 * weather.haze);
+      fog.far = reach + 9 * depth * (1 - 0.55 * weather.haze);
+      fog.color.copy(bg).lerp(weather.hazeColour, weather.haze);
       // The near plane follows the distance, so a far-off station keeps its depth precision and stays in
       // front of the planet's slice of the depth range (see planet.ts).
       const nearPlane = THREE.MathUtils.clamp(reach * 0.004, 0.1, 2);
@@ -1009,7 +1040,7 @@ export function Station(raw: StationProps) {
       const near = THREE.MathUtils.clamp((personPx - 25) / 175, 0, 1);
       const chosen = latest.current.selected?.kind === 'person' ? ship.people.get(latest.current.selected.id) : undefined;
       for (const person of peopleList) {
-        person.material.opacity = person === chosen ? 1 : 0.4 + 0.5 * near;
+        person.material.opacity = (person === chosen ? 1 : 0.4 + 0.5 * near) * (person.ghost ? 0.4 : 1);
         person.material.linewidth = person === chosen ? 1.6 : 0.8 + 0.6 * near;
       }
       for (const room of roomList) room.detail.opacity = 0.45 + 0.55 * near;
@@ -1029,6 +1060,16 @@ export function Station(raw: StationProps) {
         side(room.front, room.detail, 1 - front);
         side(room.frontEdge, room.frame, front);
         side(room.backEdge, room.frame, 1 - front);
+        // A declared event's shelter reads a little brighter (the place to go); air leaving blooms pale on every outline.
+        const shelter = latest.current.weather?.shelter === room.place.id ? 1 : 0;
+        if (shelter || hazards.frost > 0.001) {
+          for (const edge of [room.frontEdge, room.backEdge]) {
+            const m = edge.material as LineMaterial;
+            m.color.lerp(FROST, hazards.frost * 0.6).lerp(WHITE, shelter * 0.5);
+            m.linewidth *= 1 + 0.5 * shelter + 0.6 * hazards.frost;
+            m.opacity = Math.min(1, m.opacity * (1 + 0.6 * shelter + 0.5 * hazards.frost));
+          }
+        }
       }
 
       // Rooms over a limit breathe slowly; with reduced motion they hold steady at full strength.
@@ -1059,10 +1100,15 @@ export function Station(raw: StationProps) {
       }
 
       state.backdrop.update(dt, calm);
+      if (weather.update(dt, calm, latest.current.weather)) busyAt = time;
+      if (hazards.update(dt, calm, latest.current.weather)) busyAt = time;
+      root.position.copy(hazards.sway);
       if (ship.ground) {
         const g = ship.ground.uniforms.strength;
-        g.value += (groundGoal.value - g.value) * (calm ? 1 : 1 - Math.exp(-dt * 3));
-        if (Math.abs(groundGoal.value - g.value) > 1e-3) busyAt = time;
+        // A dust storm in the air softens the ground under it.
+        const groundTo = groundGoal.value * (1 - 0.35 * weather.haze);
+        g.value += (groundTo - g.value) * (calm ? 1 : 1 - Math.exp(-dt * 3));
+        if (Math.abs(groundTo - g.value) > 1e-3) busyAt = time;
       }
       const dim = dimMaterial.uniforms.strength;
       dim.value += ((chosen ? 1 : 0) - dim.value) * (calm ? 1 : 1 - Math.exp(-dt * 6));
@@ -1097,6 +1143,8 @@ export function Station(raw: StationProps) {
       renderer.domElement.removeEventListener('pointerup', onUp);
       controls.dispose();
       state.backdrop.dispose();
+      weather.dispose();
+      hazards.dispose();
       ship.dispose();
       dimScene.traverse((object) => {
         if (object instanceof THREE.Mesh) object.geometry.dispose();
@@ -1113,7 +1161,7 @@ export function Station(raw: StationProps) {
   }, [places, crewKey, mission]);
 
   // Status colours, strength and where people are, whenever the data changes.
-  const statusKey = JSON.stringify([where, roomStatus, personStatus, doing, selected]);
+  const statusKey = JSON.stringify([where, ghost, roomStatus, personStatus, doing, selected, props.alarmRoom ?? null]);
   useEffect(() => {
     const state = built.current;
     if (!state) return;
@@ -1142,7 +1190,7 @@ export function Station(raw: StationProps) {
       const status = roomStatus[id] ?? 'unknown';
       const dimmed = focusRoom !== null && focusRoom !== id;
       const focused = focusRoom === id;
-      if (status === 'over') {
+      if (status === 'over' || id === props.alarmRoom) {
         tone(room.frame, colour('over'), dimmed ? 0.5 : 1);
         room.frame.linewidth = 3.25;
       } else if (status === 'watch') {
@@ -1164,7 +1212,7 @@ export function Station(raw: StationProps) {
 
     const inRoom = new Map<string, string[]>();
     for (const person of crew) {
-      const room = where[person.id];
+      const room = seat[person.id];
       if (room) inRoom.set(room, [...(inRoom.get(room) ?? []), person.id]);
     }
     // Stations are given out by person id, so nobody swaps places as others come and go.
@@ -1180,6 +1228,7 @@ export function Station(raw: StationProps) {
       const free = { exercising: activitySpots(place, 'exercising'), eating: activitySpots(place, 'eating') };
       const neutral: string[] = [];
       for (const id of ids) {
+        if (ghost[id]) { neutral.push(id); continue; }
         if (sleeping(id, place)) continue;
         const what = (personStatus[id] ?? 'ok') === 'over' ? 'none' : doing[id];
         const spot = what === 'exercising' || what === 'eating' ? free[what].shift() : undefined;
@@ -1192,13 +1241,14 @@ export function Station(raw: StationProps) {
     for (const person of crew) {
       const figure = ship.people.get(person.id);
       if (!figure) continue;
-      const place = places.find((p) => p.id === where[person.id]);
+      const place = places.find((p) => p.id === seat[person.id]);
       figure.holder.visible = Boolean(place);
+      figure.ghost = Boolean(ghost[person.id]);
       if (!place) {
         figure.placed = false;
         continue;
       }
-      const lying = sleeping(person.id, place);
+      const lying = !figure.ghost && sleeping(person.id, place);
       figure.asleep = lying;
       const m = place.frame;
       if (lying) {
@@ -1221,7 +1271,7 @@ export function Station(raw: StationProps) {
         figure.sleep.visible = false;
         figure.face.visible = true;
         const pose: PoseName = spot.pose;
-        figure.motion = spot.motion;
+        figure.motion = figure.ghost ? 'still' : spot.motion;
         if (figure.poseName !== pose) {
           // The neutral pose is each person's own, so four people never look cloned.
           figure.rig.setPose(pose === 'float' || pose === 'stand' ? figure.neutral : POSES[pose]);
@@ -1245,9 +1295,19 @@ export function Station(raw: StationProps) {
       (figure.haloMaterial.uniforms.tint.value as THREE.Color).copy(colour(status));
       figure.haloGlow = HALO[status] * (dimmed ? 0.35 : 1);
       figure.haloPulse = status === 'over';
+      if (figure.ghost) figure.haloGlow = 0;
       figure.halo.visible = figure.haloGlow > 0;
     }
   }, [places, crewKey, statusKey, mission]);
+
+  // The selected person's regions in their status colours, and the vessels for a blood finding (bodyPaint.ts).
+  const bodyKey = JSON.stringify(props.body ?? null);
+  useEffect(() => {
+    const state = built.current;
+    if (!state) return;
+    for (const [id, figure] of state.ship.people) paintFigure(figure, props.body?.person === id ? props.body.states : null);
+    state.wake();
+  }, [bodyKey, places, crewKey, mission]);
 
   // Look closer at whatever is selected, or back at the whole station.
   useEffect(() => {
@@ -1311,17 +1371,22 @@ export function Station(raw: StationProps) {
           </button>
         );
       })}
-      {crew.filter((person) => places.some((p) => p.id === where[person.id])).map((person) => {
+      {crew.filter((person) => places.some((p) => p.id === seat[person.id])).map((person) => {
         const status = personStatus[person.id] ?? 'ok';
         const pressed = selected?.kind === 'person' && selected.id === person.id;
-        const dim = selected !== null && !pressed && !(selected.kind === 'room' && selected.id === where[person.id]);
+        const dim = selected !== null && !pressed && !(selected.kind === 'room' && selected.id === seat[person.id]);
+        const last = ghost[person.id];
+        const place = last
+          ? `${person.name}, ${s('person.lastSeen', { room: roomName(last.room), time: timeOf(last.at, 'en') })}, ${s(`kind.${last.kind}`)}`
+          : s('scene.in', { name: person.name, room: roomName(where[person.id]) });
         return (
           <button key={person.id} ref={keep(`person:${person.id}`)} type="button" className="tag tag-person" data-status={status}
-            data-dim={dim ? '' : undefined}
-            aria-label={s('scene.in', { name: person.name, room: roomName(where[person.id]) }) + (status === 'ok' ? '' : `. ${s(`status.${status}`)}`)}
+            data-dim={dim ? '' : undefined} data-ghost={last ? '' : undefined}
+            aria-label={place + (status === 'ok' ? '' : `. ${s(`status.${status}`)}`)}
             aria-pressed={pressed} onClick={() => toggle({ kind: 'person', id: person.id })}>
             <span className="tag-pill">
               {person.name}
+              {last && <span className="tag-status"> · {s('scene.lastSeen', { time: timeOf(last.at, 'en') })}</span>}
               {(status === 'watch' || status === 'over') && <span className="tag-status"> · {s(`status.${status}`)}</span>}
             </span>
           </button>

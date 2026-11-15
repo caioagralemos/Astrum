@@ -1,0 +1,73 @@
+/* The emergency's second screen, idea A: one wide projection frame in the dock's place, split by a
+   thin rule. No colour: the room's red outline is the scene's. */
+.beat2 {
+  position: absolute;
+  z-index: 3;
+  left: max(20px, env(safe-area-inset-left));
+  right: max(20px, env(safe-area-inset-right));
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--story-room, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1.4fr);
+  gap: clamp(20px, 3vw, 40px);
+  padding: clamp(20px, 3vh, 32px) clamp(22px, 3vw, 40px);
+  max-height: 38vh;
+  overflow: hidden;
+  animation: beat2-in var(--motion-enter) var(--motion-ease) both;
+}
+/* Solid: the projection fill and grid over the app's near-black, so nothing of the scene shows through. */
+.beat2.frame { background-color: #0b0c0e; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.beat2-side { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.beat2-rule { background: var(--hairline-strong); }
+.beat2 p { margin: 0; }
+.beat2-top, .beat2-where { display: flex; align-items: center; gap: 10px; }
+.beat2-top { font-size: 1.15rem; }
+.beat2-top svg { width: 1.45em; height: 1.45em; flex: none; }
+.beat2-name { margin: 4px 0 2px; font-size: clamp(2rem, 4.6vh, 3.2rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; outline: none; }
+.beat2-where { font-size: 1.45rem; }
+.beat2-where svg { width: 1.2em; height: 1.2em; flex: none; }
+.beat2-reading { margin-top: 10px !important; font-size: 1.15rem; color: var(--text-muted); }
+.beat2-reading .kind { font-size: inherit; }
+.beat2-label { font-size: 1.2rem; margin-top: 2px !important; }
+.beat2-step { margin: 10px 0 6px !important; font-size: clamp(1.5rem, 3.2vh, 2.2rem); font-weight: 700; line-height: 1.2; }
+/* The rest of the first step, same words: clamped here, in full in the steps. */
+.beat2-more { margin-bottom: 8px !important; font-size: 1.1rem; line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; flex: 0 1 auto; min-height: 0; }
+.beat2-reply { margin-top: 10px !important; font-size: 1.1rem; }
+.beat2-reply span { font-weight: 600; }
+.beat2-ask { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; font-size: 1.1rem; }
+.beat2-nocard { font-weight: 600; }
+.beat2-quiet { font-size: 1.1rem; color: var(--text-muted); }
+.beat2-earth { font-size: 1.1rem; }
+.beat2-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 22px; margin-top: auto; padding-top: 16px; }
+.beat2-btn {
+  font: inherit;
+  font-size: 1.15rem;
+  padding: 10px 26px;
+  border-radius: 8px;
+  border: 2px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.beat2-quietbtn { border-width: 1px; border-color: var(--hairline-strong); color: var(--text-muted); }
+.beat2-small { font-size: 1rem; padding: 7px 18px; }
+.beat2-plain { border-color: transparent; }
+.beat2-solid { background: var(--text); color: var(--bg); font-size: 1.55rem; font-weight: 700; padding: 12px 32px; text-shadow: none; }
+.beat2-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.beat2-btn:active { transform: scale(0.98); }
+/* The auto countdown: a quiet ring and the seconds left, beside the button. */
+.beat2-count { position: relative; width: 44px; height: 44px; display: grid; place-items: center; font-size: 1rem; color: var(--text-muted); margin-left: -12px; font-variant-numeric: tabular-nums; }
+.beat2-count svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.beat2-count circle { fill: none; stroke-width: 1.5; }
+.beat2-ring-base { stroke: var(--hairline); }
+.beat2-ring { stroke: var(--text-muted); stroke-dasharray: 1; stroke-dashoffset: calc(var(--beat2-done, 0)); transition: stroke-dashoffset 1s linear; }
+.beat2-count[data-still] .beat2-ring { transition: none; }
+.beat2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@keyframes beat2-in { from { opacity: 0; transform: translateY(var(--motion-rise)); } }
+@media (max-width: 760px) {
+  .beat2 { grid-template-columns: minmax(0, 1fr); }
+  .beat2-rule { height: 1px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beat2 { animation: none; }
+  .beat2-btn:active { transform: none; }
+}

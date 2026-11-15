@@ -15,6 +15,10 @@ import { DeclareEvent, DeclaredAlert } from './panels/Events.tsx';
 import type { World } from './data.ts';
 import type { Status } from '../../engine/status.ts';
 import type { Kind, Person, Room } from '../../engine/types.ts';
+import type { Lang } from '../../engine/strings.ts';
+import { FollowUp } from './person/FollowUp.tsx';
+import { timeOf } from './panels/common.tsx';
+import { isSettled } from '../../engine/alerts.ts';
 
 type S = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -208,13 +212,20 @@ export interface AlertsProps {
   crew: Person[];
   now: number;
   viewer: string | null;
+  lang: Lang;
   s: S;
   onClose: () => void;
+  /** Opens a level 3 alert's steps card, one step per page (emergency/Steps.tsx). */
+  onSteps?: (alert: World['alerts'][number]) => void;
 }
 
-export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClose }: AlertsProps) {
+export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, lang, s, onClose, onSteps }: AlertsProps) {
   const roomName = (id: string) => s(rooms.find((r) => r.id === id)?.name ?? id);
   const name = (id: string) => crew.find((p) => p.id === id)?.name ?? id;
+  // "Emergency settled" (emergency/Beat2Zoom.tsx): who and when; the alert stays listed.
+  const settledLine = (a: World['alerts'][number]) => a.settledBy
+    ? s('alert.settledBy', { who: name(a.settledBy), time: timeOf(a.settledAt ?? now, lang) })
+    : s('alert.settledShared', { time: timeOf(a.settledAt ?? now, lang) });
   const shown = alerts.filter((a) => !a.held);
   // A declared event (base-wide, station-wide too) is its own item: never grouped by signal or worded as a reading.
   const declared = shown.filter((a) => a.reason === 'declared' && a.declared);
@@ -225,7 +236,9 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
   // names them too, with who has been told and nothing else.
   const listed = new Set(shown.map((a) => a.id));
   const others = world.alerts.filter((a) => !a.held && a.level >= 2 && !listed.has(a.id));
-  const count = world.alarms.length + declared.length + wide.length + single.length + others.length;
+  // The medical lead's follow-up question for this screen's own crewmate (the hub sends it to no other screen).
+  const followUp = viewer && world.followUp?.person === viewer ? world.followUp : null;
+  const count = world.alarms.length + declared.length + wide.length + single.length + others.length + (followUp ? 1 : 0);
   const recorded = Boolean(world.scenario);
   const [declaring, setDeclaring] = useState(false);
 
@@ -237,6 +250,8 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
       onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget) onClose(); }}>
       <PanelHead id="panel-alerts-title" title={s('top.alerts')} close={s('top.close')} onClose={onClose} live
         sub={count ? s('top.alerts.active', { count }) : <StatusWord status="ok" text={s('top.alerts.none')} />} />
+
+      {viewer && <FollowUp followUp={followUp} person={viewer} lang={lang} s={s} recorded={recorded} className="alert followup" />}
 
       {world.alarms.map((alarm) => (
         <article key={`${alarm.room}|${alarm.signal}`} className="alert" data-level="3" role="alert">
@@ -265,7 +280,9 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
             </p>
             <p className="quiet"><KindChip kind={first.kind} s={s} /></p>
             {first.card && <p className="quiet">{s('alert.card', { card: first.card })}</p>}
+            {first.card && onSteps && <div className="actions"><button type="button" className="btn btn-solid" onClick={() => onSteps(first)}>{s('steps.open')}</button></div>}
             {first.earth && <p className="quiet">{s('alert.earth', { time: minutesLeft((first.earth.replyAt - now) / 1000) })}</p>}
+            {isSettled(first) && <p className="quiet">{settledLine(first)}</p>}
           </article>
         );
       })}
@@ -280,7 +297,7 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
       {single.map((alert) => {
         const asking = alert.level === 2 && alert.answer === null && alert.answerBy !== null && viewer === alert.person;
         return (
-          <article key={alert.id} className="alert" data-level={alert.level} role="alert">
+          <article key={alert.id} className="alert" data-level={alert.level} data-alert={alert.id} role="alert">
             <h3><StatusWord status={alert.level >= 3 ? 'over' : alert.level === 2 ? 'watch' : 'unknown'} text={s(`level.${alert.level}`)} /> <span>{name(alert.person)}</span></h3>
             <p>
               {alert.reason === 'room-limit'
@@ -299,7 +316,9 @@ export function AlertsPanel({ world, alerts, rooms, crew, now, viewer, s, onClos
             )}
             {alert.answer === 'ok' && <p className="quiet">{s('alert.answeredOk')}</p>}
             {alert.card && <p className="quiet">{s('alert.card', { card: alert.card })}</p>}
+            {alert.card && alert.level === 3 && onSteps && <div className="actions"><button type="button" className="btn btn-solid" onClick={() => onSteps(alert)}>{s('steps.open')}</button></div>}
             {alert.earth && <p className="quiet">{s('alert.earth', { time: minutesLeft((alert.earth.replyAt - now) / 1000) })}</p>}
+            {isSettled(alert) && <p className="quiet">{settledLine(alert)}</p>}
           </article>
         );
       })}

@@ -1,0 +1,76 @@
+/* The emergency takeover's first screen: the station blurred and darkened, one projection
+   frame inset from the window, a white outlined sign, the word and the place. No colour. */
+.emergency {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: emergency-in var(--motion-enter) var(--motion-ease) both;
+}
+.emergency-frame {
+  position: absolute;
+  inset: max(20px, 6.8vh) max(16px, 2.9vw) max(20px, 6.4vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 24px 72px;
+  font: inherit;
+  color: #fff;
+  cursor: pointer;
+  animation: emergency-grow var(--motion-move) var(--motion-ease) both;
+}
+.hub .emergency .emergency-frame:focus-visible { outline: none; } /* the whole frame is the one control: no second ring around it */
+.emergency-body { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.emergency-sign {
+  width: min(30vw, 43vh);
+  height: auto;
+  color: #fff;
+  animation: emergency-breathe 4.8s ease-in-out infinite;
+}
+.emergency-drill {
+  margin-top: max(16px, 3.6vh);
+  font-size: clamp(14px, 2vh, 20px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.emergency-title {
+  margin-top: max(14px, 3.4vh);
+  font-size: clamp(40px, 9.6vh, 104px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.emergency-drill + .emergency-title { margin-top: 6px; }
+.emergency-where {
+  margin-top: max(4px, 0.6vh);
+  font-size: clamp(18px, 2.8vh, 30px);
+  font-weight: 400;
+  line-height: 1.2;
+}
+.emergency-tap {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: max(18px, 3.4vh);
+  text-align: center;
+  font-size: clamp(13px, 1.8vh, 19px);
+  color: rgb(255 255 255 / 0.55);
+}
+@keyframes emergency-in { from { opacity: 0; } }
+@keyframes emergency-grow { from { opacity: 0; transform: scale(0.98); } }
+@keyframes emergency-breathe { 50% { opacity: 0.8; } }
+@media (prefers-reduced-motion: reduce) {
+  .emergency-frame { animation: emergency-in var(--motion-enter) linear both; }
+  .emergency-sign { animation: none; }
+}
+@media (prefers-contrast: more) {
+  .emergency { background: rgb(0 0 0 / 0.8); }
+  .emergency-tap { color: #fff; }
+  .emergency-sign { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .emergency { background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

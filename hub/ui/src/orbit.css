@@ -18,6 +18,28 @@
 
 .astra-mark { display: block; height: auto; flex: none; }
 
+/* Astra's mark: three rings drawn as one shape at 35%, so where they cross is
+   no brighter and the light reads. Each ring's stretch of the light is dashed
+   from its own start on the route (--seg, in the path's own units); one trip
+   round is 139.74. */
+.astra-rings { fill: currentColor; opacity: 0.35; }
+/* Small (the dock), the rings at the logo's 60%, so the icon sits with its neighbours. */
+.astra-mark[data-small] .astra-rings { opacity: 0.6; }
+.astra-light path {
+  fill: none;
+  stroke: currentColor;
+  stroke-dashoffset: var(--seg);
+}
+.astra-mark[data-lap] .astra-light path {
+  animation: astra-lap var(--astra-lap) linear infinite;
+  animation-delay: var(--orbit-phase, 0ms);
+}
+@keyframes astra-lap {
+  from { stroke-dashoffset: var(--seg); }
+  to { stroke-dashoffset: calc(var(--seg) - 139.74px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-working] .orbit-light path { animation: none; stroke-dashoffset: 0; }
+  .astra-mark[data-lap] .astra-light path { animation: none; stroke-dashoffset: var(--seg); }
 }
