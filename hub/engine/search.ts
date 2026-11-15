@@ -358,7 +358,7 @@ export function search(index: SearchIndex, question: string, options: SearchOpti
   const rs = concepts(index, (options.readings ?? []).join(' '), 1);
 
   const ranked = all
-    .filter((r) => r.score >= SCORE_FLOOR && r.cover >= COVER_FLOOR)
+    .filter((r) => r.score >= SCORE_FLOOR && r.cover >= COVER_FLOOR && onTopic(question, r.doc.passage))
     .map((r) => ({ ...r, score: r.score + 0.25 * rs.reduce((s, c) => s + conceptScore(index, r.doc, c), 0) }))
     .sort((a, b) => b.score - a.score);
 
@@ -380,6 +380,26 @@ export function search(index: SearchIndex, question: string, options: SearchOpti
     .slice(0, limit)
     .map((r) => ({ id: r.doc.passage.id, score: Math.round(r.score * 100) / 100, name: sourceName(r.doc.passage), passage: r.doc.passage }));
   return { found: true, hits };
+}
+
+/**
+ * Topics a question can be plainly about, each with the words a passage must use to be about it too.
+ * A question that names one ("my blood pressure", "my heart rate") gets only passages on that topic:
+ * a passage about radiation and cancer, or the heart's shape, is never handed over for it.
+ */
+const TOPIC_WORDS: { asks: RegExp; passage: RegExp }[] = [
+  { asks: /\b(blood pressure|hypertens\w*|systolic|diastolic|press[aã]o arterial)\b/i, passage: /\b(blood pressure|hypertens\w*|hypotens\w*|systolic|diastolic)\b/i },
+  { asks: /\b(heart ?rate|pulse|bpm|heartbeats?|frequ[eê]ncia card[ií]aca|batimentos?)\b/i, passage: /\b(heart ?rates?|pulse|bpm|heartbeats?|tachycardi\w*|bradycardi\w*|arrhythmi\w*)\b/i },
+  { asks: /\b(sleep\w*|slept|insomnia|dormi\w*|sono)\b/i, passage: /\b(sleep\w*|slept|insomnia|circadian|fatigue)\b/i },
+  { asks: /\b(radiation|dose|msv|radia[cç][aã]o)\b/i, passage: /\b(radiation|dose|msv|sievert\w*)\b/i },
+  { asks: /\b(co2|carbon dioxide)\b/i, passage: /\b(co2|carbon dioxide)\b/i },
+];
+
+/** False when the question names a topic above and the passage is about none of the topics it names. */
+export function onTopic(question: string, passage: Pick<Passage, 'heading' | 'text'>): boolean {
+  const text = `${passage.heading ?? ''} ${passage.text}`;
+  const asked = TOPIC_WORDS.filter((t) => t.asks.test(question));
+  return asked.length === 0 || asked.some((t) => t.passage.test(text));
 }
 
 /** Every passage scored against the question, best first, before any floor. For checking and tuning. */

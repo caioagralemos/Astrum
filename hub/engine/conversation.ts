@@ -13,6 +13,8 @@
 // from the fixed list below, found by rule.
 
 import { isComplaint } from './prompt.ts';
+import { nearCopy, presenceAgain } from './glue.ts';
+import type { DayPart } from './glue.ts';
 
 export type Lang = 'en' | 'pt';
 
@@ -20,27 +22,28 @@ export type Lang = 'en' | 'pt';
 
 export type SmallTalk = 'greeting' | 'thanks' | 'ack' | 'who' | 'abilities' | 'bye' | 'howAreYou';
 
-/** The hub's own small-talk sentences, a few of each so they do not read as canned. They say what Astra can and cannot do. */
+/**
+ * The hub's own small-talk sentences, a few of each so they do not read as
+ * canned, in one voice: calm, plain, warm, second person. "who" and "abilities"
+ * say what Astra can and cannot do; the rest are only the human part of a turn,
+ * and the model may write that part instead (engine/glue.ts), checked.
+ */
 export const SMALL_TALK: Record<SmallTalk, { en: string[]; pt: string[] }> = {
   greeting: {
-    en: [
-      "Hi, I'm Astra. I answer from your readings and NASA's text. Ask me about a reading, your sleep, the air in a room, or a NASA limit. If someone is hurt or unwell, say what is happening.",
-      "Hello. I'm Astra, the hub's voice. You can ask me about your readings, the air in your room or what NASA's text says. I can't diagnose, but I can tell you what the numbers show.",
-      "Hi again. What would you like to look at: a reading, your sleep, the air, or a NASA limit?",
-    ],
-    pt: [
-      'Oi, eu sou a Astra. Respondo a partir das suas leituras e do texto da NASA. Pergunte sobre uma leitura, seu sono, o ar de um ambiente ou um limite da NASA. Se alguém estiver machucado ou passando mal, diga o que está acontecendo.',
-      'Olá. Sou a Astra, a voz do hub. Pergunte sobre suas leituras, o ar do seu ambiente ou o que diz o texto da NASA. Não faço diagnóstico, mas posso dizer o que os números mostram.',
-      'Oi de novo. O que você quer ver: uma leitura, seu sono, o ar ou um limite da NASA?',
-    ],
+    en: ["Hi, I'm Astra. I can look at your readings, your sleep, the air in a room or what NASA's text says with you. If someone is hurt or unwell, tell me what is happening.",
+      "Hello. I'm Astra. Ask me about a reading, the air in your room or what NASA's text says. I can't diagnose, but I can tell you what the numbers show.",
+      'Hi again. What would you like to look at: a reading, your sleep, the air, or a NASA limit?'],
+    pt: ['Oi, eu sou a Astra. Posso olhar com você suas leituras, seu sono, o ar de um ambiente ou o que diz o texto da NASA. Se alguém estiver machucado ou passando mal, me diga o que está acontecendo.',
+      'Olá. Eu sou a Astra. Pergunte sobre uma leitura, o ar do seu ambiente ou o que diz o texto da NASA. Não faço diagnóstico, mas posso dizer o que os números mostram.',
+      'Oi de novo. O que você quer olhar: uma leitura, seu sono, o ar ou um limite da NASA?'],
   },
   thanks: {
-    en: ["You're welcome. Ask me anything else about your readings or NASA's text.", "Glad to help. I'm here if you want to look at another reading.", 'Any time. Is there another reading you want to check?'],
-    pt: ['De nada. Pergunte o que quiser sobre suas leituras ou o texto da NASA.', 'Que bom ajudar. Estou aqui se quiser ver outra leitura.', 'Sempre que precisar. Quer ver outra leitura?'],
+    en: ["You're welcome. I'm here if you want to look at anything else.", 'Glad it helped. I am around whenever you want another look.', 'Any time.'],
+    pt: ['De nada. Estou aqui se quiser olhar mais alguma coisa.', 'Que bom que ajudou. Estou por perto quando quiser olhar de novo.', 'Sempre que precisar.'],
   },
   ack: {
-    en: ['Okay. Ask me whenever you want to look at a reading or a NASA limit.', 'Got it. Anything else you want to check?', 'Okay. I am here if you need me.'],
-    pt: ['Certo. Pergunte quando quiser ver uma leitura ou um limite da NASA.', 'Entendi. Quer ver mais alguma coisa?', 'Certo. Estou aqui se precisar.'],
+    en: ['Okay. I am here when you want me.', 'Got it.', 'Alright. Ask me whenever you like.'],
+    pt: ['Certo. Estou aqui quando quiser.', 'Entendi.', 'Combinado. Pergunte quando quiser.'],
   },
   who: {
     en: ["I'm Astra, the voice of the Astrum hub. I answer from your readings and from NASA's text, and I say where each fact comes from. I don't diagnose or recommend treatment: for that, your Crew Medical Officer, or Contact Earth.",
@@ -49,20 +52,66 @@ export const SMALL_TALK: Record<SmallTalk, { en: string[]; pt: string[] }> = {
       'Sou a Astra. Leio para você os números do hub e os documentos da NASA, nada mais. Não faço diagnóstico, e numa emergência mostro o cartão de passos da responsável médica.'],
   },
   abilities: {
-    en: ['I can tell you what your readings show against your own normal, what the air in a room reads against NASA\'s limits, and what NASA\'s text says. I can\'t diagnose or tell you which medicine to take. Try: "How did I sleep?" or "Is the CO2 in my room under the limit?"',
+    en: ['I can tell you what your readings show against your own normal, what the air in a room reads against NASA\'s limits, and what NASA\'s text says. I can\'t diagnose or tell you which medicine to take. You could start with "How did I sleep?" or "Is the CO2 in my room under the limit?"',
       'Ask me about a reading (sleep, heart rate, blood oxygen), the air in a room, your radiation dose, or a NASA limit. I answer only from the hub\'s numbers and NASA\'s documents, and I never diagnose.'],
-    pt: ['Posso dizer o que suas leituras mostram em relação ao seu normal, o que o ar de um ambiente mostra em relação aos limites da NASA e o que diz o texto da NASA. Não faço diagnóstico nem digo que remédio tomar. Tente: "Como eu dormi?" ou "O CO2 do meu alojamento está abaixo do limite?"',
+    pt: ['Posso dizer o que suas leituras mostram em relação ao seu normal, o que o ar de um ambiente mostra em relação aos limites da NASA e o que diz o texto da NASA. Não faço diagnóstico nem digo que remédio tomar. Dá para começar com "Como eu dormi?" ou "O CO2 do meu alojamento está abaixo do limite?"',
       'Pergunte sobre uma leitura (sono, frequência cardíaca, oxigênio no sangue), o ar de um ambiente, sua dose de radiação ou um limite da NASA. Respondo só com os números do hub e os documentos da NASA, e nunca faço diagnóstico.'],
   },
   bye: {
-    en: ['Bye for now. I am here whenever you need me.', 'See you. Ask me any time.'],
-    pt: ['Até logo. Estou aqui sempre que precisar.', 'Até mais. Pergunte quando quiser.'],
+    en: ['Bye for now. I am here whenever you need me.', 'See you later.', 'Take care. I am around.'],
+    pt: ['Até logo. Estou aqui sempre que precisar.', 'Até mais.', 'Se cuida. Estou por perto.'],
   },
   howAreYou: {
-    en: ["I'm working fine, thanks. How can I help: a reading, the air, or a NASA limit?", "All good on my side. What would you like to look at?"],
-    pt: ['Estou funcionando bem, obrigada. Como posso ajudar: uma leitura, o ar ou um limite da NASA?', 'Tudo certo por aqui. O que você quer ver?'],
+    en: ['Running steady, thanks for asking. What would you like to look at?', 'All quiet on my side. What would you like to look at?'],
+    pt: ['Tudo funcionando por aqui, obrigada por perguntar. O que você quer olhar?', 'Tudo tranquilo do meu lado. O que você quer olhar?'],
   },
 };
+
+/** A greeting's human part by the hub's time of day: the model may write it instead. Never anything that implies she watched them. */
+export const GREETING_LEAD: Record<DayPart, { en: string[]; pt: string[] }> = {
+  night: { en: ['Hi. Still up?', 'Hey. Quiet hour on the station.', 'Hi. Late one tonight.'], pt: ['Oi. Ainda acordado?', 'Oi. Hora quieta na estação.', 'Oi. Noite longa hoje.'] },
+  morning: { en: ['Good morning.', 'Morning.', 'Hi. A new day out here.'], pt: ['Bom dia.', 'Oi, bom dia.', 'Oi. Dia novo por aqui.'] },
+  afternoon: { en: ['Hi.', 'Good afternoon.', 'Hey, good to hear from you.'], pt: ['Oi.', 'Boa tarde.', 'Oi, bom te ouvir.'] },
+  evening: { en: ['Good evening.', 'Hi. Evening already.', 'Hey. Winding down?'], pt: ['Boa noite.', 'Oi. Já é noite.', 'Oi. Fim de dia?'] },
+};
+
+/** What the hub says after a greeting's human part: who Astra is the first time in a thread, a plain invitation after. */
+export const GREETING_NEXT = {
+  first: {
+    en: "I'm Astra. I can look at your readings, your sleep, the air in a room or what NASA's text says with you. If someone is hurt or unwell, tell me what is happening.",
+    pt: 'Eu sou a Astra. Posso olhar com você suas leituras, seu sono, o ar de um ambiente ou o que diz o texto da NASA. Se alguém estiver machucado ou passando mal, me diga o que está acontecendo.',
+  },
+  again: { en: 'What would you like to look at?', pt: 'O que você quer olhar?' },
+} as const;
+
+/** A quiet line kept under every reply for the rest of a conversation in which a crisis phrase was written. */
+export const AFTER_CRISIS = {
+  en: 'If you want someone with you, a crewmate or Contact Earth is one tap away.',
+  pt: 'Se quiser alguém com você, um colega ou Contatar a Terra está a um toque.',
+} as const;
+
+/** The opener of a sentence: its first two words, lower case. */
+export function openerWords(text: string): string {
+  return plain(text).replace(/[^\p{L}\p{N}' ]+/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 2).join(' ');
+}
+
+/**
+ * One of a list of lines, starting at the turn number so a thread varies, and
+ * skipping any line that opens like one of her recent replies or repeats one.
+ */
+export function pickLine(list: readonly string[], turn: number, recent: readonly string[] = []): string {
+  const used = new Set(recent.slice(-3).map(openerWords));
+  const said = new Set(recent.slice(-3));
+  for (let i = 0; i < list.length; i++) {
+    const line = list[(Math.abs(turn) + i) % list.length];
+    if (!used.has(openerWords(line)) && !said.has(line) && !recent.slice(-2).some((r) => nearCopy(line, r)) && !presenceAgain(line, recent)) return line;
+  }
+  for (let i = 0; i < list.length; i++) {
+    const line = list[(Math.abs(turn) + i) % list.length];
+    if (!used.has(openerWords(line)) && !said.has(line)) return line;
+  }
+  return list[Math.abs(turn) % list.length];
+}
 
 /** Words that never belong to small talk: a symptom, a body part, a reading, help. Any of them, and the message is a real one. */
 const NOT_SMALL_TALK = /\b(help|socorro|ajuda|hurt\w*|pain|dor\w*|sick|ill|unwell|feel\w*|sinto|dizzy|tont\w*|bleed\w*|blood|sangue|breath\w*|respir\w*|chest|peito|head\w*|cabe[cç]a|heart|cora[cç][aã]o|sleep\w*|sono|dormi\w*|co2|oxygen|oxig[eê]nio|pressure|press[aã]o|reading\w*|leitura\w*|limit\w*|room|quarters|alojamento|radiation|radia[cç][aã]o|dose)\b/i;
@@ -73,7 +122,7 @@ const SMALL_TALK_PATTERNS: [SmallTalk, RegExp][] = [
   ['howAreYou', /^(how are you|how'?s it going|how are you doing|how do you do|tudo bem|como vai|como voc[eê] est[aá])\b/],
   ['bye', /^(bye|goodbye|good night|see you|see ya|later|tchau|at[eé] (logo|mais|amanh[aã])|boa noite)\b/],
   ['thanks', /^(thanks|thank you|thx|ty|cheers|obrigad[oa]|valeu|vlw)\b/],
-  ['ack', /^(ok|okay|k|kk|cool|nice|great|alright|got it|sure|fine|certo|beleza|blz|entendi|t[aá] bom|show)\b/],
+  ['ack', /^(ok|okay|k|kk|cool|nice|great|alright|got it|sure|fine|certo|beleza|blz|entendi|t[aá] bom|show|that('?s| is)? (helps?|helped|helpful)|(very |really )?helpful|ajudou)\b/],
   ['greeting', /^(hello|hi|hey|heya|hiya|yo|howdy|greetings|good (morning|afternoon|evening)|gm|test|testing|ping|ol[aá]|oi|opa|e a[ií]|eae|bom dia|boa tarde|teste|testando|astra)\b/],
 ];
 
@@ -86,9 +135,12 @@ export function smallTalkKind(text: string): SmallTalk | null {
   // Accents are taken off first: a JavaScript word boundary does not see "ê" as part of a word.
   const q = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’ʼ`]/g, "'").replace(/[!?.,;:…\s]+/g, ' ').replace(/[^\p{L}\p{N}' ]/gu, ' ').replace(/\s+/g, ' ').trim();
   if (!q) return 'greeting';
+  // A goodbye with a few plain words around it ("ok, going to try to rest. bye", "valeu, vou dormir, boa noite"):
+  // still a goodbye, when every other word is one of a short fixed list. Never with a question mark.
+  if (!text.includes('?') && q.split(' ').length <= 10 && new RegExp(BYE_ANYWHERE.source).test(q) && !q.replace(BYE_ANYWHERE, ' ').replace(BYE_FILLER, ' ').trim()) return 'bye';
   if (q.split(' ').length > 8 || NOT_SMALL_TALK.test(q)) return null;
   // After the small-talk words, only a name ("hi Astra") or a few small words may follow.
-  const rest = (re: RegExp) => q.replace(re, '').replace(/\b(astra|astrum|there|everyone|all|you|too|a lot|so much|very much|muito|again|de novo|for (now|that)|then|ent[aã]o|e|and)\b/g, '').trim();
+  const rest = (re: RegExp) => q.replace(re, '').replace(/\b(astra|astrum|there|everyone|all|you|too|a lot|so much|very much|muito|again|de novo|for (now|that)|then|ent[aã]o|e|and|that('?s| is)? (helps?|helped|helpful)|it (helps?|helped)|(very |really )?helpful|ajudou)\b/g, '').trim();
   for (const [kind, re] of SMALL_TALK_PATTERNS) {
     if (!re.test(q)) continue;
     if (kind === 'who' || kind === 'abilities') return kind;
@@ -98,10 +150,27 @@ export function smallTalkKind(text: string): SmallTalk | null {
   return null;
 }
 
+const BYE_ANYWHERE = /\b(bye|goodbye|good night|night night|see you( later| tomorrow)?|later|tchau|at[eé] (logo|mais|amanh[aã])|boa noite)\b/g;
+const BYE_FILLER = /\b(ok|okay|alright|right|well|so|thanks|thank you|thx|cheers|astra|i'?m|i am|im|going to|gonna|off to|heading to|try to|time to|time for|get some|go to|to|now|for now|for today|for tonight|then|again|some|sleep|bed|rest|nap|valeu|obrigad[oa]|vou|tentar|dormir|descansar|deitar|agora|por hoje|ent[aã]o|e|and)\b|[,.;:!…\s]+/g;
+
+/** Portuguese words that are not English words, accents off. Two signs (two words, or a word and an accent mark) make a message Portuguese. */
+const PT_QUESTION_WORDS = /\b(como|eu|dormi|dormiu|meu|minha|meus|minhas|esta|estou|estava|hoje|ontem|por que|porque|quanto|quanta|qual|quais|obrigad[oa]|voce|nao|tudo|bem|sono|cansad[oa]|cabeca|dor|tenho|estou|noite|agora|ainda|isso|muito|frequencia|cardiaca|pressao|oxigenio|ajuda|valeu|tchau|oi|ola|bom dia|boa noite|boa tarde)\b/g;
+const PT_MARKS = /[ãõáéíóúâêôç]/i;
+
+/**
+ * The language to reply in: the screen's, unless the message itself is plainly Portuguese
+ * (two signs of it among accent marks and Portuguese words: "como eu dormi?"). Conservative: never switches to English.
+ */
+export function messageLang(text: string, screen: Lang): Lang {
+  if (screen === 'pt') return 'pt';
+  const q = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const words = new Set([...q.matchAll(PT_QUESTION_WORDS)].map((m) => m[1])).size;
+  return words + (PT_MARKS.test(text) ? 1 : 0) >= 2 ? 'pt' : 'en';
+}
+
 /** One of the hub's small-talk sentences, picked by the turn number so a thread does not repeat itself. */
-export function smallTalkReply(kind: SmallTalk, lang: Lang, turn: number): string {
-  const list = SMALL_TALK[kind][lang];
-  return list[Math.abs(turn) % list.length];
+export function smallTalkReply(kind: SmallTalk, lang: Lang, turn: number, recent: readonly string[] = []): string {
+  return pickLine(SMALL_TALK[kind][lang], turn, recent);
 }
 
 // ---------- remarks ----------
@@ -150,30 +219,32 @@ export function remarkKind(text: string): Remark | null {
 /** The hub's sentence for each kind of remark: it acknowledges, never judges, diagnoses or reassures. {topic} is the previous exchange's topic, in the hub's words. */
 export const REMARK_TEXTS: Record<Remark, { en: string[]; pt: string[] }> = {
   noticed: {
-    en: ['Good that you noticed. What you feel about {topic} is worth writing down.', 'You know your body best. It helps to keep track of {topic} when something feels different.', 'That is worth paying attention to. Noticing changes in {topic} early helps.'],
-    pt: ['Que bom que você percebeu. Vale anotar o que você sente sobre {topic}.', 'Você conhece seu corpo melhor que ninguém. Ajuda acompanhar {topic} quando algo parece diferente.', 'Vale prestar atenção nisso. Perceber cedo mudanças em {topic} ajuda.'],
+    en: ['Good that you noticed. What you sense about {topic} is worth keeping track of.', 'You know your own days best. It helps to keep track of {topic} when something seems different.', 'That is worth holding on to. Changes in {topic} are easier to see when you write them down.'],
+    pt: ['Que bom que você percebeu. O que você sente sobre {topic} vale ser acompanhado.', 'Você conhece seus dias melhor que ninguém. Ajuda acompanhar {topic} quando algo parece diferente.', 'Vale guardar isso. Anotar ajuda a ver como {topic} muda.'],
   },
   worry: {
-    en: ['That is a fair thing to worry about. Let us look at {topic} together.', 'It makes sense to want to understand {topic} better.', 'I hear you. The best next step is to look at {topic} a little closer.'],
-    pt: ['É uma preocupação justa. Vamos olhar {topic} juntos.', 'Faz sentido querer entender melhor {topic}.', 'Entendo. O melhor próximo passo é olhar {topic} um pouco mais de perto.'],
+    en: ['That is a fair thing to wonder about, with {topic}.', 'It makes sense to want to understand {topic} better.', 'I hear you. It is fair to want to understand {topic}.'],
+    pt: ['É uma dúvida justa, sobre {topic}.', 'Faz sentido querer entender melhor {topic}.', 'Entendo. É justo querer entender {topic}.'],
   },
   agree: {
-    en: ['Glad that helps make sense of {topic}.', 'Okay. There is a bit more we can look at about {topic}.', 'Good. Let us keep going with {topic}.'],
-    pt: ['Que bom que isso ajuda a entender {topic}.', 'Certo. Dá para olhar mais um pouco sobre {topic}.', 'Bom. Vamos continuar com {topic}.'],
+    en: ['Glad that helps make sense of {topic}.', 'Okay. That is the picture of {topic} for now.', 'Good. It helps when the numbers on {topic} match what you sense.'],
+    pt: ['Que bom que isso ajuda a entender {topic}.', 'Certo. Esse é o retrato de {topic} por enquanto.', 'Bom. Ajuda quando os números sobre {topic} batem com o que você sente.'],
   },
   disagree: {
     en: ['Fair enough. The numbers are only part of the picture of {topic}; how you feel counts too.', 'That is okay. You know how {topic} feels for you better than the readings do.'],
-    pt: ['Tudo bem. Os números são só uma parte de {topic}; o que você sente também conta.', 'Tudo bem. Você sabe melhor que as leituras como está {topic}.'],
+    pt: ['Tudo bem. Os números contam só uma parte sobre {topic}; o que você sente também conta.', 'Tudo bem. Você sabe melhor que as leituras como está {topic}.'],
   },
   surprise: {
-    en: ['It is a lot to take in. There is more we can look at about {topic}.', 'It can be surprising. Let us look at {topic} a little more.', 'Good to know, right? We can look a bit further into {topic}.'],
-    pt: ['É bastante coisa. Dá para olhar mais sobre {topic}.', 'Pode surpreender mesmo. Vamos olhar {topic} mais um pouco.', 'Bom saber, né? Dá para ir um pouco mais fundo em {topic}.'],
+    en: ['It is a lot to take in about {topic}.', 'It can be surprising to see {topic} in numbers.', 'Good to know, right? Numbers on {topic} can say more than you expect.'],
+    pt: ['É bastante coisa sobre {topic}.', 'Pode surpreender ver {topic} em números.', 'Bom saber, né? Os números sobre {topic} às vezes dizem mais do que a gente espera.'],
   },
 };
 
 /** The hub's next steps after a remark, each honest about what happens. */
 export const REMARK_NEXT = {
   offer: { en: 'I can show you {options}. Which one?', pt: 'Posso mostrar {options}. Qual deles?' },
+  offerOne: { en: 'Want to see {options}?', pt: 'Quer ver {options}?' },
+  declined: { en: 'Okay. Ask me whenever you like.', pt: 'Certo. Pergunte quando quiser.' },
   note: { en: 'Do you want me to save what you noticed as a check-in note? Only you can read the words.', pt: 'Quer que eu salve o que você percebeu como uma nota de check-in? Só você pode ler o texto.' },
   noTopic: { en: 'Tell me what you noticed, or ask me about a reading.', pt: 'Me conte o que você percebeu, ou pergunte sobre uma leitura.' },
   saved: { en: 'Saved as a check-in note. Only you can read it.', pt: 'Salvo como nota de check-in. Só você pode ler.' },
@@ -198,9 +269,8 @@ export function remarkTopic(previousText: string | null, signals: readonly strin
 }
 
 /** The acknowledgement sentence, picked by the turn number so a thread does not repeat itself. */
-export function remarkReply(kind: Remark, lang: Lang, turn: number, topic: string): string {
-  const list = REMARK_TEXTS[kind][lang];
-  return list[Math.abs(turn) % list.length].replace('{topic}', topic);
+export function remarkReply(kind: Remark, lang: Lang, turn: number, topic: string, recent: readonly string[] = []): string {
+  return pickLine(REMARK_TEXTS[kind][lang].map((l) => l.replace('{topic}', topic)), turn, recent);
 }
 
 /** "your sleep or the CO2 in your room", for the hub's offer. */
@@ -208,7 +278,7 @@ export function offerText(options: readonly string[], lang: Lang): string {
   const names = options.map((id) => remarkTopic(null, [id], lang));
   const last = names.pop();
   const list = names.length ? `${names.join(', ')} ${lang === 'pt' ? 'ou' : 'or'} ${last}` : last ?? '';
-  return REMARK_NEXT.offer[lang].replace('{options}', list);
+  return REMARK_NEXT[options.length === 1 ? 'offerOne' : 'offer'][lang].replace('{options}', list);
 }
 
 // ---------- topics ----------
@@ -324,6 +394,18 @@ export function standaloneQuestion(shape: FollowUpShape, signal: string, topic: 
   const whose = crew.find((c) => c.id === topic.about)?.name ?? topic.about;
   const x = topicName(signal, lang, self, whose);
   const w = WINDOWS.find((v) => v.id === topic.window);
+  // Sleep is asked about as people ask it: "How did I sleep last night?", not "How is my sleep?".
+  if (signal === 'sleep' && (shape === 'how' || shape === 'when')) {
+    const when = shape === 'when' && w ? ` ${w[lang]}` : '';
+    if (lang === 'pt') return self ? `Como eu dormi${when}?` : `Como ${whose} dormiu${when}?`;
+    return self ? `How did I sleep${when}?` : `How did ${whose} sleep${when}?`;
+  }
+  // Steps are plural in English.
+  if (signal === 'steps' && lang === 'en') {
+    if (shape === 'bad') return `Are ${x} a problem?`;
+    if (shape === 'when' && w) return `How were ${x} ${w.en}?`;
+    if (shape === 'how') return `How are ${x}?`;
+  }
   if (lang === 'pt') {
     if (shape === 'why') return `Por que ${x} está assim?`;
     if (shape === 'bad') return `${cap(x)} é um problema?`;
@@ -399,8 +481,13 @@ export interface PendingOption { value: string; label: { en: string; pt: string 
 
 /** A question the hub asked and waits on, one at a time. */
 export interface Pending {
-  /** askFirst: her follow-up.json question. card: a card's own check-in question. better: "Did it get better?". clarify: which topic (also the hub's offer after a remark). note: save a remark as a check-in note. */
-  purpose: 'askFirst' | 'card' | 'better' | 'clarify' | 'note';
+  /**
+   * askFirst: her follow-up.json question. card: a card's own check-in question. better: "Did it get better?".
+   * clarify: which topic (also the hub's offer after a remark). note: save a remark as a check-in note.
+   * feeling: "Are you feeling better?" after any card's steps but hers for no card fitting (nothing stored, nothing raised).
+   * offerHelp: after a "no" to it, "Do you want to call for help?" (the screen's "Call for help" confirms, then calls).
+   */
+  purpose: 'askFirst' | 'card' | 'better' | 'clarify' | 'note' | 'feeling' | 'offerHelp';
   kind: 'yes_no' | 'value' | 'choice';
   /** Where the answer is stored (a check-in signal), for askFirst, card and better. */
   signal?: string;
@@ -423,6 +510,14 @@ export interface Pending {
 export const YES_NO: PendingOption[] = [
   { value: 'yes', label: { en: 'Yes', pt: 'Sim' } },
   { value: 'no', label: { en: 'No', pt: 'Não' } },
+];
+
+/** The options of "Do you want to call for help?". A screen opens its own confirmation for HELP_OPTION instead of sending it. */
+export const HELP_OPTION = 'help';
+export const NOT_NOW_OPTION = 'notNow';
+export const OFFER_HELP: PendingOption[] = [
+  { value: HELP_OPTION, label: { en: 'Call for help', pt: 'Pedir ajuda' } },
+  { value: NOT_NOW_OPTION, label: { en: 'Not now', pt: 'Agora não' } },
 ];
 
 const YES = /^(yes|yeah|yep|yup|y|sure|i do|i did|it is|it did|a (little|bit)|a little bit|somewhat|kind of|sort of|sim|s|claro|um pouco|mais ou menos|tomei|dormi|estou|tenho|aham|uhum|isso)\b/i;
@@ -451,6 +546,15 @@ export function interpretReply(text: string, pending: Pending): Reply | null {
     if (nums.length === 1 && /^\D{0,20}\d+(?:[.,]\d+)?\s*\D{0,20}$/.test(q)) return { value: Number(nums[0].replace(',', '.')), text: q };
     return nums.length || q.split(' ').length <= 6 ? { value: null, text: q } : null;
   }
+  // "Do you want to call for help?": yes or no, or either option by name ("not now", "agora não").
+  if (pending.purpose === 'offerHelp') {
+    const yes = YES.test(q), no = NO.test(q);
+    if (yes !== no) return { value: yes ? 1 : 0, text: null, option: yes ? HELP_OPTION : NOT_NOW_OPTION };
+    const named = pending.options.filter((o) => q.includes(plain(o.label.en)) || q.includes(plain(o.label.pt)));
+    return named.length === 1 ? { value: named[0].value === HELP_OPTION ? 1 : 0, text: null, option: named[0].value } : null;
+  }
+  // A single offer ("Want to see your sleep?") is answered yes or no too.
+  if (pending.options.length === 1 && q.split(' ').length <= 3 && YES.test(q) !== NO.test(q) && !remarkKind(text)) return YES.test(q) ? { value: 1, text: null, option: pending.options[0].value } : { value: 0, text: null };
   const n = /^(the )?(first|1|one|primeir[oa])\b/.test(q) ? 0 : /^(the )?(second|2|two|segund[oa])\b/.test(q) ? 1 : /^(the )?(third|3|three|terceir[oa])\b/.test(q) ? 2 : -1;
   if (n >= 0 && pending.options[n]) return { value: null, text: null, option: pending.options[n].value };
   const hit = pending.options.filter((o) => TOPICS.find((t) => t.id === o.value)?.re.test(q) || q.includes(o.label.en.toLowerCase()) || q.includes(o.label.pt.toLowerCase()));
@@ -517,6 +621,15 @@ export interface Thread {
   turn: number;
   previous: Previous | null;
   pending: Pending | null;
+  /** Astra's last few replies in this thread (her own words and the hub's lines), newest last: no opener twice in a row, no near-copy. */
+  said?: string[];
+  /** When a crisis phrase was written in this thread: later ordinary messages carry the quiet help line. */
+  crisisAt?: number | null;
+}
+
+/** Keeps a reply's words in the thread, for the next turn's variety checks. */
+export function remember(thread: Thread, text: string): void {
+  thread.said = [...(thread.said ?? []), text].slice(-4);
 }
 
 /** Idle this long, and a thread is forgotten. */
@@ -552,12 +665,23 @@ export class Threads {
 
 export const CONVERSATION_TEXTS = {
   again: { en: "I didn't catch that. {question}", pt: 'Não entendi. {question}' },
-  noted: { en: 'Thank you, noted.', pt: 'Obrigada, anotado.' },
+  noted: { en: 'Thank you. I have noted that.', pt: 'Obrigada. Anotei.' },
   notedCard: { en: "Thank you, noted. Here is the medical lead's steps card.", pt: 'Obrigada, anotado. Aqui está o cartão de passos da responsável médica.' },
-  notedNoRule: { en: "Thank you, noted. Nobody else is told from these answers alone. Here is the medical lead's steps card.", pt: 'Obrigada, anotado. Ninguém mais é avisado só por estas respostas. Aqui está o cartão de passos da responsável médica.' },
+  // Said once, in the intro before her questions ('followup.intro'); not repeated here.
+  notedNoRule: { en: "Thank you, noted. Here is the medical lead's steps card.", pt: 'Obrigada, anotado. Aqui está o cartão de passos da responsável médica.' },
   betterYes: { en: 'Good to hear. I have noted that it got better.', pt: 'Que bom. Anotei que melhorou.' },
   betterNo: { en: 'Noted: it did not get better. By the medical lead\'s rule, the hub tells your Crew Medical Officer.', pt: 'Anotado: não melhorou. Pela regra da responsável médica, o hub avisa o oficial médico da tripulação.' },
-  next: { en: 'Thank you. {question}', pt: 'Obrigada. {question}' },
+  next: { en: '{question}', pt: '{question}' },
+  // After a card's steps (any card but her no-card-fits one). Interface words, not hers: nothing is stored or raised.
+  feeling: { en: 'Are you feeling better?', pt: 'Você está se sentindo melhor?' },
+  feelingYes: { en: 'Good to hear.', pt: 'Que bom.' },
+  offerHelp: { en: 'Do you want to call for help?', pt: 'Quer pedir ajuda?' },
+  notNow: { en: "Okay. I'm here if that changes.", pt: 'Certo. Estou aqui se isso mudar.' },
+  // A typed "yes" to the offer: the call itself is always confirmed on the screen.
+  helpTap: { en: 'Tap Call for help to confirm.', pt: 'Toque em Pedir ajuda para confirmar.' },
+  // Before a card that is not urgent: its questions come first, then the card.
+  oneFirst: { en: 'One question first.', pt: 'Uma pergunta antes.' },
+  fewFirst: { en: 'A few questions first.', pt: 'Primeiro, algumas perguntas.' },
 } as const;
 
 export function conversationText(key: keyof typeof CONVERSATION_TEXTS, lang: Lang, vars: Record<string, string> = {}): string {

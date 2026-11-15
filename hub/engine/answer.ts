@@ -16,11 +16,15 @@ import type { Evidence } from './evidence.ts';
 import { CO2_LEVELS } from './exposure.ts';
 import type { Kind } from './types.ts';
 import type { DangerVerdict, PersonReadings, Reading } from './prompt.ts';
+import { TOPICS } from './conversation.ts';
+import { hasString, t } from './strings.ts';
 
 export type AnswerLang = 'en' | 'pt';
 
 /**
  * The sentence templates, by string-table key. Portuguese waits for approval.
+ * Portuguese names a signal by its `signal.*` name in the string table and
+ * puts the article or possessive in front of it ({Sinal}, {O_sinal}).
  *
  * Person words are filled in by `render`, so one template serves "you" (the
  * crewmate asking about themselves) and a crewmate asking about someone else
@@ -31,77 +35,77 @@ export type AnswerLang = 'en' | 'pt';
 export const ANSWER_STRINGS = {
   'answer.limit.under': {
     en: "The {signal} in {your} cabin reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} na cabine {de_voce} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} {na_cabine} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
   },
   'answer.limit.at': {
     en: "The {signal} in {your} cabin reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} na cabine {de_voce} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} {na_cabine} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
   },
   'answer.limit.over': {
     en: "The {signal} in {your} cabin reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}. The steps card for this applies.",
-    pt: 'O {signal} na cabine {de_voce} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica.',
+    pt: '{O_sinal} {na_cabine} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica.',
   },
   'answer.limit.plain': {
     en: 'The {signal} in {your} cabin reads {value} {unit} ({window}).',
-    pt: 'O {signal} na cabine {de_voce} está em {value} {unit} ({window}).',
+    pt: '{O_sinal} {na_cabine} está em {value} {unit} ({window}).',
   },
   'answer.danger.under': {
     en: "The {signal} in {your} cabin is under NASA's limit: {value} {unit} ({window}), {diff} {unit} below {limit} {unit}.",
-    pt: 'O {signal} na cabine {de_voce} está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}.',
+    pt: '{O_sinal} {na_cabine} está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}.',
   },
   'answer.danger.at': {
     en: "The {signal} in {your} cabin is at NASA's limit: {value} {unit} ({window}); the limit is {limit} {unit}.",
-    pt: 'O {signal} na cabine {de_voce} está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}.',
+    pt: '{O_sinal} {na_cabine} está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}.',
   },
   'answer.danger.over': {
     en: "The {signal} in {your} cabin is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
-    pt: 'O {signal} na cabine {de_voce} está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
+    pt: '{O_sinal} {na_cabine} está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
   },
   // The room the person is in now, when it is not their quarters: named, never called "your cabin".
   'answer.limitHere.under': {
     en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
   },
   'answer.limitHere.at': {
     en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
   },
   'answer.limitHere.over': {
     en: "The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}. The steps card for this applies.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}. O cartão de passos para isso se aplica.',
   },
   'answer.limitHere.plain': {
     en: 'The {signal} in {room}, where {you} {are} now, reads {value} {unit} ({window}).',
-    pt: 'O {signal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}).',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está em {value} {unit} ({window}).',
   },
   'answer.dangerHere.under': {
     en: "The {signal} in {room}, where {you} {are} now, is under NASA's limit: {value} {unit} ({window}), {diff} {unit} below {limit} {unit}.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está abaixo do limite da NASA: {value} {unit} ({window}), {diff} {unit} abaixo de {limit} {unit}.',
   },
   'answer.dangerHere.at': {
     en: "The {signal} in {room}, where {you} {are} now, is at NASA's limit: {value} {unit} ({window}); the limit is {limit} {unit}.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está no limite da NASA: {value} {unit} ({window}); o limite é {limit} {unit}.',
   },
   'answer.dangerHere.over': {
     en: "The {signal} in {room}, where {you} {are} now, is over NASA's limit: {value} {unit} ({window}), {diff} {unit} above {limit} {unit}. The steps card for this applies.",
-    pt: 'O {signal} em {room}, onde {voce} está agora, está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
+    pt: '{O_sinal} em {room}, onde {voce} está agora, está acima do limite da NASA: {value} {unit} ({window}), {diff} {unit} acima de {limit} {unit}. O cartão de passos para isso se aplica.',
   },
   // Another room the evidence card points to, not the person's quarters and not where they are.
   'answer.limitThere.under': {
     en: "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} below NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} em {room} está em {value} {unit} ({window}), {diff} {unit} abaixo do limite da NASA de {limit} {unit}.',
   },
   'answer.limitThere.at': {
     en: "The {signal} in {room} reads {value} {unit} ({window}), at NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} em {room} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} em {room} está em {value} {unit} ({window}), no limite da NASA de {limit} {unit}.',
   },
   'answer.limitThere.over': {
     en: "The {signal} in {room} reads {value} {unit} ({window}), {diff} {unit} above NASA's limit of {limit} {unit}.",
-    pt: 'O {signal} em {room} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}.',
+    pt: '{O_sinal} em {room} está em {value} {unit} ({window}), {diff} {unit} acima do limite da NASA de {limit} {unit}.',
   },
   'answer.limitThere.plain': {
     en: 'The {signal} in {room} reads {value} {unit} ({window}).',
-    pt: 'O {signal} em {room} está em {value} {unit} ({window}).',
+    pt: '{O_sinal} em {room} está em {value} {unit} ({window}).',
   },
   // The place's gravity, a plain fact of the place. Said only when the question or a card turns on it.
   'answer.gravity.none': {
@@ -112,25 +116,26 @@ export const ANSWER_STRINGS = {
     en: "Gravity here is {g} of Earth's.",
     pt: 'A gravidade aqui é {g} da gravidade da Terra.',
   },
+  // A single usual value is never called a range: "your usual is about 61 bpm".
   'answer.normal.inside': {
-    en: '{Your} {signal} is inside {your} normal ({value} {unit}).',
-    pt: 'O {signal} {de_voce} está dentro do normal ({value} {unit}).',
+    en: '{Your} {signal} is {value} {unit}, about {your} usual.',
+    pt: '{Sinal} está em {value} {unit}, perto {do_habitual}.',
   },
   'answer.normal.above': {
-    en: '{Your} {signal} is {value} {unit}, above {your} normal of {normal} {unit}.',
-    pt: 'O {signal} {de_voce} está em {value} {unit}, acima do normal de {normal} {unit}.',
+    en: '{Your} {signal} is {value} {unit}, above {your} usual of about {normal} {unit}.',
+    pt: '{Sinal} está em {value} {unit}, acima {do_habitual}, que é de cerca de {normal} {unit}.',
   },
   'answer.normal.below': {
-    en: '{Your} {signal} is {value} {unit}, below {your} normal of {normal} {unit}.',
-    pt: 'O {signal} {de_voce} está em {value} {unit}, abaixo do normal de {normal} {unit}.',
+    en: '{Your} {signal} is {value} {unit}, below {your} usual of about {normal} {unit}.',
+    pt: '{Sinal} está em {value} {unit}, abaixo {do_habitual}, que é de cerca de {normal} {unit}.',
   },
   'answer.series': {
     en: '{Your} {signal}, {window}: {values} {unit}.',
-    pt: 'O {signal} {de_voce}, {window}: {values} {unit}.',
+    pt: '{Sinal}, {window}: {values} {unit}.',
   },
   'answer.value': {
     en: '{Your} {signal}: {value} {unit}.',
-    pt: 'O {signal} {de_voce}: {value} {unit}.',
+    pt: '{Sinal}: {value} {unit}.',
   },
   'answer.exposure.standsOut': {
     en: 'In the last {hours} hours {you} spent {spent} hours in {room} with CO2 above {level} mmHg; none of {your} crewmates spent any time above it.',
@@ -174,11 +179,11 @@ export const ANSWER_STRINGS = {
   },
   'answer.unusual.none': {
     en: 'None of {your} body readings is unusual for {them} right now.',
-    pt: 'Nenhuma leitura do corpo {de_voce} está fora do normal agora.',
+    pt: 'Nenhuma leitura {do_corpo} está fora do habitual agora.',
   },
   'answer.unusual.signal': {
     en: '{Your} {signal} is unusual for {them}: {recent} against {your} usual {usual}.',
-    pt: 'O {signal} {de_voce} está fora do normal: {recent} contra o habitual de {usual}.',
+    pt: '{Sinal} está fora {do_habitual}: {recent}, quando o habitual é {usual}.',
   },
   'answer.sameRoom.same': {
     en: '{people}, in the same room, show the same reading.',
@@ -217,12 +222,16 @@ export const ANSWER_STRINGS = {
     pt: 'As leituras ainda não apontam para nada.',
   },
   'answer.notExact': {
-    en: "NASA's text does not answer this exactly. Here is what it does say, and what the readings show.",
-    pt: 'O texto da NASA não responde a isso exatamente. Aqui está o que ele diz, e o que as leituras mostram.',
+    en: "The closest NASA text is below; it does not answer this exactly.",
+    pt: 'O texto da NASA mais próximo está abaixo; ele não responde a isso exatamente.',
+  },
+  'answer.noYesterday': {
+    en: 'I have no {signal} from yesterday to compare with.',
+    pt: '{O_sinal}: não tenho um valor de ontem para comparar.',
   },
   'answer.noAdvice': {
-    en: 'The hub does not recommend what to do. Ask your Crew Medical Officer, and follow the steps card if one is on screen.',
-    pt: 'O hub não recomenda o que fazer. Fale com o oficial médico da tripulação e siga o cartão de passos, se houver um na tela.',
+    en: 'The hub does not recommend what to do. Ask your Crew Medical Officer, and follow the steps card if one is on screen. To ask your flight surgeon, tap Contact Earth.',
+    pt: 'O hub não recomenda o que fazer. Fale com o oficial médico da tripulação e siga o cartão de passos, se houver um na tela. Para falar com o cirurgião de voo, toque em Contatar a Terra.',
   },
   'answer.noDiagnosis': {
     en: 'The hub does not diagnose. Ask your Crew Medical Officer.',
@@ -312,10 +321,22 @@ const LEVEL_LIMIT = CO2_LEVELS[CO2_LEVELS.length - 1].level;
 
 /** What a question is about, from its words. Only chooses which facts to show; never changes a fact. */
 const AIR = /\b(co2|c02|carbon dioxide|air|room|quarters|cabin|stuffy|breath\w*|head\w*|sick|ill|unwell|wrong with (me|her|him|them)|somewhere else|sleep somewhere|move)\b/i;
+/** "Why am I so tired today?": a question about tiredness. Only chooses which facts to show. */
+export const TIRED = /\b(tired\w*|exhaust\w*|fatigue\w*|sleepy|drowsy|groggy|worn out|cansad[oa]s?|cansa[cç]o|exaust[oa]s?|sonolent[oa]s?|com sono)\b/i;
+/** The readings that bear on tiredness: sleep last night, times awake, the sleepiness or tiredness check-in. */
+export const TIRED_READING = /\b(sleep\w*|awake\w*|awakenings?|tired\w*|fatigue)\b/i;
+/** For a tiredness question, the (at most three) readings that bear on it, in the readings' order. */
+export function tirednessReadings<R extends Reading>(readings: readonly R[]): R[] {
+  return readings.filter((r) => r.type !== 'note' && TIRED_READING.test(r.name)).slice(0, 3);
+}
+/** "…compared to yesterday?" */
+const YESTERDAY = /\b(yesterday|ontem)\b/i;
+/** "What does NASA say about CO2?": a question for NASA's own words. */
+export const NASA_SAYS = /\b(what (does|do|did) nasa (say|said|write|recommend)|according to nasa|nasa'?s (limit|rule|guidance|text|standard)s? (on|for|about))\b/i;
 /** A question about gravity or floating. Only decides whether the place's gravity is stated. */
 const GRAVITY = /\b(gravity|weightless\w*|microgravity|zero[- ]?g|float\w*|g[- ]?force)\b/i;
 /** A yes/no question about an action ("Should I sleep somewhere else?"), not "How much should I exercise?". */
-const ADVICE = /^\W*(should|shall|can|could|must|may) (i|we|she|he|they)\b|^\W*(do|does) (i|we|she|he|they) need to\b|^\W*(would|will) it help\b|^\W*is it better\b|^\W*what should (i|we|she|he|they) do\b/i;
+const ADVICE = /^\W*(should|shall|can|could|must|may) (i|we|she|he|they)\b|^\W*is it (safe|ok|okay|fine|alright|all right|good|a good idea) (for (me|her|him|them|us) )?to\b|^\W*(am i|are we|is (she|he)|are they) (ok|okay|fine|good|safe|alright|all right|cleared) to\b|^\W*(do|does) (i|we|she|he|they) need to\b|^\W*(would|will) it help\b|^\W*is it better\b|^\W*what should (i|we|she|he|they) do\b/i;
 const DIAGNOSIS = /\b((am i|is (she|he)|are they) (sick|ill|unwell)|(do i|does (she|he)|do they) have|what('?s| is) wrong with (me|her|him|them)|is something wrong with (me|her|him|them))\b/i;
 /** A question asking for an amount, a dose or a treatment: "How long does she have to stay on oxygen?" */
 const AMOUNT = /\bhow (many|much|long|often)\b|\bwhat (dose|amount|quantity)\b|\bwhich (treatment|medicine|drug)\b|\bhow (do|should|can) (i|we) treat\b|\bwhat treatment\b|\bwhat (do|should) (i|we) (take|give)\b/i;
@@ -369,16 +390,25 @@ function readingItem(r: Reading, quarters?: string | null, roomName?: (id: strin
   if (r.type === 'note') return null; // free text: not repeated by the hub
   if (r.type === 'value') return { key: 'answer.value', vars: { signal: r.name, value: r.value, unit: r.unit }, label: r.label };
   if (r.type === 'series') return { key: 'answer.series', vars: { signal: r.name, window: r.window, values: r.values.join(', '), unit: r.unit }, label: r.label };
-  const normal = typeof r.normal === 'number' ? r.normal : `${r.normal[0]}-${r.normal[1]}`;
+  // Durations read as "5 h 9 min"; a 0-100 score reads "40 out of 100"; a daily value is "latest", never "…, latest daily value".
+  const minutes = r.unit === 'min' && DURATION.test(r.name);
+  const shown = (v: number) => (minutes ? durationText(v) : v);
+  const normal = typeof r.normal === 'number' ? shown(r.normal) : `${shown(r.normal[0])}-${shown(r.normal[1])}`;
+  const unit = minutes ? '' : r.unit === '0-100' ? 'out of 100' : r.unit;
+  const daily = /,\s*latest daily value$/i.test(r.name);
+  const signal = daily ? r.name.replace(/,\s*latest daily value$/i, '') : r.name;
   const side = r.judged ?? (typeof r.normal === 'number'
     ? (r.value > r.normal ? 'above' : r.value < r.normal ? 'below' : 'inside')
     : (r.value > r.normal[1] ? 'above' : r.value < r.normal[0] ? 'below' : 'inside'));
-  return { key: `answer.normal.${side}`, vars: { signal: r.name, value: r.value, unit: r.unit, normal }, label: r.label };
+  return { key: `answer.normal.${side}`, vars: { signal, value: shown(r.value), unit, normal, ...(daily ? { latest: 1 } : {}) }, label: r.label };
 }
 
 function mentions(question: string, name: string): boolean {
   const words = name.toLowerCase().replace(/^cabin\s+/, '').split(/\s+/).filter((w) => w.length > 2);
-  return words.length > 0 && words.every((w) => question.includes(w));
+  if (words.length > 0 && words.every((w) => question.includes(w))) return true;
+  // The same topic named in either language ("frequência cardíaca" for "heart rate"): only chooses which facts to show.
+  const q = question.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return TOPICS.some((t) => t.id !== 'co2' && t.re.test(q) && t.re.test(name));
 }
 
 /**
@@ -524,12 +554,57 @@ export function personWords(who: Who, first: boolean): Record<string, string> {
 const SELF: Who = { name: '', pronouns: 'they', self: true };
 
 /** Uses a person word ({You}, {your}, …)? The first such sentence names the person. */
-const PERSON_BLANK = /\{(You|you|are|Your|your|them|Voce|voce|de_voce)\}/;
+const PERSON_BLANK = /\{(You|you|are|Your|your|them|Voce|voce|de_voce|Sinal|na_cabine|do_habitual|do_corpo)\}/;
+
+/** A signal's Portuguese name from the string table ("heart rate" → "frequência cardíaca"); unknown names stay as they are. */
+export function ptSignalName(signal: string): string {
+  const key = `signal.${signal.trim().toLowerCase().replace(/^cabin\s+/, '').replace(/[\s-]+/g, '_')}`;
+  if (!hasString(key)) return signal;
+  const name = t(key, 'pt');
+  return /^[A-Z]{2}/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1);
+}
+
+/** Grammatical gender and number of a Portuguese signal name, from its first word. */
+function ptForm(name: string): { fem: boolean; plural: boolean } {
+  const word = name.split(/[\s,]+/)[0].toLowerCase();
+  return { fem: /(a|ão|dade|luz|dose)$/.test(word), plural: /s$/.test(word) && !/^(co2|o2)$/.test(word) };
+}
+
+/**
+ * Portuguese words built around the signal: "Sua frequência cardíaca",
+ * "A frequência cardíaca de Reyes", "O CO2", "na sua cabine", "do seu habitual".
+ */
+function ptWords(signal: string, who: Who, first: boolean): Record<string, string> {
+  const name = ptSignalName(signal);
+  const { fem, plural } = ptForm(name);
+  const art = (fem ? 'a' : 'o') + (plural ? 's' : '');
+  const poss = (fem ? 'sua' : 'seu') + (plural ? 's' : '');
+  const p = who.pronouns;
+  const of = who.self ? '' : first || p === 'they' ? `de ${who.name}` : PT_POSSESSIVE[p];
+  const owned = (noun: string, fem2: boolean) => who.self ? `${fem2 ? 'sua' : 'seu'} ${noun}` : `${noun} ${of}`;
+  const sinal = who.self ? `${poss} ${name}` : `${art} ${name} ${of}`;
+  return {
+    Sinal: cap(sinal), O_sinal: cap(`${art} ${name}`),
+    na_cabine: who.self ? 'na sua cabine' : `na cabine ${of}`,
+    do_habitual: who.self ? 'do seu habitual' : `do habitual ${of}`,
+    do_corpo: `do ${owned('corpo', false)}`,
+  };
+}
 
 export function render(item: FactItem, lang: AnswerLang, who: Who = SELF, first = true): string {
   const template = ANSWER_STRINGS[item.key][lang];
   const words = personWords(who, first);
-  return template.replace(/\{(\w+)\}/g, (_, k: string) => String(item.vars[k] ?? words[k] ?? ''));
+  const pt: Record<string, string> = lang === 'pt' ? ptWords(String(item.vars.signal ?? ''), who, first) : {};
+  const vars: Record<string, string | number> = { ...item.vars };
+  // A daily value: "Your latest sleepiness", "Sua sonolência mais recente".
+  if (item.vars.latest) {
+    if (lang === 'pt') pt.Sinal = `${pt.Sinal} mais recente`;
+    else vars.signal = `latest ${vars.signal}`;
+  }
+  if (lang === 'pt' && vars.unit === 'out of 100') vars.unit = 'de 100';
+  // An empty unit leaves no gap before a comma or a full stop.
+  const line = template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? pt[k] ?? words[k] ?? ''));
+  return item.key.startsWith('answer.normal.') && !vars.unit ? line.replace(/ +([,.;])/g, '$1') : line;
 }
 
 /** "(replayed)", or "(CO2 replayed; location simulated)" when the inputs differ. */
@@ -568,9 +643,11 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
   const diagnosis = DIAGNOSIS.test(q);
 
   // Readings: the cabin's limited readings when the question is about the air or the room; others when named.
+  // A tiredness question gets the two or three readings that bear on it (sleep, times awake, the check-in), nothing else.
+  const tired = TIRED.test(q) && !air ? new Set<Reading>(tirednessReadings(readings)) : null;
   for (const r of readings) {
     if (input.danger && r === input.danger.reading) continue;
-    const named = r.type !== 'note' && mentions(q, r.name);
+    const named = r.type !== 'note' && (tired ? tired.has(r) : mentions(q, r.name));
     if (!named && !(r.type === 'limit' && air)) continue;
     const item = readingItem(r, input.quarters, roomName);
     if (item) items.push(item);
@@ -582,12 +659,27 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
     for (const r of input.roomReadings(focus)) items.push(limitItem({ ...r, room: focus, here: false }, false, input.quarters, roomName));
   }
 
+  // "…compared to yesterday?": a daily series answers it; a single current value cannot, and the hub says so plainly.
+  if (YESTERDAY.test(q)) {
+    for (const r of readings) {
+      if (r.type !== 'normal' || !mentions(q, r.name)) continue;
+      const signal = r.name.replace(/,\s*latest daily value$/i, '').replace(/\s*\b(last night|today)\b/i, '');
+      if (!readings.some((x) => x.type === 'series' && mentions(q, x.name))) items.push({ key: 'answer.noYesterday', vars: { signal }, label: 'hub' });
+    }
+  }
   // The place's gravity, only when the question or a card turns on it. A fact of the place, nothing more.
   if (typeof input.gravity === 'number' && (GRAVITY.test(q) || input.gravityMatters)) {
     items.push(input.gravity === 0 ? { key: 'answer.gravity.none', vars: {}, label: 'hub' } : { key: 'answer.gravity.partial', vars: { g: input.gravity }, label: 'hub' });
   }
 
   // The evidence card, when the question is about the air, the room, how they are, or what to do.
+  // A tiredness question: the evidence card's "points to" sentence only, when it points somewhere.
+  if (input.evidence && tired && !(advice || diagnosis) && input.evidence.pointsTo !== 'unknown') {
+    const e = input.evidence;
+    items.push(e.pointsTo === 'room'
+      ? { key: 'answer.lead.room', vars: { room: e.focusRoom ? roomName(e.focusRoom) : '' }, label: 'hub' }
+      : { key: `answer.lead.${e.pointsTo}` as AnswerKey, vars: {}, label: 'hub' });
+  }
   if (input.evidence && (air || advice || diagnosis)) {
     const found = evidenceItems(input.evidence, input.readings, roomName, personName);
     // The evidence card's verdict leads, in a conversational sentence; the facts follow it (after a danger reading, which always comes first).
@@ -601,16 +693,52 @@ export function composeAnswer(input: ComposeInput): HubAnswer {
 
   // For "Should I…?" and "Am I ill?" the hub gives its facts and verdict only: a passage found for those
   // words would be NASA's text about other people and other illnesses.
-  const passages = advice || diagnosis ? [] : input.passages.map((p) => ({ name: p.name, url: p.url, text: p.text }));
+  // For "Is the CO2 dangerous?" the verdict sentence, with NASA's limit in it, is the answer: a passage the search
+  // found near those words (the scrubber's inner workings, say) would bury it.
+  const passages = advice || diagnosis || input.danger ? [] : input.passages.map((p) => ({ name: p.name, url: p.url, text: p.text }));
   const said = items.filter((i) => i.key !== 'answer.noAdvice' && i.key !== 'answer.noDiagnosis');
-  if (input.notExact && (said.length > 0 || passages.length > 0)) items.unshift({ key: 'answer.notExact', vars: {}, label: 'hub' });
+  // What is known comes first; the line about NASA's text closes the hub's sentences, just before the quotes it is about.
+  if (input.notExact && passages.length > 0) items.push({ key: 'answer.notExact', vars: {}, label: 'hub' });
   const factsText = renderItems(items, input.lang, who).join(' ');
   const quotes = passages.map((p) => render({ key: 'answer.quote', vars: { name: p.name, text: p.text, url: p.url }, label: 'hub' }, input.lang));
+  // "What does NASA say about CO2?": NASA's own words lead, then the readings, so no "that limit" is left hanging.
+  const nasaFirst = NASA_SAYS.test(q) && quotes.length > 0;
   return {
     items, passages, who, factsText,
-    text: [factsText, ...quotes].filter(Boolean).join('\n\n'),
+    text: (nasaFirst ? [...quotes, factsText] : [factsText, ...quotes]).filter(Boolean).join('\n\n'),
     relevant: said.length > 0 || passages.length > 0,
   };
+}
+
+/** Hub lines that are never facts and always stay: what the hub does not do, and the not-exact line before the quotes. */
+const KEEP: AnswerKey[] = ['answer.notExact', 'answer.noAdvice', 'answer.noDiagnosis', 'answer.noYesterday'];
+/** Which supporting fact matters most after the plain answer, best first; anything else keeps its order after these. */
+const SUPPORT_ORDER = ['answer.lead.', 'answer.exposure.hourOver', 'answer.exposure.aboveHourUnder', 'answer.exposure.above', 'answer.exposure.hourUnder', 'answer.exposure.standsOut', 'answer.exposure.plain', 'answer.normal.', 'answer.unusual.signal'];
+const isAnswerItem = (k: AnswerKey) => /^answer\.(danger|dangerHere|limit|limitHere|limitThere|normal|value|series)\./.test(k) || k === 'answer.value' || k === 'answer.series';
+
+/**
+ * The hub's answer as a reply, not a report: the plain answer first (the
+ * reading the question is about, against NASA's limit or the person's normal,
+ * as the hub already computed it), then at most `support` other sentences,
+ * the most relevant first. Every sentence is one of composeAnswer's, unchanged
+ * and with its label; nothing new is said. The full list stays in `items`,
+ * `factsText` and `passages`. An answer of three sentences or fewer is
+ * returned as it is.
+ */
+export function replyText(answer: HubAnswer, lang: AnswerLang, support = 2): string {
+  const facts = answer.items.filter((i) => !KEEP.includes(i.key));
+  if (facts.length <= 1 + support) return answer.text;
+  const first = facts.find((i) => isAnswerItem(i.key)) ?? facts.find((i) => i.key.startsWith('answer.lead.')) ?? facts[0];
+  const rank = (k: string) => { const r = SUPPORT_ORDER.findIndex((p) => k.startsWith(p)); return r < 0 ? SUPPORT_ORDER.length : r; };
+  const rest = facts.filter((i) => i !== first).map((i, n) => ({ i, n })).sort((a, b) => rank(a.i.key) - rank(b.i.key) || a.n - b.n).slice(0, support).map((x) => x.i);
+  const chosen = new Set([first, ...rest]);
+  const opener = answer.items.filter((i) => i.key === 'answer.notExact');
+  const closer = answer.items.filter((i) => i.key === 'answer.noYesterday' || i.key === 'answer.noAdvice' || i.key === 'answer.noDiagnosis');
+  // Kept in composeAnswer's order after the plain answer, so the person is named the same way.
+  const picked = [first, ...answer.items.filter((i) => chosen.has(i) && i !== first), ...closer, ...opener];
+  const lines = renderItems(picked, lang, answer.who).join(' ');
+  const quotes = answer.passages.map((p) => render({ key: 'answer.quote', vars: { name: p.name, text: p.text, url: p.url }, label: 'hub' }, lang));
+  return (answer.text.startsWith('NASA, ') ? [...quotes, lines] : [lines, ...quotes]).filter(Boolean).join('\n\n');
 }
 
 /**
@@ -643,7 +771,8 @@ export function evidenceLines(e: Evidence, name: string, roomName: (id: string) 
       : `${reportedName(run.signal)} reported ${run.count} times (${run.kind}).`);
   }
   if (e.unusual.signals.length === 0) lines.push(`No body reading is unusual for ${name}.`);
-  if (e.pointsTo === 'room') lines.push(`The hub's comparison points to the room${e.focusRoom ? ` (${roomName(e.focusRoom)})` : ''}, not to ${name}.`);
+  // Worded so the model can repeat the verdict as it stands ("points to the room, not to you"); the room's name follows on its own.
+  if (e.pointsTo === 'room') lines.push(`The hub's comparison points to the room, not to ${name}.${e.focusRoom ? ` The room is ${roomName(e.focusRoom)}.` : ''}`);
   else if (e.pointsTo === 'person') lines.push(`The hub's comparison points to ${name}, not to the room.`);
   else if (e.pointsTo === 'sensor') lines.push("The hub's comparison points to the room's sensor: its reading may not be right.");
   else lines.push("The hub's comparison does not point anywhere yet.");

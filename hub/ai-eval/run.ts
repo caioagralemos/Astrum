@@ -57,7 +57,8 @@ interface ConversationTurn {
   /** Words the reply must never hold (safety). */
   mustNot?: string[];
 }
-interface ConversationCase { id: string; title: string; person: string; turns: ConversationTurn[]; history?: { question: string }[] }
+/** `readings`: the person's readings for this conversation (default: productPeople). `hour`: the hub's local hour (default: the clock). */
+interface ConversationCase { id: string; title: string; person: string; turns: ConversationTurn[]; history?: { question: string }[]; readings?: PersonReadings; hour?: number }
 /** `cards`: an old fixture set; without it, the medical lead's real cards are used. */
 interface Cases {
   conversations?: ConversationCase[]; globalChecks: Check[]; explainer: ExplainerCase[]; routing: RoutingCase[]; cards?: unknown; crisis: CrisisCase[]; productPeople?: Record<string, PersonReadings>; product?: ProductCase[] }
@@ -167,6 +168,10 @@ interface Row {
   ms: number;
   modelCalled: boolean;
   expect?: string;
+  /** Astra's conversational sentences the model was asked for in this turn (engine/glue.ts), with the checks' verdict. */
+  glue?: { kind: string; raw: string | null; ok: boolean; reasons: string[] }[];
+  /** True when any words shown in this turn are the model's (its answer, or its checked conversational sentence). */
+  modelWords?: boolean;
 }
 
 function outcome(result: AskResult, g: ReturnType<typeof grade>): Row['outcome'] {
@@ -291,9 +296,11 @@ async function main(): Promise<void> {
       const about = people[c.person];
       if (!about) throw new Error(`${c.id}: no productPeople entry for ${c.person}`);
       const stored: { signal: string; value: number | null; text: string | null; t: number }[] = [];
+      const own = c.readings;
       const ctx: AskContext = {
-        ...context(ai, about, null, { readings: [], answers: [] }, true, 0),
-        readingsFor: (id) => (people[id] ? people[id] : null),
+        ...context(ai, own ?? about, null, { readings: [], answers: [] }, true, 0),
+        readingsFor: (id) => (id === c.person && own ? own : people[id] ? people[id] : null),
+        ...(c.hour !== undefined ? { hour: () => c.hour! } : {}),
         personName: (id) => people[id]?.name ?? id,
         pronounsOf: (id) => (people[id] ? pronounsOf(people[id]) : undefined),
         threads: new Threads(),
@@ -303,7 +310,8 @@ async function main(): Promise<void> {
       };
       for (const [i, turn] of c.turns.entries()) {
         let raw: string | null = null;
-        const result = await askInConversation(ctx, { person: c.person, question: turn.q, lang: turn.lang ?? 'en', history: i === 0 ? c.history : undefined }, { onRaw: (r) => { raw = r.answer; } }) as AskResult;
+        const glue: NonNullable<Row['glue']> = [];
+        const result = await askInConversation(ctx, { person: c.person, question: turn.q, lang: turn.lang ?? 'en', history: i === 0 ? c.history : undefined }, { onRaw: (r) => { raw = r.answer; }, onGlue: (g) => { glue.push(g); } }) as AskResult;
         const problems: string[] = [];
         const e = turn.expect ?? {};
         if (e.route && result.route !== e.route) problems.push(`route ${result.route}, expected ${e.route}`);
@@ -321,7 +329,7 @@ async function main(): Promise<void> {
           route: result.route, by: result.by, urgent: result.urgent, card: result.card?.id ?? null,
           failedChecks: [...problems, ...unsafe], unsafeChecks: unsafe, rawUnsafe: [], reasons: result.check?.reasons ?? [], dropped: result.check?.dropped ?? [],
           passages: result.passages.map((p) => p.name), raw, shown: `${result.text}${result.understoodAs ? `\n(understood as: ${result.understoodAs})` : ''}${result.pendingQuestion ? `\n(asks: ${result.pendingQuestion.text} [${result.pendingQuestion.options.map((o) => o.label).join(' / ')}])` : ''}`,
-          ms: result.ms, modelCalled: raw !== null,
+          ms: result.ms, modelCalled: raw !== null, glue, modelWords: result.by === 'model' || result.lead?.by === 'model',
         });
         console.log(`${c.id}.${i + 1} conversation ${result.route}/${result.by} ${problems.length || unsafe.length ? `PROBLEM: ${[...problems, ...unsafe].join('; ')}` : 'right'}`);
       }
@@ -399,6 +407,11 @@ function write(rows: Row[], crisis: (CrisisCase & { route: string; right: boolea
   }
   const scored = crisis.filter((c) => c.right !== null);
   lines.push(`| crisis detector (no model) | ${scored.length} scored | ${scored.filter((c) => c.right).length} right | ${scored.filter((c) => !c.right).length} wrong | | | |`, '');
+  const talk = rows.filter((r) => r.part === 'conversation');
+  if (talk.length) {
+    const glue = talk.flatMap((r) => r.glue ?? []);
+    lines.push(`Conversation turns with the model's words shown (its answer, or its checked conversational sentence): ${talk.filter((r) => r.modelWords).length} of ${talk.length}. Conversational sentences asked for: ${glue.length}, shown: ${glue.filter((g) => g.ok).length}.`, '');
+  }
   lines.push('"Discarded by check": the hub threw the model\'s answer away and showed the fixed refusal. For "knows when it doesn\'t know" cases that is the right outcome; see the checks column.', '');
 
   lines.push('## Every case', '');
@@ -412,6 +425,7 @@ function write(rows: Row[], crisis: (CrisisCase & { route: string; right: boolea
     if (r.reasons.length) lines.push(`- Hub check reasons: ${r.reasons.join(' | ')}`);
     if (r.dropped.length) lines.push(`- Sentences dropped (example words): ${r.dropped.join(' | ')}`);
     if (r.raw !== null) lines.push('- Model answer:', '', '```', r.raw, '```');
+    for (const g of r.glue ?? []) lines.push(`- Astra's sentence (${g.kind}): ${g.ok ? 'shown' : `set aside (${g.reasons.join('; ')})`}: ${JSON.stringify(g.raw)}`);
     lines.push('- Shown to the crew:', '', '```', r.shown, '```', '');
   }
   lines.push('## Crisis detector', '', '| Id | Expected | Got | Right | Text |', '|---|---|---|---|---|');

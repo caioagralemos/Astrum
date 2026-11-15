@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ANSWER_STRINGS, asksAmountOrTreatment, composeAnswer, evidenceLines, namesTreatment, render, renderItems, reportedName } from './answer.ts';
-import type { FactItem } from './answer.ts';
+import { ANSWER_STRINGS, asksAmountOrTreatment, composeAnswer, evidenceLines, namesTreatment, ptSignalName, render, renderItems, replyText, reportedName } from './answer.ts';
+import type { FactItem, Who } from './answer.ts';
 import { checkAnswer, dangerCheck, readingsBlock, statesCause } from './prompt.ts';
 import type { PersonReadings, Reading } from './prompt.ts';
 import type { Evidence, PointsTo } from './evidence.ts';
@@ -98,7 +98,8 @@ test('nothing relevant: no facts and no passage', () => {
 test('every key has English and Portuguese; Portuguese renders', () => {
   for (const [key, v] of Object.entries(ANSWER_STRINGS)) {
     assert.ok(v.en && v.pt, key);
-    const data = (t: string) => [...new Set([...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((b) => !/^(You|you|are|Your|your|them|Voce|voce|de_voce)$/.test(b)))].sort();
+    // Portuguese says the signal with its article or possessive in front ({Sinal}, {O_sinal}): both stand for {signal}.
+    const data = (t: string) => [...new Set([...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1].replace(/^(Sinal|O_sinal)$/, 'signal')).filter((b) => !/^(You|you|are|Your|your|them|Voce|voce|de_voce|na_cabine|do_habitual|do_corpo)$/.test(b)))].sort();
     assert.deepEqual(data(v.en), data(v.pt), `${key}: same data blanks`);
   }
   const a = composeAnswer({ name: 'Reyes', question: 'Is it my room?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'pt', roomName });
@@ -112,7 +113,7 @@ test('evidence lines for the prompt: hub numbers with labels, "points to", and t
     "Single CO2 readings above 3 mmHg: 6.1 h in total (NASA's limit is for the 1-hour average, not single readings) (CO2 replayed; location simulated).",
     'headache reported on 3 days in a row (reported).',
     'No body reading is unusual for Reyes.',
-    "The hub's comparison points to the room (Quarters 2), not to Reyes.",
+    "The hub's comparison points to the room, not to Reyes. The room is Quarters 2.",
   ]);
   assert.equal(statesCause(lines.join('\n')), false);
 });
@@ -146,8 +147,10 @@ test('the 1-hour average: said only when the evidence card carries the highest o
 
 test('when NASA\'s text only comes near the question, the answer says so first', () => {
   const a = composeAnswer({ name: 'Reyes', question: 'How much should I exercise?', readings: reyes, evidence: null, passages: [CO2], lang: 'en', notExact: true });
-  assert.match(a.text, /^NASA's text does not answer this exactly\. Here is what it does say, and what the readings show\. /);
-  assert.ok(a.text.indexOf('\n\nNASA, ') > a.text.indexOf('(replayed)'), 'the line, then the facts, then the quotes');
+  // What is known first, in one sentence; the line about NASA's text closes the facts, just before the quotes.
+  assert.doesNotMatch(a.text, /^The closest NASA text/);
+  assert.match(a.factsText, /The closest NASA text is below; it does not answer this exactly\.$/);
+  assert.ok(a.text.indexOf('\n\nNASA, ') > a.text.indexOf('The closest NASA text'), 'the facts, then the line, then the quotes');
   assert.equal(composeAnswer({ name: 'Reyes', question: 'Who won?', readings: reyes, evidence: null, passages: [], lang: 'en', notExact: true }).items.length, 0, 'never alone');
 });
 
@@ -258,4 +261,42 @@ test('gravity is stated as a plain fact, only when the question or a card turns 
   assert.deepEqual(ask('How did I sleep?', 0.38), [], 'not about gravity: not said');
   assert.equal(ask('How did I sleep?', 0.166, true).length, 1, 'a card that depends on gravity: said');
   assert.deepEqual(ask('Am I floating?', null), [], 'unknown gravity: nothing said');
+});
+
+test('Portuguese facts: the signal by its Portuguese name, in natural second person', () => {
+  const me: Who = { name: 'Reyes', pronouns: 'she', self: true };
+  const her: Who = { name: 'Reyes', pronouns: 'she', self: false };
+  assert.equal(render({ key: 'answer.normal.inside', vars: { signal: 'heart rate', value: 52, unit: 'bpm', normal: 55 }, label: 'simulated' }, 'pt', me),
+    'Sua frequência cardíaca está em 52 bpm, perto do seu habitual.');
+  assert.equal(render({ key: 'answer.danger.under', vars: { signal: 'CO2', value: 2.4, unit: 'mmHg', window: '1-hour average', diff: 0.6, limit: 3 }, label: 'replayed' }, 'pt', me),
+    'O CO2 na sua cabine está abaixo do limite da NASA: 2.4 mmHg (1-hour average), 0.6 mmHg abaixo de 3 mmHg.');
+  assert.equal(render({ key: 'answer.unusual.signal', vars: { signal: 'sleep duration', recent: '7 h 29 min', usual: '5 h 21 min' }, label: 'simulated' }, 'pt', her, false),
+    'O sono na última noite dela está fora do habitual dela: 7 h 29 min, quando o habitual é 5 h 21 min.');
+  assert.equal(ptSignalName('steps'), 'passos hoje');
+  assert.equal(ptSignalName('something new'), 'something new', 'an unknown name stays as it is');
+  for (const v of Object.values(ANSWER_STRINGS)) assert.doesNotMatch(v.pt, /\{signal\}|\{de_voce\}\./, 'no English signal name, no "de você" after a noun');
+});
+
+test('the hub reply answers first: the plain verdict, then at most two facts; the full evidence stays in items', () => {
+  const danger = dangerCheck('Is the CO2 in my room ok?', reyes);
+  const a = composeAnswer({ name: 'Reyes', question: 'Is the CO2 in my room ok?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'en', roomName, danger });
+  const reply = replyText(a, 'en');
+  const sentences = renderItems(a.items, 'en', a.who);
+  assert.ok(sentences.length > 3, 'the full report is longer');
+  assert.ok(reply.length < a.text.length);
+  const shown = sentences.filter((line) => reply.includes(line));
+  assert.equal(shown.length, 3, 'the answer and two facts');
+  assert.ok(reply.startsWith(sentences[0]), 'the verdict on the reading comes first');
+  assert.match(sentences[0], /NASA's limit/);
+  assert.match(reply, /points to the room/);
+  // Nothing the full answer does not say; every number keeps its label.
+  for (const line of reply.split(/(?<=\))\s+/)) assert.ok(a.factsText.includes(line.trim()), line);
+  assert.equal(a.factsText, sentences.join(' '), 'facts unchanged');
+});
+
+test('a short hub answer is shown as it is; advice and diagnosis lines always stay', () => {
+  const a = composeAnswer({ name: 'Reyes', question: 'How is my heart rate?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'en' });
+  assert.equal(replyText(a, 'en'), a.text);
+  const adv = composeAnswer({ name: 'Reyes', question: 'Should I sleep somewhere else?', readings: reyes, evidence: reyesCard(), passages: [], lang: 'en', roomName });
+  assert.match(replyText(adv, 'en'), /The hub does not recommend what to do/);
 });

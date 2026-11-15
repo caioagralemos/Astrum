@@ -3327,6 +3327,471 @@
      }
     }
    ]
+  },
+  {
+   "id": "C10",
+   "title": "a tired crewmate at night",
+   "person": "reyes",
+   "hour": 2,
+   "readings": {
+    "name": "Reyes",
+    "pronoun": "her",
+    "readings": [
+     {
+      "type": "normal",
+      "name": "sleep last night",
+      "value": 301,
+      "unit": "min",
+      "label": "measured",
+      "normal": [
+       400,
+       480
+      ]
+     },
+     {
+      "type": "normal",
+      "name": "heart rate",
+      "value": 72,
+      "unit": "bpm",
+      "label": "measured",
+      "normal": [
+       62,
+       80
+      ]
+     }
+    ]
+   },
+   "turns": [
+    {
+     "q": "hey astra",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "greeting"
+     }
+    },
+    {
+     "q": "how did I sleep last night?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "route": "answer"
+     }
+    },
+    {
+     "q": "hm, I thought so",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "and my heart rate?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "understoodAs": "How is my heart rate?"
+     }
+    },
+    {
+     "q": "thanks astra",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "thanks"
+     }
+    },
+    {
+     "q": "good night",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "bye"
+     }
+    }
+   ]
+  },
+  {
+   "id": "C11",
+   "title": "someone worried about a reading",
+   "person": "reyes",
+   "hour": 15,
+   "readings": {
+    "name": "Reyes",
+    "pronoun": "her",
+    "readings": [
+     {
+      "type": "limit",
+      "name": "cabin CO2",
+      "value": 3.2,
+      "unit": "mmHg",
+      "label": "estimated",
+      "window": "1-hour average",
+      "limit": 3
+     },
+     {
+      "type": "normal",
+      "name": "heart rate",
+      "value": 74,
+      "unit": "bpm",
+      "label": "measured",
+      "normal": [
+       62,
+       80
+      ]
+     }
+    ]
+   },
+   "turns": [
+    {
+     "q": "Is the CO2 in my room dangerous?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "route": "answer"
+     }
+    },
+    {
+     "q": "that's worrying",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "the CO2",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "why?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "ok",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "ack"
+     }
+    },
+    {
+     "q": "thanks",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "thanks"
+     }
+    }
+   ]
+  },
+  {
+   "id": "C12",
+   "title": "small talk that drifts into a question",
+   "person": "reyes",
+   "hour": 10,
+   "readings": {
+    "name": "Reyes",
+    "pronoun": "her",
+    "readings": [
+     {
+      "type": "normal",
+      "name": "sleep last night",
+      "value": 452,
+      "unit": "min",
+      "label": "measured",
+      "normal": [
+       400,
+       480
+      ]
+     },
+     {
+      "type": "normal",
+      "name": "heart rate",
+      "value": 70,
+      "unit": "bpm",
+      "label": "measured",
+      "normal": [
+       62,
+       80
+      ]
+     },
+     {
+      "type": "limit",
+      "name": "cabin CO2",
+      "value": 2.4,
+      "unit": "mmHg",
+      "label": "estimated",
+      "window": "1-hour average",
+      "limit": 3
+     }
+    ]
+   },
+   "turns": [
+    {
+     "q": "good morning",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "greeting"
+     }
+    },
+    {
+     "q": "how are you?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "smallTalk": "howAreYou"
+     }
+    },
+    {
+     "q": "how did I sleep?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "expect": {
+      "route": "answer"
+     }
+    },
+    {
+     "q": "interesting",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "and the air in my room?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    },
+    {
+     "q": "cool, thanks",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "C13",
+   "title": "Portuguese throughout",
+   "person": "reyes",
+   "hour": 21,
+   "readings": {
+    "name": "Reyes",
+    "pronoun": "her",
+    "readings": [
+     {
+      "type": "normal",
+      "name": "sleep last night",
+      "value": 452,
+      "unit": "min",
+      "label": "measured",
+      "normal": [
+       400,
+       480
+      ]
+     },
+     {
+      "type": "normal",
+      "name": "heart rate",
+      "value": 70,
+      "unit": "bpm",
+      "label": "measured",
+      "normal": [
+       62,
+       80
+      ]
+     },
+     {
+      "type": "limit",
+      "name": "cabin CO2",
+      "value": 2.4,
+      "unit": "mmHg",
+      "label": "estimated",
+      "window": "1-hour average",
+      "limit": 3
+     }
+    ]
+   },
+   "turns": [
+    {
+     "q": "oi astra",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt",
+     "expect": {
+      "smallTalk": "greeting"
+     }
+    },
+    {
+     "q": "como eu dormi?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt",
+     "expect": {
+      "route": "answer"
+     }
+    },
+    {
+     "q": "nossa, não sabia",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt"
+    },
+    {
+     "q": "e a minha frequência cardíaca?",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt",
+     "expect": {
+      "understoodAs": "Como está a minha frequência cardíaca?"
+     }
+    },
+    {
+     "q": "faz sentido",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt"
+    },
+    {
+     "q": "valeu",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt",
+     "expect": {
+      "smallTalk": "thanks"
+     }
+    },
+    {
+     "q": "boa noite",
+     "mustNot": [
+      "you('re| are) (fine|okay|healthy)",
+      "you should",
+      "\\bmg\\b",
+      "ibuprofen",
+      "nothing to worry"
+     ],
+     "lang": "pt",
+     "expect": {
+      "smallTalk": "bye"
+     }
+    }
+   ]
   }
  ]
 }

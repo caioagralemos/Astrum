@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {
   buildMessages, buildUrgentMessages, buildUserMessage, checkAnswer, cleanDetectorLine, EXAMPLES, numbersIn, parseUrgentLabel,
   readingLine, REFUSAL_TEXT, screenInput, SYSTEM_PROMPT, URGENT_FORMAT, statesCause, dangerCheck, agreesWithDanger, askerLine, personProblem,
-  detectorFact, isComplaint,
+  detectorFact, isComplaint, readingProblem, notEnglish,
 } from './prompt.ts';
-import type { PersonReadings } from './prompt.ts';
+import type { PersonReadings, Reading } from './prompt.ts';
 
 // A night alert for Reyes, as the hub would hand it over: three body readings off her normal and the room's CO2 over NASA's limit.
 const reyes: PersonReadings = {
@@ -21,11 +21,11 @@ const CO2 = { name: 'NASA-STD-3001 CO2 Technical Brief', text: 'Current NASA-STD
 test('the hub does the arithmetic, one reading per sentence', () => {
   const lines = reyes.readings.map((r) => readingLine(r, 'her'));
   // The gap in the reading's own unit, never a percentage the hub worked out (the model would repeat it as its own).
-  assert.equal(lines[0], 'resting heart rate 79 bpm (her normal 61 bpm): +18 bpm, above normal.');
-  assert.equal(lines[2], 'sleep last night 5.1 h (her normal 7.1 h): -2 h, below normal.');
+  assert.equal(lines[0], 'resting heart rate 79 bpm (her usual about 61 bpm): +18 bpm, above her usual.');
+  assert.equal(lines[2], 'sleep last night 5.1 h (her usual about 7.1 h): -2 h, below her usual.');
   // A gap between two percentages is in percentage points, so "9 percent below" can be told apart and caught.
   assert.equal(readingLine({ type: 'normal', name: 'blood oxygen', value: 89, unit: '%', label: 'measured', normal: 98, judged: 'below' }, 'her'),
-    'blood oxygen 89 % (her normal 98 %): -9 percentage points, below normal.');
+    'blood oxygen 89 % (her usual about 98 %): -9 percentage points, below her usual, which the hub marks as unusual.');
   assert.equal(lines[3], 'cabin CO2 (est.) 4.2 mmHg, 1-hour average, rising since midnight: 1.2 mmHg above the NASA limit of 3 mmHg.');
 });
 
@@ -33,9 +33,9 @@ test('ranges, series, notes and every label', () => {
   assert.equal(readingLine({ type: 'normal', name: 'heart rate', value: 75, unit: 'bpm', label: 'measured', normal: [62, 80] }, 'her'),
     'heart rate 75 bpm (her normal range 62-80 bpm): inside her normal range.');
   assert.equal(readingLine({ type: 'normal', name: 'HRV', value: 41, unit: 'ms', label: 'simulated', normal: [54, 60] }, 'his'),
-    'HRV (simulated) 41 ms (his normal range 54-60 ms): -13 ms below the bottom of his normal range.');
+    'HRV 41 ms (simulated) (his normal range 54-60 ms): -13 ms below the bottom of his normal range.');
   assert.equal(readingLine({ type: 'series', name: 'resting heart rate', values: [61, 63, 74], unit: 'bpm', window: 'last 3 days', label: 'replayed', normal: [60, 64] }, 'her'),
-    'resting heart rate (replayed), last 3 days: 61, 63, 74 bpm (her normal range 60-64 bpm): latest 74 bpm, +10 bpm above the top of her normal range.');
+    'resting heart rate (replayed), last 3 days: 61, 63, 74 bpm (her normal range 60-64 bpm): the first 2 values inside her normal range, the last value above it; latest 74 bpm, +10 bpm above the top of her normal range.');
   assert.equal(readingLine({ type: 'note', text: 'headaches on 4 of the last 6 days', label: 'reported' }, 'her'), 'headaches on 4 of the last 6 days.');
   assert.equal(readingLine({ type: 'value', name: 'radiation dose this mission', value: 212, unit: 'mSv', label: 'reported' }, 'his'), 'radiation dose this mission (reported) 212 mSv.');
   assert.equal(readingLine({ type: 'limit', name: 'cabin CO2', value: 2.9, unit: 'mmHg', label: 'estimated', window: '7-day average' }, 'her'), 'cabin CO2 (est.) 2.9 mmHg, 7-day average.');
@@ -60,7 +60,7 @@ test('the prompt: Astra\'s rules, the five examples in order as chat turns, then
   assert.equal(msgs[0].content, SYSTEM_PROMPT);
   assert.match(SYSTEM_PROMPT, /^You are Astra, /);
   assert.deepEqual(msgs.slice(1, 11).map((m) => m.role), ['user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant']);
-  assert.match(msgs[1].content, /^ASKER: Dana is asking about herself\. Answer Dana as "you"\..*\nREADINGS \(Dana\):\nradiation dose this mission 212 mSv\./);
+  assert.match(msgs[1].content, /^ASKER: the person asking is the person in the READINGS\. Answer them as "you".*\nREADINGS \(you\):\nradiation dose this mission 212 mSv\.\nThe hub marks no reading as unusual for you right now\./);
   assert.match(msgs[3].content, /^ASKER: Kofi, a crewmate, is asking about Dana\. Refer to Dana as "she\/her"\./);
   assert.match(msgs[5].content, /QUESTION: How long until my eyes are back to normal\?$/);
   assert.match(msgs[6].content, /^I don't know\./);
@@ -248,7 +248,7 @@ test('a number the passage spells out counts as present ("Six to seven days a we
 
 test('the asker line: "you" for yourself, the profile\'s pronouns for someone else', () => {
   assert.equal(askerLine({ name: 'Reyes', pronouns: 'she', self: true, askerName: 'Reyes' }),
-    'ASKER: Reyes is asking about herself. Answer Reyes as "you". Never use the name or "she/her" for Reyes.');
+    'ASKER: the person asking is the person in the READINGS. Answer them as "you" in every sentence; never use a name, "she" or "he".');
   assert.equal(askerLine({ name: 'Reyes', pronouns: 'she', self: false, askerName: 'Okafor' }),
     'ASKER: Okafor, a crewmate, is asking about Reyes. Refer to Reyes as "she/her".');
   const msg = buildUserMessage({ readings: { ...reyes, name: 'Tanaka', pronoun: 'their' }, detectorLine: null, passages: [], question: 'q', asker: { name: 'Tanaka', pronouns: 'they', self: false, askerName: 'Okafor' } });
@@ -317,9 +317,9 @@ const checkTonight = (answer: string) => checkAnswer({ answer, passageNames: [],
 test('tonight\'s answer: every misleading sentence is caught on its own', () => {
   const caught: [string, RegExp][] = [
     // Self-contradiction: "only" with a value the hub has above normal.
-    ['Your sleep was only 449 minutes, well above your normal 320.5 minutes.', /low or short, but the hub has it above/],
+    ['Your sleep was only 7 h 29 min, well above your usual of about 5 h 21 min.', /low or short, but the hub has it above|not a number the hub gave/],
     // The model's own percentage.
-    ['Your sleep was 449 minutes, above your normal 320.5 minutes (about +40%).', /numbers not in the readings or passages \(40\)|not a number the hub gave/],
+    ['Your sleep was 7 h 29 min, above your usual of about 5 h 21 min (about +40%).', /numbers not in the readings or passages \(40\)|not a number the hub gave/],
     // 98 - 89 is 9 points, not 9 percent.
     ['Blood oxygen is 89 percent, which is 9 percent below your normal 98 percent.', /"9 %" is not a number the hub gave with that unit/],
     // A comparison on the wrong side.
@@ -352,9 +352,9 @@ test('tonight\'s answer: every misleading sentence is caught on its own', () => 
 
 test('tonight\'s readings, said the hub\'s way, still pass', () => {
   for (const answer of [
-    'Your sleep last night was 449 min, above your normal 320.5 min. Your blood oxygen is 89 percent, 9 percentage points below your normal 98 percent. Your heart rate and HRV are inside your normal.',
+    'Your sleep last night was 7 h 29 min, above your usual of about 5 h 21 min. Your blood oxygen is 89 percent, 9 percentage points below your normal 98 percent. Your heart rate and HRV are inside your normal.',
     "The hub's comparison points to the room, Quarters 2, not to you. Cabin CO2 is 2.7 mmHg, 0.3 mmHg below the NASA limit of 3 mmHg.",
-    'The hub marks your sleep last night and your blood oxygen as unusual. Your sleep was 449 minutes, longer than your normal 320.5 minutes.',
+    'The hub marks your sleep last night and your blood oxygen as unusual. Your sleep was 7 h 29 min, longer than your usual of about 5 h 21 min.',
   ]) {
     const r = checkTonight(answer);
     assert.equal(r.by, 'model', `${answer}: ${r.reasons.join('; ')}`);
@@ -378,4 +378,37 @@ test('"blood" is an urgent word, but a blood oxygen or blood pressure question i
   assert.equal(screenInput('There is blood on his sleeve').route, 'card');
   assert.equal(screenInput('she is coughing up blood').route, 'card');
   assert.equal(screenInput('tem sangue no chão').route, 'card');
+});
+
+test('a sentence that names no reading cannot put the only one sent outside the normal the hub has it inside', () => {
+  const readings: Reading[] = [{ type: 'normal', name: 'heart rate', value: 50, unit: 'bpm', label: 'simulated', normal: 52, judged: 'inside' }];
+  const facts = 'heart rate (simulated) 50 bpm (your normal 52 bpm): inside your normal.';
+  assert.match(readingProblem('I have no passage on how to interpret a lower-than-normal number.', facts, readings) ?? '', /outside the person's normal, but the hub has it inside/);
+  assert.equal(readingProblem('I have no passage on heart rate.', facts, readings), null);
+});
+
+test('an answer that talks about languages, or gives its own all-is-well verdict, is set aside', () => {
+  const facts = 'heart rate (simulated) 50 bpm (your normal 52 bpm): inside your normal.';
+  const check = (answer: string) => checkAnswer({ answer, passageNames: [], facts, message: `READINGS (you):\n${facts}\n\nQUESTION: Como está a minha frequência cardíaca?` });
+  assert.equal(check('Your heart rate is 50 bpm, inside your normal. I can only answer in English for the Spanish question.').discarded, true);
+  assert.equal(check('Your heart rate is 50 bpm, inside your normal. I see no problem with your heart rate.').discarded, true);
+  assert.equal(check('Your heart rate is 50 bpm, inside your normal of 52 bpm.').by, 'model');
+});
+
+test('not English: a Portuguese answer is discarded whole, an English one still passes', () => {
+  const facts = 'Heart rate 62 bpm. CO2 0.4 % of the cabin air.';
+  const run = (answer: string, name = 'José') =>
+    checkAnswer({ answer, passageNames: [], facts, message: facts, subject: { name, pronouns: 'he', self: true } });
+  const pt = run('Você tem uma infecção no coração. A sua frequência cardíaca está alta.');
+  assert.equal(pt.by, 'fixed');
+  assert.equal(pt.discarded, true);
+  assert.deepEqual(pt.reasons, ['not-english']);
+  const plain = run('Your heart rate was 62 bpm in the last reading, and the cabin CO2 was 0.4 % of the air.');
+  assert.equal(plain.by, 'model', plain.reasons.join('; '));
+  // A crew name with an accent, and units, are not mistaken for Portuguese.
+  const named = run('José, your heart rate was 62 bpm, and André saw the cabin CO2 at 0.4 % of the air in µg/m³ terms.');
+  assert.ok(!named.reasons.includes('not-english'), named.reasons.join('; '));
+  assert.equal(notEnglish('The reading was 21 °C in Inês quarters.', ['Inês']), false);
+  assert.equal(notEnglish('Is it as bad as the do-not-exceed limit for os and em?'), false);
+  assert.equal(notEnglish('O sono foi curto para hoje.'), true);
 });

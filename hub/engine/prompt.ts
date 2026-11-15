@@ -20,21 +20,26 @@
 // now. The NASA passages in the examples are NASA's own words, unchanged, each
 // cited by its document.
 
+import { ASTRONAUT_FIRST_NAMES } from './names.ts';
+
 // ---------- the fixed texts ----------
 
 /** Shown in place of every refusal, so a refusal can never contain a drug name or an amount. No delay is named: it depends on the place. */
 export const REFUSAL_TEXT =
-  "I don't have that in NASA's text or in your readings, so I won't guess. Tap Contact Earth and the question goes to your flight surgeon.";
+  "That's one I can't answer from your readings or NASA's text, and I won't guess at it. Tap Contact Earth and your question goes to your flight surgeon.";
 
 /** Fixed texts the hub shows instead of a model answer, by string-table key. English here; engine/strings.ts holds both languages. */
 export const FIXED_TEXTS = {
   'ai.refusal': REFUSAL_TEXT,
-  'ai.unavailable': "The AI isn't available right now. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.",
-  'ai.slow': "I couldn't finish an answer in time. Here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.",
-  'ai.busy': "Too many questions are waiting. Ask again in a moment, or tap Contact Earth.",
+  'ai.unavailable': "I can't put an answer into words right now, so here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.",
+  'ai.slow': "I couldn't finish my answer in time, so here are the readings and NASA's text as they are. Tap Contact Earth to ask your flight surgeon.",
+  'ai.busy': 'A few questions are ahead of yours. Ask me again in a moment, or tap Contact Earth.',
   // A message that asks nothing ("hello", "thanks", "ok"): who Astra is and what can be asked. No model, no readings, no card.
-  'ai.greeting': "Hi, I'm Astra. I answer from your readings and NASA's text. Ask me about a reading, your sleep, the air in a room, or a NASA limit. If someone is hurt or unwell, say what is happening.",
+  'ai.greeting': "Hi, I'm Astra. I can look at your readings, your sleep, the air in a room or what NASA's text says with you. If someone is hurt or unwell, tell me what is happening.",
   'ai.card': 'This needs the steps card, not an answer from me. The card is on screen.',
+  // A card that is not urgent (a complaint her signs fit): a calm line, never the emergency one. Interface words only.
+  'ai.cardCalm': "Okay, I'll help you through it.",
+  'ai.cardCalmAsk': "Okay, I'll help you through it. One question first.",
   'ai.crisis': 'This needs a person, not me. Please go to a crewmate or your Crew Medical Officer now.',
   'ai.crisisTold': "This needs a person, not me. I've asked a crewmate to come and be with you.",
 } as const;
@@ -54,17 +59,22 @@ export const SYSTEM_PROMPT = `You are Astra, the voice of Astrum, the crew healt
 Every message gives you an ASKER line, the READINGS (the hub's own numbers, already compared with the person's normal and with NASA's limits), sometimes one or more PASSAGE blocks that quote NASA word for word, and the QUESTION. Those are your only facts.
 
 How to reply:
-- Follow the ASKER line. A person asking about themself is "you" in every sentence, never their name and never she or he, even though the READINGS name them.
+- Follow the ASKER line. A person asking about themself is "you" in every sentence, never a name and never she or he.
 - Give the answer to the question first. Then support it with the hub's numbers: the reading, the person's normal, the gap between them, and NASA's limit when one is given. Use each gap exactly as the hub wrote it, with its unit; never work out a difference, a percentage, a ratio or a total yourself.
 - Mention each reading that is outside the person's normal. When every reading is inside it, say so simply and do not hunt for a problem.
+- A person's usual is one value, not a range: say "your usual is about 61 bpm", never "your normal range of 61".
+- Use a passage only when it is about what was asked; otherwise leave it out and answer from the readings.
+- Say what the facts hold and stop. Never end on what you do not know or on what the data does not say: not "I don't know if 65 is ok" or "It doesn't say what you were dreaming about." Never say what you have no passage for: not "I have no NASA passage on heart rate limits."
+- Asked what NASA says, open with the passage's own statement (the limit and its number), then the reading. Never write "that limit" before the limit is stated.
+- A reading's kind is a label on its number: write "66 bpm (simulated)", never "this simulation". Write a duration once, as the hub wrote it ("5 h 23 min"), never with minutes in brackets.
 - A trend can be described from the readings alone; it needs no passage.
 - If the crew member believes something a passage contradicts or leaves out, tell them, and state what the passage does say.
 - When a passage describes what NASA does about the problem, include that, in NASA's terms.
 - If the readings say where the hub's comparison points (a room or a person), you may repeat it. It is where the data points, not a cause.
 - Never add advice, orders, causes, diagnoses, treatments, medicines, or any number missing from the readings and passages.
-- After using a passage, end with the line Source: [the passage's name exactly as in its PASSAGE brackets]. Without a passage, write no source line at all.
+- After using a passage, end with the line Source: [the passage's name exactly as in its PASSAGE brackets]. Without a passage, write no source line at all. Use square brackets nowhere else, not even for a code a passage quotes.
 - If answering would need something the facts do not hold (a medicine, an amount, how long, which illness), your reply must start with "I don't know." Then say that NASA's text and the readings do not cover it, and that Contact Earth sends the question to the flight surgeon. Add no advice of your own.
-- Two to five short sentences, in plain and calm words.`;
+- Two to five short sentences, in plain and calm words, always in English whatever language the question is in. Never mention languages.`;
 
 /**
  * Words that appear only in the examples. A sentence of an answer that uses
@@ -159,7 +169,7 @@ export type Reading =
 export interface PersonReadings {
   /** The name the crew uses. */
   name: string;
-  pronoun?: 'her' | 'his' | 'their';
+  pronoun?: 'her' | 'his' | 'their' | 'your';
   readings: Reading[];
 }
 
@@ -184,7 +194,8 @@ function unitSp(unit: string): string {
 }
 
 function normalText(normal: Normal, unit: string): string {
-  return typeof normal === 'number' ? `normal ${normal}${unitSp(unit)}` : `normal range ${normal[0]}-${normal[1]}${unitSp(unit)}`;
+  // One value is the person's usual, never a range: "usual about 61 bpm".
+  return typeof normal === 'number' ? `usual about ${normal}${unitSp(unit)}` : `normal range ${normal[0]}-${normal[1]}${unitSp(unit)}`;
 }
 
 /**
@@ -203,8 +214,10 @@ function against(value: number, normal: Normal, unit: string, pronoun: string, j
   if (typeof normal === 'number') {
     const diff = minus(value, normal);
     const side = judged ?? (diff > 0 ? 'above' : diff < 0 ? 'below' : 'inside');
-    if (side === 'inside') return `${signed(diff)}${gapUnit(unit)}, inside normal.`;
-    return `${signed(diff)}${gapUnit(unit)}, ${side} normal.`;
+    // Inside: no gap is given. A gap of "-2 bpm" read as "below your normal" by the model, against the hub's own verdict.
+    if (side === 'inside') return `about ${pronoun} usual.`;
+    // The hub's one verdict for the reading: unusual only when its baseline judged it so.
+    return `${signed(diff)}${gapUnit(unit)}, ${side} ${pronoun} usual${judged ? ', which the hub marks as unusual' : ''}.`;
   }
   const [low, high] = normal;
   if (value > high) return `${signed(minus(value, high))}${gapUnit(unit)} above the top of ${pronoun} normal range.`;
@@ -216,19 +229,69 @@ function oneLine(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
 }
 
+/** Minutes the way a person reads them: "7 h 29 min", "45 min". */
+function minutesText(minutes: number): string {
+  const m = Math.round(Math.abs(minutes));
+  const h = Math.floor(m / 60);
+  return h ? (m % 60 ? `${h} h ${m % 60} min` : `${h} h`) : `${m} min`;
+}
+
+/**
+ * A duration in minutes, one hour or longer (sleep): the hub's minutes, then the
+ * same in hours and minutes ("449 min, about 7 h 29 min"), so the model never
+ * converts a duration itself.
+ */
+/** Minutes as a person reads them first, then the hub's own minute figure: "7 h 29 min (449 min)", "about 5 h 21 min (320.5 min)". */
+function hoursFirst(minutes: number): string {
+  // One formatted duration only: a raw minute figure beside it was echoed back ("5 h 23 min (323 min)").
+  return `${Number.isInteger(minutes) ? '' : 'about '}${minutesText(minutes)}`;
+}
+
+/** A sleep-length reading: hours and minutes first, so the model leads with them, each with the hub's own minute figure. */
+function durationReading(name: string, r: Extract<Reading, { type: 'normal' }>, pronoun: string, tag = ''): string | null {
+  if (r.unit !== 'min' || r.value < 60) return null;
+  const normal = typeof r.normal === 'number' ? `usual ${Number.isInteger(r.normal) ? 'about ' : ''}${hoursFirst(r.normal)}` : `normal range ${hoursFirst(r.normal[0])} to ${hoursFirst(r.normal[1])}`;
+  const gap = against(r.value, r.normal, 'min', pronoun, r.judged);
+  const m = /^([+-])(\d+(?:\.\d+)?) min/.exec(gap);
+  const gapText = m ? gap.replace(m[0], `${m[1]}${minutesText(Number(m[2]))}`) : gap;
+  return `${name} ${hoursFirst(r.value)}${tag}; ${pronoun} ${normal}: ${gapText}`;
+}
+
+/**
+ * Where a series sat against the person's normal, counted by the hub so the
+ * model never counts: "the first 4 values inside her normal range, the last 3 above it".
+ */
+function seriesSummary(values: number[], normal: Normal, pronoun: string): string {
+  const [low, high] = typeof normal === 'number' ? [normal, normal] : normal;
+  const sideOf = (v: number) => (v > high ? 'above' : v < low ? 'below' : 'inside');
+  const runs: { side: string; n: number }[] = [];
+  for (const v of values) {
+    const side = sideOf(v);
+    if (runs.length && runs[runs.length - 1].side === side) runs[runs.length - 1].n++;
+    else runs.push({ side, n: 1 });
+  }
+  const range = typeof normal === 'number' ? 'usual' : 'normal range';
+  if (runs.length === 1) return `all ${values.length} values ${runs[0].side} ${pronoun} ${range}`;
+  const span = (which: string, n: number) => (n === 1 ? `the ${which} value` : `the ${which} ${n} values`);
+  if (runs.length === 2) return `${span('first', runs[0].n)} ${runs[0].side} ${pronoun} ${range}, ${span('last', runs[1].n)} ${runs[1].side} it`;
+  const count = (side: string) => runs.filter((x) => x.side === side).reduce((n, x) => n + x.n, 0);
+  return ['inside', 'above', 'below'].filter((side) => count(side) > 0).map((side) => `${count(side)} of ${values.length} values ${side} ${pronoun} ${range}`).join(', ');
+}
+
 /** One reading as one sentence. The hub does the subtraction; the model only reads it. A table confused the small model, so: one line each. */
 export function readingLine(r: Reading, pronoun: string): string {
   if (r.type === 'note') return /[.!?]$/.test(oneLine(r.text)) ? oneLine(r.text) : `${oneLine(r.text)}.`;
   const name = `${oneLine(r.name)}${TAG[r.label]}`;
   if (r.type === 'normal') {
+    // The kind reads as a label on the number ("66 bpm (simulated)"), never as words to build on ("this simulation").
     const unit = r.unit;
-    return `${name} ${r.value}${unitSp(unit)} (${pronoun} ${normalText(r.normal, unit)}): ${against(r.value, r.normal, unit, pronoun, r.judged)}`;
+    return durationReading(oneLine(r.name), r, pronoun, TAG[r.label]) ?? `${oneLine(r.name)} ${r.value}${unitSp(unit)}${TAG[r.label]} (${pronoun} ${normalText(r.normal, unit)}): ${against(r.value, r.normal, unit, pronoun, r.judged)}`;
   }
   if (r.type === 'series') {
     const list = `${name}, ${oneLine(r.window)}: ${r.values.join(', ')}${unitSp(r.unit)}`;
     if (!r.normal || r.values.length === 0) return `${list}.`;
     const latest = r.values[r.values.length - 1];
-    return `${list} (${pronoun} ${normalText(r.normal, r.unit)}): latest ${latest}${unitSp(r.unit)}, ${against(latest, r.normal, r.unit, pronoun)}`;
+    return `${list} (${pronoun} ${normalText(r.normal, r.unit)}): ${seriesSummary(r.values, r.normal, pronoun)}; latest ${latest}${unitSp(r.unit)}, ${against(latest, r.normal, r.unit, pronoun)}`;
   }
   if (r.type === 'limit') {
     const head = `${name} ${r.value}${unitSp(r.unit)}${r.window ? `, ${oneLine(r.window)}` : ''}`;
@@ -238,6 +301,25 @@ export function readingLine(r: Reading, pronoun: string): string {
     return `${head}: ${Math.abs(diff)}${unitSp(r.unit)} ${diff > 0 ? 'above' : 'below'} the NASA limit of ${r.limit}${unitSp(r.unit)}.`;
   }
   return `${name} ${r.value}${unitSp(r.unit)}.`;
+}
+
+/** Readings that are the hub's internal detail, not something to tell the crew ("time in bed asleep"). */
+const INTERNAL_READING = /\b(asleep in bed|in bed asleep|sleep efficiency)\b/i;
+
+/**
+ * One verdict per reading: the detector's "main signals" that a reading in the block already judges (above,
+ * below or about the usual) are taken out, so "about your usual" and "marked unusual" never meet.
+ */
+function oneVerdict(detector: string | null, p: PersonReadings | null): string | null {
+  const det = cleanDetectorLine(detector);
+  const list = det ? /Main signals?: ([^\n]+)\.$/.exec(det)?.[1] : undefined;
+  if (!det || !list || !p) return det;
+  const words = (s: string) => s.toLowerCase().replace(/[_.]+/g, ' ').split(/[^a-z0-9]+/).filter((w) => w.length > 3);
+  // A reading whose line already carries the verdict: about the usual, or judged by the baseline.
+  const judged = p.readings.filter((r): r is Extract<Reading, { type: 'normal' }> => r.type === 'normal' && (r.judged !== undefined || sideOf(r) === 'inside')).map((r) => words(r.name));
+  const left = list.split(/,\s*/).filter((sig) => !judged.some((n) => words(sig).some((w) => n.includes(w))));
+  if (left.length === 0) return null;
+  return det.replace(list, left.join(', '));
 }
 
 /** The detector line exactly as baseline.ts writes it, or nothing. */
@@ -259,10 +341,16 @@ export function detectorFact(detector: string | null | undefined, name: string):
   return signals ? `The hub marks as unusual for ${oneLine(name)}: ${signals}.` : null;
 }
 
-/** The READINGS block as Astra and the urgent check see it: readings, evidence lines, then the detector as a plain fact. */
-export function modelReadingsBlock(p: PersonReadings | null, detector: string | null, extra: string[] = []): string | null {
-  const fact = detectorFact(detector, p?.name ?? 'the crew');
-  return readingsBlock(p, null, fact ? [...extra, fact] : extra);
+/**
+ * The READINGS block as Astra and the urgent check see it: readings, evidence lines, then the detector as a plain fact.
+ * `self`: the person asking is the person in the readings, so the block speaks to them ("you", "your normal")
+ * and never holds their name: a name the model never sees, it cannot call the asker by.
+ */
+export function modelReadingsBlock(p: PersonReadings | null, detector: string | null, extra: string[] = [], self = false): string | null {
+  const shown = p ? { ...p, readings: p.readings.filter((r) => r.type === 'note' || !INTERNAL_READING.test(r.name)) } : p;
+  const view = shown && self ? { ...shown, name: 'you', pronoun: 'your' as const } : shown;
+  const fact = detectorFact(oneVerdict(detector, shown), view?.name ?? 'the crew');
+  return readingsBlock(view, null, fact ? [...extra, fact] : extra);
 }
 
 export function readingsBlock(p: PersonReadings | null, detector: string | null, extra: string[] = []): string | null {
@@ -311,13 +399,12 @@ export interface Asker {
 
 
 /** How the ASKER line names the person. */
-const REFLEXIVE = { she: 'herself', he: 'himself', they: 'themself' } as const;
 const PRONOUN_PAIR = { she: 'she/her', he: 'he/him', they: 'they/them' } as const;
 
 /** One plain line before the readings: who is asking, and how to address the person. */
 export function askerLine(a: Asker): string {
   return a.self
-    ? `ASKER: ${oneLine(a.name)} is asking about ${REFLEXIVE[a.pronouns]}. Answer ${oneLine(a.name)} as "you". Never use the name or "${PRONOUN_PAIR[a.pronouns]}" for ${oneLine(a.name)}.`
+    ? 'ASKER: the person asking is the person in the READINGS. Answer them as "you" in every sentence; never use a name, "she" or "he".'
     : `ASKER: ${oneLine(a.askerName)}, a crewmate, is asking about ${oneLine(a.name)}. Refer to ${oneLine(a.name)} as "${PRONOUN_PAIR[a.pronouns]}".`;
 }
 
@@ -332,7 +419,7 @@ export function passageBlock(p: PromptPassage): string {
 
 /** The crew message: the ASKER line, the readings, each passage with its name (or "(no passages)"), the question. */
 export function buildUserMessage(input: MessageInput): string {
-  const readings = modelReadingsBlock(input.readings, input.detectorLine, input.evidence);
+  const readings = modelReadingsBlock(input.readings, input.detectorLine, input.evidence, input.asker?.self === true);
   const question = `QUESTION: ${oneLine(input.question)}`;
   const earlier = (input.earlier ?? []).map((l) => `EARLIER: ${oneLine(l)}\n`).join('');
   const asker = `${input.asker ? `${askerLine(input.asker)}\n` : ''}${earlier}`;
@@ -386,7 +473,7 @@ export const EXAMPLES: [string, string][] = [
       readings: dana([{ type: 'series', name: 'respiratory rate', values: [14, 14, 15, 17, 18], unit: 'breaths/min', window: 'last 5 days', label: 'measured', normal: [12, 16] }]),
       detectorLine: 'Detector: anomaly 0.61. Main signal: respiratory rate trend.', passages: [], question: 'How has Dana been this week?',
     }),
-    "Dana's respiratory rate has gone up over the last 5 days, from 14 to 18 breaths/min. The first three days were inside her normal range of 12-16, the last two were above it, and the latest, 18, is 2 over the top of her range. The hub marks the same trend as unusual for her. I have no NASA passage about it, so I can't say why it is rising.",
+    "Dana's respiratory rate has gone up over the last 5 days, from 14 to 18 breaths/min. The first three days were inside her normal range of 12-16, the last two were above it, and the latest, 18, is 2 over the top of her range. The hub marks the same trend as unusual for her.",
   ],
   [
     buildUserMessage({
@@ -400,7 +487,7 @@ export const EXAMPLES: [string, string][] = [
       asker: DANA_ASKS, readings: dana([{ type: 'normal', name: 'times awake in the night', value: 2, unit: '', label: 'measured', normal: [1, 3] }]),
       detectorLine: 'Detector: normal.', passages: [], question: 'I keep waking up at night. Am I sleeping badly?',
     }),
-    'Your reading says no. You woke 2 times in the night, inside your usual range of 1-3, and the hub marks nothing as unusual. How rested you feel is not something the readings measure, and I have no NASA passage on it.',
+    'Your reading says no. You woke 2 times in the night, inside your usual range of 1-3, and the hub marks nothing as unusual.',
   ],
   [
     buildUserMessage({
@@ -408,12 +495,12 @@ export const EXAMPLES: [string, string][] = [
       readings: dana([{ type: 'limit', name: 'cabin CO2', value: 2.7, unit: 'mmHg', label: 'estimated', window: '1-hour average', limit: 3 }]),
       evidence: [
         'CO2 exposure, last 72 hours: 8 h in the workshop above 2.8 mmHg, 0 h above 3 mmHg; crewmates at most 0.5 h above 2.8 mmHg (estimated).',
-        'No body reading is unusual for Dana.',
-        "The hub's comparison points to the room (the workshop), not to Dana.",
+        'No body reading is unusual for you.',
+        "The hub's comparison points to the room, not to you. The room is the workshop.",
       ],
       detectorLine: 'Detector: normal.', passages: [NASA_CO2_LIMIT], question: 'Is something wrong with me, or is it the workshop?',
     }),
-    `The hub's comparison points to the room, the workshop, not to you. In the last 72 hours you spent 8 h there above 2.8 mmHg, and your crewmates at most 0.5 h. Its CO2 now is 2.7 mmHg, 0.3 mmHg below the NASA limit of 3 mmHg, and none of your body readings is unusual. The passage gives the limit; it does not say what the workshop's air does to you.\nSource: [${NASA_CO2_LIMIT.name}]`,
+    `The hub's comparison points to the room, the workshop, not to you. In the last 72 hours you spent 8 h there above 2.8 mmHg, and your crewmates at most 0.5 h. Its CO2 now is 2.7 mmHg, 0.3 mmHg below the NASA limit of 3 mmHg, and none of your body readings is unusual. The passage gives the limit.\nSource: [${NASA_CO2_LIMIT.name}]`,
   ],
 ];
 
@@ -443,11 +530,16 @@ export const URGENT_EXAMPLES: [string, 'URGENT' | 'ROUTINE'][] = [
   [urgentUserMessage(dana([{ type: 'note', text: 'back from a spacewalk an hour ago: aching left shoulder and pins and needles down the arm', label: 'reported' }]), 'Should I be worried?'), 'URGENT'],
 ];
 
+/** Examples as chat turns: the crew message, then the reply as the model should write it. */
+export function exampleTurns(pairs: readonly (readonly [string, string])[]): ChatMessage[] {
+  return pairs.flatMap(([u, a]): ChatMessage[] => [{ role: 'user', content: u }, { role: 'assistant', content: a }]);
+}
+
 /** The explainer's messages: the rules, the examples as chat turns, then the crew message. */
 export function buildMessages(input: MessageInput): ChatMessage[] {
   return [
     { role: 'system', content: SYSTEM_PROMPT },
-    ...EXAMPLES.flatMap(([u, a]): ChatMessage[] => [{ role: 'user', content: u }, { role: 'assistant', content: a }]),
+    ...exampleTurns(EXAMPLES),
     { role: 'user', content: buildUserMessage(input) },
   ];
 }
@@ -457,7 +549,7 @@ export function buildUrgentMessages(input: Omit<MessageInput, 'passages'>): Chat
   const user = urgentUserMessage(input.readings, input.question, input.detectorLine, input.evidence);
   return [
     { role: 'system', content: URGENT_SYSTEM },
-    ...URGENT_EXAMPLES.flatMap(([u, a]): ChatMessage[] => [{ role: 'user', content: u }, { role: 'assistant', content: `{"label": "${a}"}` }]),
+    ...exampleTurns(URGENT_EXAMPLES.map(([u, a]) => [u, `{"label": "${a}"}`] as const)),
     { role: 'user', content: user },
   ];
 }
@@ -513,7 +605,7 @@ const GREETING_WORDS = new Set([
 ]);
 
 /** Something the person reports about a body: a symptom or a feeling, in English or Portuguese. Never a greeting; the ground for "Did it get better?". */
-const COMPLAINT = /\b(feel\w*|felt|hurt\w*|pain\w*|ache\w*|aching|sore|dizz\w*|faint\w*|light-?headed|nause\w*|vomit\w*|throw\w* up|sick|ill|unwell|tired|exhausted|fatigue\w*|weak\w*|numb\w*|tingl\w*|itch\w*|rash\w*|cough\w*|fever\w*|chills?|shiver\w*|sweat\w*|headaches?|migraines?|cramp\w*|bruis\w*|injur\w*|wound\w*|cut|bump\w*|short of breath|breathless\w*|wheez\w*|palpitat\w*|racing|pounding|blurr\w*|confus\w*|anxi\w*|panic\w*|insomnia|can'?t sleep|throbbing|stiff|swell\w*|swollen)\b|\b(dor\w*|doendo|doi|tontu\w*|tont[oa]|enjo\w*|vomit\w*|enjoad[oa]|mal|cansad[oa]|fraqu\w*|fraco|fraca|dormen\w*|formigam\w*|coceira|cocando|tosse|febre|calafrio\w*|suando|machuc\w*|ferid[oa]|ferimento|falta de ar|sem ar|ansios[oa]|ansiedade|confus[oa]|vis[aã]o (turva|emba[cç]ada))\b/i;
+const COMPLAINT = /\b(feel\w*|felt|hurt\w*|pain\w*|ache\w*|aching|sore|dizz\w*|faint\w*|light-?headed|nause\w*|vomit\w*|throw\w* up|sick|ill|unwell|tired|exhausted|fatigue\w*|weak\w*|numb\w*|tingl\w*|itch\w*|rash\w*|cough\w*|fever\w*|chills?|shiver\w*|sweat\w*|headaches?|migraines?|cramp\w*|bruis\w*|injur\w*|wound\w*|cut|bump\w*|short of breath|breathless\w*|wheez\w*|palpitat\w*|racing|pounding|blurr\w*|confus\w*|anxi\w*|panic\w*|insomnia|can'?t sleep|throbbing|stiff|swell\w*|swollen)\b|\b(dor(?!m)\w*|doendo|doi|tontu\w*|tont[oa]|enjo\w*|vomit\w*|enjoad[oa]|mal|cansad[oa]|fraqu\w*|fraco|fraca|dormen\w*|formigam\w*|coceira|cocando|tosse|febre|calafrio\w*|suando|machuc\w*|ferid[oa]|ferimento|falta de ar|sem ar|ansios[oa]|ansiedade|confus[oa]|vis[aã]o (turva|emba[cç]ada))\b/i;
 
 /** Words that name a reading, a body part or the air. A message that names one is never a greeting. */
 const SUBJECT_WORDS = /\b(co2|o2|oxygen|heart|hrv|pulse|spo2|sleep\w*|steps?|pressure|temperature|radiation|dose|limit|readings?|air|room|cabin|quarters|head|chest|eyes?|ears?|throat|stomach|belly|back|arms?|legs?|hands?|feet|foot|skin|neck|shoulders?|knees?|teeth|tooth|cora[cç][aã]o|sono|dormi\w*|cabe[cç]a|peito|olhos?|barriga|est[oô]mago|costas|bra[cç]o|perna|pele|ar|oxig[eê]nio|press[aã]o|radia[cç][aã]o)\b/i;
@@ -577,7 +669,7 @@ const STEPS: [RegExp, string][] = [
   [/\b(i|we) (would )?(recommend|suggest|advise)\b|\b(it'?s|it is) (best|important|recommended|advisable|a good idea) to\b|\btry to\b|\bmake sure\b/i, 'advice'],
 ];
 
-const MEDICINE_OUT = /\b(dose of|dosage|doses|\d+\s?(mg|mcg|µg|ml|iu|units?|tablets?|pills?|capsules?|drops?)\b|milligrams?|pills?|tablets?|capsules?|medicines?|medications?|meds|drugs?|painkillers?|analgesics?|pharmaceuticals?|ibuprofen|acetaminophen|paracetamol|tylenol|advil|aspirin|melatonin|antihistamines?|antibiotics?|hydrocortisone|steroids?|creams?|ointments?|decongestants?|sedatives?|sleeping pills?|injections?|prescri\w*)\b/i;
+export const MEDICINE_OUT = /\b(dose of|dosage|doses|\d+\s?(mg|mcg|µg|ml|iu|units?|tablets?|pills?|capsules?|drops?)\b|milligrams?|pills?|tablets?|capsules?|medicines?|medications?|meds|drugs?|painkillers?|analgesics?|pharmaceuticals?|ibuprofen|acetaminophen|paracetamol|tylenol|advil|aspirin|melatonin|antihistamines?|antibiotics?|hydrocortisone|steroids?|creams?|ointments?|decongestants?|sedatives?|sleeping pills?|injections?|prescri\w*)\b/i;
 
 const CONDITION = '(condition|disease|disorder|infection|syndrome|illness|hypoxia|hypercapnia|hyperoxia|decompression sickness|dcs|the bends|sans|concussion|fracture|stroke|heart attack|heart problem|heart condition|arrhythmia|tachycardia|bradycardia|flu|covid|a cold|anemia|anaemia|diabetes|depression|anxiety disorder|insomnia|burnout|migraine|dehydration|hypertension|hypotension|cancer|pneumonia|sepsis|motion sickness|space sickness|altitude sickness|ptsd|panic attack|seizure|epilepsy|asthma|allergic reaction|allergy|poisoning|co2 poisoning|co2 toxicity|barotrauma)';
 
@@ -593,7 +685,7 @@ const DIAGNOSIS: RegExp[] = [
  * of the CO2"). The passages give associations, not causes, and the hub shows
  * exposure, never cause. The system prompt already forbids added causes.
  */
-const CAUSE: RegExp[] = [
+export const CAUSE: RegExp[] = [
   /\b(you|you're|your|he|she|they|his|her|their)\b[^.!?]*\b(because of|caused by|due to)\b/i,
   /\b(is|are|was|were) (what'?s )?(causing|giving) (you|your|him|her|them|the crew)\b/i,
 ];
@@ -801,6 +893,11 @@ export function readingProblem(sentence: string, facts: string, readings: Readin
   // The reading a sentence is about: the one it names, else the one whose value it gives.
   const named = measured.filter((r) => { const words = nameWords(r.name); return words.length > 0 && words.every((w) => lower.includes(w)); });
   const about = named.length ? named : measured.filter((r) => nums.has(r.value));
+  // A sentence that names no reading but puts "it" outside the normal ("a lower-than-normal number"), when the hub
+  // sent one measured reading and has it inside: that reading is what the sentence is about, and it is wrong.
+  if (about.length === 0 && measured.length === 1 && sideOf(measured[0]) === 'inside' && /\b(above|below|higher|lower|over|under|outside)\b[^.]{0,25}\b(normal|usual|range)\b/i.test(sentence.replace(/-/g, ' '))) {
+    return `it puts ${measured[0].name} outside the person's normal, but the hub has it inside`;
+  }
   if (about.length !== 1) return null;
   const r = about[0];
   const own = ownNumbers(r);
@@ -859,6 +956,11 @@ export function pointsProblem(sentence: string, facts: string, name: string): st
   return allowed.test(sentence) ? null : 'it says where the readings point in other words than the hub\'s ("points to the room", "points to you")';
 }
 
+/** Talk about languages: the model answers in English, and a sentence about that is noise or wrong ("the Spanish question"). */
+const META_TALK = /\b(spanish|portuguese|english|language|translat\w*)\b/i;
+/** A verdict of the model's own that nothing is wrong. The hub says inside or outside the normal; "no problem" is not its word. */
+export const VERDICT_COMFORT = /\b(i see no (problem|issue|concern)s?|no (problem|issue|concern)s? with (your|you|it)|nothing (is )?wrong|all (looks|is) (good|well|fine)|(looks|is) healthy)\b/i;
+
 export interface CheckResult {
   /** What the crew is shown. */
   text: string;
@@ -876,6 +978,29 @@ export interface CheckResult {
   source: string | null;
 }
 
+// ---------- not English: every check above and below reads English only ----------
+
+const PT_ES_MARKS = /[ãõáéíóúâêôçà]/iu;
+/** Portuguese words that are not English words (no "as", "do", "os", "com", "em", "de", "nos", "sem", "dos"). */
+const PT_WORDS = ['você', 'voce', 'vocês', 'voces', 'não', 'nao', 'está', 'esta', 'estão', 'estao', 'são', 'sao', 'seu', 'sua', 'seus', 'suas',
+  'uma', 'para', 'que', 'por', 'pelo', 'pela', 'mais', 'muito', 'muita', 'também', 'tambem', 'isso', 'esse', 'essa', 'este', 'ele', 'ela',
+  'foi', 'frequência', 'frequencia', 'sono', 'pressão', 'pressao', 'cardíaca', 'cardiaca', 'oxigênio', 'oxigenio', 'agora', 'ainda'];
+const PT_WORD = new RegExp(`(?<!\\p{L})(${PT_WORDS.join('|')})(?!\\p{L})`, 'giu');
+
+/**
+ * True when model text is not English: any Portuguese or Spanish diacritic, or two or more distinct Portuguese words.
+ * Crew names ("José", "André") and any other names passed are taken out first, so they never trip it.
+ */
+export function notEnglish(text: string, names: readonly string[] = []): boolean {
+  let t = text;
+  for (const name of [...names, ...ASTRONAUT_FIRST_NAMES]) {
+    const nm = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (nm) t = t.replace(new RegExp(`(?<!\\p{L})${nm}(?!\\p{L})`, 'gu'), ' ');
+  }
+  if (PT_ES_MARKS.test(t)) return true;
+  return new Set([...t.matchAll(PT_WORD)].map((m) => m[1].toLowerCase())).size >= 2;
+}
+
 function sentences(text: string): string[] {
   return text.split(/\n+/).flatMap((line) => line.split(SENTENCE_SPLIT)).map((s) => s.trim()).filter(Boolean);
 }
@@ -886,6 +1011,9 @@ function hasWord(text: string, word: string): boolean {
 
 /** What the model writes on the source line when it used no passage. */
 const NO_SOURCE = /^\(?\s*(none|n\/a|no (nasa )?(passages?|sources?)\b.*|none[ ,(].*|readings\b.*|[^\][]*\breadings?\b( only| alone)?)\s*\)?\.?$/i;
+
+/** A sentence about what the model does not know, or what the facts do not say. A refusal opens with "I don't know." and is caught before this. */
+export const NOT_SAID = /\bI (have|had) no (NASA )?(passages?|texts?|sources?)\b|\bno NASA (passages?|texts?|sources?) (on|about|for)\b|\bI (do not|don'?t) know (if|whether)\b|\b(it|this|that|the (passage|text|data|readings?|hub|numbers?)|NASA'?s text)( also)? (does not|doesn'?t|did not|didn'?t) (say|tell|show|give|mention|cover|state|explain|include|list)\b/i;
 
 /** Every check on a model answer. Any one that fails replaces the answer; core/ai.ts then shows the hub's own answer or a fixed text. */
 export function checkAnswer(input: CheckInput): CheckResult {
@@ -899,6 +1027,8 @@ export function checkAnswer(input: CheckInput): CheckResult {
   // 1. A refusal is always the fixed text, so it can never carry a dose or a drug.
   // Any answer that opens with "I don't know" (or "Não sei") is a refusal, whatever follows.
   if (/^\W*(i (don'?t|do not) know|n[aã]o sei)\b/i.test(t)) return refuse(['the model said it does not know'], false);
+  // Not English: no check here can read it, so it goes whole, before any other check.
+  if (notEnglish(t, [...(input.subject ? [input.subject.name] : []), ...input.passageNames])) return refuse(['not-english'], true);
 
   // 2. Nothing after the source line. 3. The source must be one that was sent.
   let source: string | null = null;
@@ -927,6 +1057,12 @@ export function checkAnswer(input: CheckInput): CheckResult {
 
   // The hub's own checks: any one throws the whole answer away.
   const reasons: string[] = [];
+  // Filler about what is not known or not said ("I don't know if 65 is ok", "It doesn't say what you were dreaming about").
+  if (kept.some((s) => NOT_SAID.test(s))) reasons.push('it ends on what it does not know or what the data does not say');
+  // "that limit" before any limit was named: a reference left hanging.
+  if (kept.length && /\bth(at|is|e same) limit\b/i.test(kept[0]) && !/\blimit (of|is)\b/i.test(kept[0].split(/\bth(?:at|is|e same) limit\b/i)[0])) reasons.push('it says "that limit" before naming the limit');
+  // A duration with its raw minutes echoed beside it ("5 h 23 min (323 min)").
+  if (kept.some((s) => /\(\s*\d+(\.\d+)?\s*min\s*\)/i.test(s))) reasons.push('it repeats a duration in raw minutes');
   // A list is steps, whatever its lines say. Checked on whole lines, before they are split into sentences.
   if (/^\s*(\d+[.)]|[-*•])\s+/m.test(t)) reasons.push('a numbered or bulleted list');
   const allowed = new Set(numbersIn(input.facts, 'all').map(String));
@@ -945,6 +1081,8 @@ export function checkAnswer(input: CheckInput): CheckResult {
     const misread = readingProblem(s, input.facts, input.readings) ?? seriesProblem(s, input.readings);
     if (misread) reasons.push(`${misread}: "${s}"`);
     if (INTERNAL.test(s) && !INTERNAL.test(question)) reasons.push(`the hub's internal words: "${s}"`);
+    if (META_TALK.test(s)) reasons.push(`talks about languages or itself instead of the question: "${s}"`);
+    if (VERDICT_COMFORT.test(s)) reasons.push(`a verdict of its own that all is well: "${s}"`);
     const points = pointsProblem(s, input.facts, input.subject?.name ?? '');
     if (points) reasons.push(`${points}: "${s}"`);
   }
