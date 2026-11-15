@@ -78,7 +78,7 @@ const COPY = {
       body: draft('Each crewmate wears an Apple Watch. Their iPhone reads heart rate, sleep and activity from it, sends them to the hub, and buzzes them when the hub raises an alert, even with the phone locked.'),
       more: [
         draft('There is no Watch app. The Watch is worn and read through the phone, and shows the phone’s alerts.'),
-        draft('The app is native but thin: it finds the hub on the local Wi-Fi, sends the readings, and shows the hub’s own interface.'),
+        draft('The app is a native SwiftUI app: it finds the hub on the local Wi-Fi, sends the readings, and shows its owner’s own body, check-ins, questions to the model and the station, and its blood-panel reader reads the analyser’s screen with the camera; it is not a connection to the device.'),
       ],
       check: draft('Check: HealthSync.swift lists the ten Health readings it sends; AlarmNotifier.swift turns the hub’s alerts into time-sensitive notifications.'),
       links: [],
@@ -214,7 +214,7 @@ const COPY = {
     title: 'What it won’t do',
     cards: [
       ['It doesn’t diagnose.', 'It points at what changed. Deciding is up to the crew and their flight surgeon.'],
-      ['The AI doesn’t write emergency steps.', draft('Steps come only from cards our medical lead has approved, picked by rules, never by the model.')],
+      ['The AI doesn’t write emergency steps.', draft('Steps come only from cards our medical lead has approved, picked by rules, never by the model. The cards’ text was drafted with an AI tool and reviewed and approved line by line by our medical lead; most steps are not yet checked against a source.')],
       [draft('The AI only answers from NASA’s text and the readings.'), 'If NASA’s pages don’t cover a question, it says it doesn’t know.'],
     ] satisfies [Line, Line][],
     note: draft('Built during NASA Space Apps 2026. Astrum is not a medical device.'),
@@ -226,26 +226,27 @@ const COPY = {
       draft('A question that names a medicine or a dose gets a fixed answer from the hub, and never reaches the model. A crisis phrase the hub recognises goes to a person, and the words are not repeated.'),
       draft('On the demo story’s questions, the checks currently discard everything the model writes, so the crew sees the hub’s sentences and NASA’s quote.'),
     ],
-    resultsTitle: draft('Measured, 14 Nov 2026'),
+    resultsTitle: draft('Measured, 15 Nov 2026'),
     resultsBody: draft('The local model, temperature 0, one run per case. The weak results are listed with the strong ones.'),
     results: [
-      [draft('Unsafe answers shown to the crew, all 75 cases'), draft('0')],
-      [draft('Routing: steps card, fixed answer or model, as expected'), draft('27 of 27')],
-      [draft('Explaining, with hand-picked NASA passages'), draft('10 passed, 4 failed, 5 discarded by the checks (of 19)')],
-      [draft('Explaining, with the hub’s own search'), draft('15 passed, 0 failed, 4 discarded by the checks (of 19)')],
-      [draft('Questions about the demo story'), draft('6 passed, 4 discarded (of 10). The model’s own words were shown in none')],
+      [draft('Unsafe answers shown to the crew, all 96 single questions to the model'), draft('0')],
+      [draft('Routing: steps card, fixed answer or model, as expected'), draft('31 of 31')],
+      [draft('Explaining, with hand-picked NASA passages'), draft('20 passed, 5 failed, 2 discarded by the checks (of 27)')],
+      [draft('Explaining, with the hub’s own search'), draft('25 passed, 0 failed, 2 discarded by the checks (of 27)')],
+      [draft('Questions about the demo story'), draft('6 passed, 4 discarded (of 10). The model’s own words were shown in none (eval of 14 Nov; not in the 15 Nov run)')],
       [draft('Crisis phrases, word list, no model'), draft('3 of 10 crisis phrases caught; 4 of 4 ordinary phrases left alone. The weakest piece')],
+      [draft('The medical lead’s 96 test cases, run on the hub’s rules, no model'), draft('79 passed, 17 failed')],
       [draft('Search, questions it was never tuned on'), draft('Right passage in the top 3 for 17 of 20')],
       [draft('Search, full sentences written after the last fix'), draft('5 of 8')],
     ] satisfies [Line, Line][],
-    resultsNote: draft('“Failed” means what the crew saw missed a point the case required; unsafe answers are counted on their own. A crisis phrase the list misses reaches the model as an ordinary question, where every check still applies. Sources: hub/ai-eval/results (the eval of 14 Nov, 15:02 UTC) and hub/engine/search.test.ts.'),
+    resultsNote: draft('“Failed” means what the crew saw missed a point the case required; unsafe answers are counted on their own. A crisis phrase the list misses reaches the model as an ordinary question, where every check still applies. Sources: hub/ai-eval/results (the eval of 15 Nov, 08:29 UTC), hub/medical/CASES-RESULTS.md and hub/engine/search.test.ts.'),
   },
 
   missions: {
     title: draft('Set up for another mission'),
-    body: draft('A place is a mission file. The one Astrum runs today, hub/profiles/mars-orbit.json, is a station in Mars orbit: the place, the mission’s start date, the delay to Earth (20 minutes each way), its eight rooms, its four crew and their roles, and which chip sits in which room. Another mission is another file, chosen when the hub starts.'),
+    body: draft('A place is a mission file. The default, hub/profiles/missions/ship-mars-orbit.json, is a station in Mars orbit: the place, the mission’s start date, the delay to Earth (20 minutes each way), its eight rooms, its four crew and their roles, and which chip sits in which room. Another mission is another file, chosen on screen in Settings.'),
     // Delete this block if the other places don't land before submission.
-    inProgress: draft('In progress: an ISS-style station and a surface base, as mission files and 3D layouts.'),
+    inProgress: draft('Four mission files exist, each with its rooms, crew and 3D layout: the station in Mars orbit, the ISS, a base on Mars and a base on the Moon. The crew can also make their own.'),
   },
 
   team: {
