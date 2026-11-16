@@ -335,7 +335,8 @@ export function App() {
       {world.scenario && (
         <p ref={story} className="story">
           {s(world.scenario.label)}
-          {/* The web replay's strip is the label alone (the owner's call): no Replay, Skip or Another scenario. */}
+          {/* The web replay's strip: the label and the way back to the site (the owner's call: no Replay, Skip or Another scenario). */}
+          {source instanceof RecordedSource && <> <a className="btn" href="../">{s('scenario.back')}</a></>}
         </p>
       )}
 
