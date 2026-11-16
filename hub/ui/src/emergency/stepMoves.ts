@@ -26,6 +26,9 @@ export const STEP_MOVES: Record<string, Record<number, string>> = {
   'skin-infection': { 0: 'V15-clean-with-gauze', 1: 'V16-bandage', 2: 'V29-mark-the-redness' },
   'ear-nose-throat': { 0: 'V31-yawn', 2: 'V23-pinch-the-nose' },
   neuro: { 0: 'V02-sit-and-stay-still', 1: 'V25c-seizure-turn-on-side', 2: 'V24-stroke-test' },
+  // The fire card (15 Nov): its first three steps name the same gestures other cards already use, word for word
+  // (leave the room, put on the mask, tell everyone). Mapped by the app's developer; awaiting the medical lead's review.
+  'smoke-toxic-air': { 0: 'V05-leave-the-room', 1: 'V04-sealed-mask', 2: 'V01-call-everyone' },
   // Event cards (15 Nov): V32 to V34 were described by the app's developer for her steps; awaiting her review.
   'dust-storm': { 2: 'V32-take-off-dusty-suit' },
   'ground-tremor': { 0: 'V08-press-with-a-cloth', 1: 'V33-look-at-the-pressure', 3: 'V34-watch-over-someone' },

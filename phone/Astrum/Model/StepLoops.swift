@@ -13,6 +13,8 @@ enum StepLoops {
     /// Card id → step index → the loop's name without its gravity suffix.
     static let table: [String: [Int: String]] = [
         "high-co2": [0: "V05-leave-the-room", 1: "V04-sealed-mask", 2: "V04-sealed-mask"],
+        // The fire card: the same gestures, named word for word by its first three steps. Awaiting the medical lead's review.
+        "smoke-toxic-air": [0: "V05-leave-the-room", 1: "V04-sealed-mask", 2: "V01-call-everyone"],
         "unknown-urgent": [0: "V01-call-everyone", 1: "V08-press-with-a-cloth", 3: "V27-watch-the-chest", 6: "V28-cover-the-person"],
         "cardiac-arrest": [0: "V01-call-everyone", 2: "V13-medical-restraint"],
         "cardiac-arrest-gravity": [0: "V01-call-everyone", 1: "V10-lie-on-back-on-floor", 2: "V09-chest-compressions-with-gravity",
