@@ -255,7 +255,7 @@ async function build(kind: Kind): Promise<Built> {
 }
 
 /** One model with its camera, footage and motion. Shared by the single and the grouped canvases. */
-async function view(kind: Kind, opts: { speed?: number; footage?: Footage[] }, reduced: boolean, redraw: () => void) {
+async function view(kind: Kind, opts: { speed?: number; footage?: Footage[]; still?: boolean }, reduced: boolean, redraw: () => void) {
   const built = await build(kind);
   const scene = new THREE.Scene();
   scene.add(built.root);
@@ -263,11 +263,13 @@ async function view(kind: Kind, opts: { speed?: number; footage?: Footage[] }, r
   const speed = opts.speed ?? 1;
   const clips = (opts.footage ?? []).flatMap((f, i) => (built.screens?.[i] ? [footage(f, built.screens[i], reduced, redraw)] : []));
   // Motion: 'auto' sways (or turns), 'held' follows a drag, 'back' eases to front after one.
+  // Held: faces its resting angle and moves only when dragged (reduced motion, or a scene that asks to stay still).
+  const hold = reduced || Boolean(opts.still);
   const rest = built.rest ?? (built.sway ? 0.2 : -0.6);
-  const target = reduced ? rest : 0;
+  const target = hold ? rest : 0;
   const w = built.swayPeriod ? (Math.PI * 2) / built.swayPeriod : 0.18 * speed;
   let mode: 'auto' | 'held' | 'back' = 'auto', held = 0, backFrom = 0, backStart = 0, phase0 = 0, offset = 0;
-  const auto = (s: number) => reduced ? (built.sway ? rest : -0.6 + offset)
+  const auto = (s: number) => hold ? (built.sway ? rest : -0.6 + offset)
     : built.sway ? Math.sin((s - phase0) * w) * built.sway : s * 0.22 * speed - 0.4 + offset;
   return {
     scene, camera, clips,
@@ -299,7 +301,7 @@ async function view(kind: Kind, opts: { speed?: number; footage?: Footage[] }, r
     turn(dx: number) { held += dx; },
     /** Let go: a swaying model turns the short way back to front; the turntable carries on from here. */
     release(s: number) {
-      if (built.sway || reduced) {
+      if (built.sway || hold) {
         const d = Math.atan2(Math.sin(held - target), Math.cos(held - target));
         backFrom = target + d; backStart = s; mode = 'back';
       } else {
@@ -314,7 +316,7 @@ async function view(kind: Kind, opts: { speed?: number; footage?: Footage[] }, r
   };
 }
 
-type Item = { kind: Kind; speed?: number; footage?: Footage[]; el?: HTMLElement; /** Called once if the computer cannot keep up even at the lightest picture. */ onSlow?: () => void };
+type Item = { kind: Kind; speed?: number; still?: boolean; footage?: Footage[]; el?: HTMLElement; /** Called once if the computer cannot keep up even at the lightest picture. */ onSlow?: () => void };
 
 /** Runs one renderer on `canvas`: one model filling it, or several, each in the box of its `el`. Plays only on screen. */
 async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolean): Promise<Mounted | null> {
@@ -432,7 +434,7 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
 }
 
 /** Draws `kind` into `canvas`. Resolves to null when WebGL is unavailable. */
-export function mount(canvas: HTMLCanvasElement, kind: Kind, opts: { speed?: number; footage?: Footage[]; onSlow?: () => void } = {}) {
+export function mount(canvas: HTMLCanvasElement, kind: Kind, opts: { speed?: number; still?: boolean; footage?: Footage[]; onSlow?: () => void } = {}) {
   return run(canvas, [{ kind, ...opts }], true);
 }
 

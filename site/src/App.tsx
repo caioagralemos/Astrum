@@ -126,7 +126,7 @@ const STILL: Record<Kind, string> = { hub: './media/model-hub.jpg', app: './medi
  * loads only when the scene comes near and then takes over. The picture stays, with no 3D at all, when there is
  * no WebGL, on a slow or metered connection, or when the computer cannot keep up even at the lightest setting.
  */
-function Model({ kind, className, speed, footage }: { kind: Kind; className?: string; speed?: number; footage?: Footage[]; fallback?: ReactNode }) {
+function Model({ kind, className, speed, still, footage }: { kind: Kind; className?: string; speed?: number; still?: boolean; footage?: Footage[]; fallback?: ReactNode }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<'still' | 'live' | 'off'>('still');
   const clips = JSON.stringify(footage ?? []);
@@ -141,13 +141,13 @@ function Model({ kind, className, speed, footage }: { kind: Kind; className?: st
       if (!e.isIntersecting) return;
       io.disconnect();
       import('./scene3d.ts')
-        .then(({ mount }) => mount(c, kind, { speed, footage: JSON.parse(clips) as Footage[], onSlow: giveUp }))
+        .then(({ mount }) => mount(c, kind, { speed, still, footage: JSON.parse(clips) as Footage[], onSlow: giveUp }))
         .then((m) => { if (dead) m?.dispose(); else if (m) { dispose = m.dispose; setState('live'); } else setState('off'); })
         .catch(() => setState('off'));
     }, { rootMargin: '600px 0px' });
     io.observe(c);
     return () => { dead = true; io.disconnect(); dispose?.(); };
-  }, [kind, speed, clips]);
+  }, [kind, speed, still, clips]);
   const cls = `model${className ? ' ' + className : ''}`;
   return (
     <>
@@ -397,9 +397,9 @@ function Parts() {
       const [hub, app, board] = boxes.current as HTMLDivElement[];
       import('./scene3d.ts')
         .then(({ mountGroup }) => mountGroup(c, [
-          { kind: 'hub', el: hub, speed: 1.4, footage: HUB_CLIP },
-          { kind: 'app', el: app, speed: 1.4, footage: PHONE_CLIPS },
-          { kind: 'board', el: board, speed: 1.4 },
+          { kind: 'hub', el: hub, still: true, footage: HUB_CLIP },
+          { kind: 'app', el: app, still: true, footage: PHONE_CLIPS },
+          { kind: 'board', el: board, still: true },
         ]))
         .then((m) => { if (dead) m?.dispose(); else if (m) dispose = m.dispose; else setOff(true); })
         .catch(() => setOff(true));
@@ -485,7 +485,7 @@ export function App() {
 
         {/* 3 · The hub */}
         <section className="scene pillar hub" aria-labelledby="hub-title">
-          <Model kind="hub" className="pillar-model" footage={HUB_GYM} fallback={
+          <Model kind="hub" className="pillar-model" still footage={HUB_GYM} fallback={
             <Frame as="figure" className="pillar-screen">
               <Clip src="./media/hub-gym.mp4" poster="./media/hub-gym-poster.jpg" label="The Astrum hub: the ship's exercise bay with two crewmates exercising, and the room's readings" />
             </Frame>
@@ -504,7 +504,7 @@ export function App() {
 
         {/* 4 · The app */}
         <section className="scene pillar app" aria-labelledby="app-title">
-          <Model kind="app" className="pillar-model" footage={PHONE_CLIPS} fallback={
+          <Model kind="app" className="pillar-model" still footage={PHONE_CLIPS} fallback={
             <div className="phones">
               <figure className="phone-frame"><Clip src="./media/phone-heart.mp4" label="The iPhone app showing a crewmate their own readings" w={480} h={1044} /></figure>
             </div>
