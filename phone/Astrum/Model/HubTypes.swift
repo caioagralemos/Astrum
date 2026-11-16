@@ -268,6 +268,9 @@ struct UnusualSignal: Codable, Sendable, Hashable {
     let signal: String
     let direction: String?
     let z: Double
+    /// The recent average the hub judged (not the newest single reading), and the person's usual. Absent from older hubs.
+    var recent: Double? = nil
+    var usual: Double? = nil
     let recent: Double
     let usual: Double
     let mode: String

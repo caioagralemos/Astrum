@@ -54,6 +54,9 @@ struct Reading: Identifiable, Hashable, Sendable {
     let region: BodyRegion?
     let baseline: SignalBaseline?
     let standing: Standing
+    /// The recent average the hub's judgement is about, when the hub gave one: the figure to say beside
+    /// "above your usual", since the newest single reading can already be back in range.
+    var judged: Double? = nil
     /// Part of an alert the owner is told about.
     let inAlert: Bool
     let stale: Bool
@@ -96,6 +99,7 @@ enum Readings {
             return Reading(
                 row: row, region: Signals.region(of: row.signal), baseline: baseline,
                 standing: stale ? .notCurrent : standing(of: row.signal, evidence: evidence, baseline: baseline),
+                judged: stale ? nil : evidence?.unusual.signals.first(where: { $0.signal == row.signal })?.recent,
                 inAlert: alerts.contains { $0.signal == row.signal },
                 stale: stale
             )

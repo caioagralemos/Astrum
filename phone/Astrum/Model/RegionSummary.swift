@@ -111,8 +111,16 @@ enum RegionSummary {
             return Fact(name: name, state: exercise(minutes: minutes, at: reading.row.date, usual: reading.standing))
         }
         switch reading.standing {
-        case .above: return Fact(name: name, state: .outside(String(localized: "\(name) is \(value), above your usual.")))
-        case .below: return Fact(name: name, state: .outside(String(localized: "\(name) is \(value), below your usual.")))
+        case .above, .below:
+            let above = reading.standing == .above
+            // The hub judges a recent average: that is the figure to say, never a newer single reading that is back in range.
+            if let judged = reading.judged {
+                let figure = [Signals.number(judged), reading.row.unit].filter { !$0.isEmpty }.joined(separator: " ")
+                return Fact(name: name, state: .outside(above ? String(localized: "\(name) has averaged \(figure), above your usual.")
+                                                              : String(localized: "\(name) has averaged \(figure), below your usual.")))
+            }
+            return Fact(name: name, state: .outside(above ? String(localized: "\(name) is \(value), above your usual.")
+                                                          : String(localized: "\(name) is \(value), below your usual.")))
         case .within: return Fact(name: name, state: reading.inAlert ? .outside(String(localized: "\(name) is \(value), part of an alert.")) : .withinUsual)
         default: return Fact(name: name, state: reading.inAlert ? .outside(String(localized: "\(name) is \(value), part of an alert.")) : .notEnoughHistory)
         }
