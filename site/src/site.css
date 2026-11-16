@@ -163,7 +163,7 @@ html.locked { overflow: hidden; }
 .fits.narrow { display: none; }
 @media (max-width: 600px) { .fits.wide { display: none; } .fits.narrow { display: block; } }
 .fits-glyph { fill: none; stroke: rgb(255 255 255 / 0.7); stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
-.fits-light { opacity: 0.6; }
+.fits-light { opacity: 1; } /* every node at the same strength (the owner's call) */
 .fits-hub-text { fill: #fff; font-weight: 300; }
 .fits-line { font-size: clamp(20px, 2vw, 30px); font-weight: 300; line-height: 1.25; max-width: 36ch; text-wrap: balance; }
 

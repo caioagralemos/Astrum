@@ -190,6 +190,8 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
   return (
     <svg className={narrow ? 'fits narrow' : 'fits wide'} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={narrow ? 'fits-alt-n' : 'fits-alt'}>
       <title id={narrow ? 'fits-alt-n' : 'fits-alt'}>The hub in the centre, drawn as a ship’s console: a Mac or Windows app. iPhones connect to it over Wi-Fi, each bringing its owner’s Apple Watch readings through HealthKit, and cabin boards over USB; other screens can show the same view. A dashed link to Earth carries messages, with the delay counted. Everything is stored and decided on the hub; nothing depends on a link to Earth.</title>
+      {/* The models' stills are thin translucent lines: their strength is raised to match the drawn glyphs and links. */}
+      <defs><filter id={narrow ? 'fits-boost-n' : 'fits-boost'} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncA type="linear" slope="2.4" /></feComponentTransfer></filter></defs>
       {ends.map((e) => {
         // Trim each link so it runs from the console's edge to the part's edge.
         const dx = e.x - C.x, dy = e.y - C.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
@@ -207,7 +209,7 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
             </g>
             <g transform={`translate(${e.x} ${e.y})`}>
               {e.model && art?.[e.model]
-                ? <image href={art[e.model]} x={-e.w / 2} y={-e.h / 2} width={e.w} height={e.h} />
+                ? <image filter={`url(#${narrow ? 'fits-boost-n' : 'fits-boost'})`} href={art[e.model]} x={-e.w / 2} y={-e.h / 2} width={e.w} height={e.h} />
                 : e.model === 'app' ? <rect className="fits-glyph" x={-e.h * 0.25} y={-e.h * 0.5} width={e.h * 0.5} height={e.h} rx={10} />
                 : e.model === 'board' ? <rect className="fits-glyph" x={-e.w * 0.4} y={-e.h * 0.3} width={e.w * 0.8} height={e.h * 0.6} rx={4} />
                 : e.glyph === 'screen' ? <path className="fits-glyph" d={`M${-e.w / 2} ${-e.h / 2}h${e.w}v${e.h * 0.72}h${-e.w}Z M0 ${e.h * 0.22}v${e.h * 0.2} M${-e.w * 0.22} ${e.h / 2}h${e.w * 0.44}`} />
@@ -235,7 +237,7 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
       })()}
       <g transform={`translate(${C.x} ${C.y})`}>
         {art?.hub
-          ? <image href={art.hub} x={-C.w / 2} y={-C.h / 2} width={C.w} height={C.h} />
+          ? <image filter={`url(#${narrow ? 'fits-boost-n' : 'fits-boost'})`} href={art.hub} x={-C.w / 2} y={-C.h / 2} width={C.w} height={C.h} />
           : <rect className="fits-glyph" x={-C.w * 0.3} y={-C.h * 0.25} width={C.w * 0.6} height={C.h * 0.5} rx={10} />}
         <text className="fits-hub-text" textAnchor="middle" y={C.h / 2 + 26 * f} fontSize={26 * f}>The hub</text>
         <g transform={`translate(0 ${C.h / 2 + 52 * f})`}>

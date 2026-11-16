@@ -422,7 +422,8 @@ export async function stills(list: { kind: Kind; w: number; h: number; yaw: numb
       const camera = new THREE.PerspectiveCamera(built.fov, w / h, 0.01, 100);
       camera.position.set(0, built.height, built.distance * Math.max(1, 1.1 / camera.aspect));
       camera.lookAt(0, 0, 0);
-      renderer.setPixelRatio(Math.min(devicePixelRatio * 1.5, 3));
+      // One pixel per unit: drawn denser and then shown small, the one-pixel lines came out much fainter than the diagram's own strokes.
+      renderer.setPixelRatio(1);
       renderer.setSize(w, h, false);
       renderer.render(scene, camera);
       out.push(canvas.toDataURL('image/png'));
