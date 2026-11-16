@@ -19,8 +19,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  /* Nearly solid, so nothing of the station reads through the words. */
-  background: rgb(15 17 20 / 0.86);
+  /* The hub's own panel surface (the faint grid of .frame); the blurred station behind keeps the words clear. */
+  background: var(--w-bg);
   border-radius: var(--w-radius);
   animation: intro-rise var(--motion-move) var(--motion-ease) 60ms both;
 }
