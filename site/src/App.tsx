@@ -504,7 +504,7 @@ export function App() {
 
         {/* 4 · The app */}
         <section className="scene pillar app" aria-labelledby="app-title">
-          <Model kind="app" className="pillar-model" gentle={0.3} footage={PHONE_CLIPS} fallback={
+          <Model kind="app" className="pillar-model" gentle={0.55} footage={PHONE_CLIPS} fallback={
             <div className="phones">
               <figure className="phone-frame"><Clip src="./media/phone-heart.mp4" label="The iPhone app showing a crewmate their own readings" w={480} h={1044} /></figure>
             </div>
