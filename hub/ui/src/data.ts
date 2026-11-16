@@ -221,6 +221,8 @@ export class RecordedSource implements DataSource {
   private listeners = new Set<() => void>();
   /** The intro card's words while it waits for Start, else null. */
   intro: Intro | null = null;
+  /** The narrator's lines (meta.moments[].caption), by recording time: one plain sentence per beat of the story. */
+  captions: { at: number; text: IntroText }[] = [];
   /** How many scenarios the list offers (0 when there is no list): "Another scenario" shows for two or more. */
   choices = 0;
   /** The phone recording filmed in the same take, if the file has one: its address, and its time (s) at a moment of the replay. */
@@ -335,6 +337,8 @@ export class RecordedSource implements DataSource {
         };
         this.changed();
       }
+      const moments = (recording.meta?.moments ?? []) as { at: number; caption?: IntroText }[];
+      this.captions = moments.filter((m) => m.caption).map((m) => ({ at: m.at, text: m.caption as IntroText })).sort((a, b) => a.at - b.at);
       const intro = recording.meta?.intro as Intro | undefined;
       if (intro?.title) {
         // The hub as it is at the recording's first moment, then the card over it.
@@ -360,10 +364,10 @@ export function chooseSource(): DataSource {
 }
 
 /** A recorded source's intro card and list size, re-rendered when they change. */
-export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null } {
+export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null; captions: { at: number; text: IntroText }[] } {
   const [, bump] = useState(0);
   useEffect(() => (source instanceof RecordedSource ? source.subscribe(() => bump((n) => n + 1)) : undefined), [source]);
-  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone } : { intro: null, choices: 0, phone: null };
+  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone, captions: source.captions } : { intro: null, choices: 0, phone: null, captions: [] };
 }
 
 export function useWorld(source: DataSource): World {

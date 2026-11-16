@@ -293,6 +293,15 @@ export function App() {
         <PhoneView take={recorded.phone} now={now} playing={world.status === 'replay'} shown={takeSide === 'phone'} s={s} />
       </>}
 
+      {/* The narrator: the story's current beat in one plain line, so someone watching from outside knows what is happening. */}
+      {(() => {
+        if (recorded.intro || world.status !== 'replay' || !recorded.captions.length) return null;
+        const line = [...recorded.captions].reverse().find((c) => c.at <= now);
+        if (!line) return null;
+        const text = typeof line.text === 'string' ? line.text : (lang === 'pt' && line.text.pt) || line.text.en;
+        return <p className="caption" role="status" aria-live="polite"><span key={text}>{text}</span></p>;
+      })()}
+
       {world.scenario && (
         <p ref={story} className="story">
           {s(world.scenario.label)}

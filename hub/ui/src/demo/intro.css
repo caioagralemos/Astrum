@@ -48,3 +48,29 @@
 @keyframes intro-rise { from { opacity: 0; transform: translateY(var(--motion-rise)) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .intro, .intro-sheet { animation-duration: 1ms; animation-delay: 0ms; } }
 @media (prefers-reduced-transparency: reduce) { .intro { background: rgb(0 0 0 / 0.8); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+/* The narrator line (App.tsx): one sentence for the story's current beat, under the top bar, over everything
+   but the intro sheet, so it still reads during the emergency screen. Each new line fades in. */
+.caption {
+  position: fixed;
+  top: calc(max(20px, env(safe-area-inset-top)) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  width: max-content;
+  max-width: min(640px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.62);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
+.caption > span { display: block; animation: caption-in 420ms var(--motion-ease) both; }
+@keyframes caption-in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .caption > span { animation: none; } }
