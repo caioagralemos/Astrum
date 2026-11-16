@@ -8,16 +8,20 @@ NASA Space Apps Challenge 2026 · Create Health Monitoring Software for Astronau
 
 | Piece | Folder | What it does |
 |---|---|---|
-| Hub | `hub/` | The desktop app. Collects every reading, raises alerts, shows the emergency steps, runs the on-board model. |
+| Hub | `hub/` | A desktop app for Mac and Windows. Collects every reading, raises alerts, shows the emergency steps, runs the on-board model. |
 | iPhone app | `phone/` | One per crewmate. Sends their readings, shows alerts and steps, the daily check-in, the chat with Astra. |
 | Cabin board | `chip/` | An ESP32 with sensors, plugged into the hub by USB. |
 | Astra | inside the hub | A small language model that runs on the hub's own computer. No internet. |
 
 The hub is the centre. Phones find it over Wi-Fi; the board talks to it over USB. Start with the hub; the other two are optional.
 
+Astrum is not an iPad or web app. The hub runs on a computer, and any other screen on the same network (an iPad on the wall, a laptop) can show it by opening `http://<the hub's address>:4310` in a browser. That is how it appears on an iPad in the video.
+
 ## 1. The hub
 
-Needs Node 24 or newer.
+**The easy way: download the app.** Get `Astrum-1.0.0-mac.zip` or `Astrum-1.0.0-win-x64.zip` from the [latest release](https://github.com/caioagralemos/Astrum/releases/latest), unzip it and open Astrum. It carries the hub, Node and the on-board model, starts with nothing simulated, and walks you through the setup. It is not signed by a store: on a Mac choose Open Anyway in Privacy & Security; on Windows choose More info, then Run anyway. Then skip to step 2.
+
+**From source**, to change it or to run demo mode. Needs Node 24 or newer.
 
 ```sh
 cd hub

@@ -1,10 +1,10 @@
 # Cabin chip
 
-An ESP32 DevKit board with sensors, plugged into the hub's Mac by USB. It sends one line of JSON a second, and sounds a buzzer when the hub asks.
+An ESP32 DevKit board with sensors, plugged into the hub's computer by USB. It sends one line of JSON a second, and sounds a buzzer when the hub asks.
 
 ## Run it
 
-1. Quit the hub (it holds the serial port).
+1. Quit the hub, whether the Astrum app or `npm run core` (it holds the serial port).
 2. Plug the board into the Mac. Find its port: `arduino-cli board list`
 3. Once: `arduino-cli core install esp32:esp32`
 4. Compile and upload (replace the port):
@@ -15,7 +15,8 @@ arduino-cli upload -p /dev/cu.usbserial-XXXX --fqbn esp32:esp32:esp32 chip/astru
 ```
 
 5. Arduino IDE instead: open `astrum_chip/astrum_chip.ino`, Board "ESP32 Dev Module", the `usbserial` port, Upload. If it stops at "Connecting", hold the BOOT button.
-6. Check: serial monitor at 115200 baud shows a line a second with `"fw":"0.3"`. Close it, then start the hub.
+6. Check: serial monitor at 115200 baud shows a line a second with `"fw":"0.3"`. Close it, then start the hub: open the Astrum app, or `cd hub && npm run core`.
+7. No tools? Flash the ready-made file from the [latest release](https://github.com/caioagralemos/Astrum/releases/latest): `esptool.py --chip esp32 write_flash 0x0 Astrum-board-firmware-0.3-esp32.bin`. On Windows the board needs Silicon Labs' CP210x driver if Windows does not install it by itself.
 
 ## Folders
 

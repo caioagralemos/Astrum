@@ -1,8 +1,10 @@
 # Hub
 
-The program that runs on the station computer. It reads the cabin board and the phones, works out alerts, and serves the page at port 4310.
+The program that runs on the station computer, a Mac or a Windows PC. It reads the cabin board and the phones, works out alerts, and serves the page at port 4310, so any other screen on the same network (an iPad, a laptop) can show the hub in a browser.
 
 ## Run it
+
+Most people do not need this folder: the packaged Astrum app (Mac and Windows, [latest release](https://github.com/caioagralemos/Astrum/releases/latest)) is this hub, ready to open. What follows runs it from source.
 
 Needs Node 24 or newer. For the on-board model: `brew install llama.cpp`.
 

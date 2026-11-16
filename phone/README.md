@@ -6,10 +6,10 @@ The iPhone app for one crewmate. It shows that person's body and readings, sends
 
 1. Open `Astrum.xcodeproj` in Xcode.
 2. Target Astrum, Signing & Capabilities: pick your team. Change the bundle id (`com.caioagralemos.astrum`) if Xcode says it is taken.
-3. Start the hub on the Mac (`cd hub && npm run core`).
+3. Start the hub: open the Astrum app (Mac or Windows, from the [latest release](https://github.com/caioagralemos/Astrum/releases/latest)), or from source `cd hub && npm run core`.
 4. Run on a real iPhone on the same Wi-Fi as the hub. Health and Bonjour need a real phone.
 5. Allow local network, notifications, Health, Bluetooth and camera when asked.
-6. The app finds the hub by itself. If not, tap "Scan the hub's code", or type the Mac's address.
+6. The app finds the hub by itself. If not, type the hub computer's address.
 
 Without a hub: every screen has a `#Preview` with sample data (`Preview/SampleData.swift`).
 
