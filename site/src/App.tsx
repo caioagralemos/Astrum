@@ -222,11 +222,13 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
       {(() => {
         // The Apple Watch reaches the hub through its owner's iPhone (Apple Health, HealthKit): drawn beside the phones.
         const phone = ends[0];
-        const wx = narrow ? phone.x + 150 : phone.x - 118, wy = narrow ? phone.y - 6 : phone.y + 6, k = narrow ? 1.25 : 1;
-        const from = narrow ? phone.x + phone.w * 0.36 : phone.x - phone.w * 0.36, to = narrow ? wx - 26 * k : wx + 26 * k;
+        const wx = narrow ? phone.x + 150 : phone.x + 144, wy = narrow ? phone.y - 6 : phone.y - 82, k = narrow ? 1.25 : 1;
+        // The link: level on the narrow drawing; on the wide one the watch sits up and to the right of the phone, so it runs at a slant.
+        const from = phone.x + phone.w * 0.36, to = wx - 26 * k;
+        const y1 = narrow ? wy : phone.y - 34, y2 = narrow ? wy : wy + 14;
         return (
           <g>
-            <line className="fits-link" x1={from} y1={wy} x2={to} y2={wy} />
+            <line className="fits-link" x1={from} y1={y1} x2={to} y2={y2} />
             <g transform={`translate(${wx} ${wy}) scale(${k})`}>
               <path className="fits-glyph" d="M-11 -18h22a6 6 0 0 1 6 6v24a6 6 0 0 1-6 6h-22a6 6 0 0 1-6-6v-24a6 6 0 0 1 6-6Z M-9 -18l2-12h14l2 12 M-9 18l2 12h14l2-12 M17 -6h3v8h-3" vectorEffect="non-scaling-stroke" />
             </g>
