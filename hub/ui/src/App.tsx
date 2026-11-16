@@ -7,7 +7,10 @@
 // and every reading shows how it came to exist.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { RecordedSource, chooseSource, useWorld } from './data.ts';
+import { RecordedSource, chooseSource, useRecordedState, useWorld } from './data.ts';
+import { IntroCard } from './demo/Intro.tsx';
+import { PhoneView, TakeSwitch } from './demo/PhoneTake.tsx';
+import type { TakeSide } from './demo/PhoneTake.tsx';
 import { current, lastSeen, occupants } from '../../engine/timeline.ts';
 import type { LastSeen } from '../../engine/timeline.ts';
 import { t } from '../../engine/strings.ts';
@@ -52,6 +55,9 @@ export function App() {
   const source = useMemo(chooseSource, []);
   // `?demoAlert` lays a mock alarm and alerts over the live state, on this screen only (demo/mockAlert.ts).
   const world = useMockAlert(useWorld(source));
+  const recorded = useRecordedState(source);
+  // Replay only: a scenario filmed on the phone in the same take can show that side instead (demo/PhoneTake.tsx).
+  const [takeSide, setTakeSide] = useState<TakeSide>('hub');
   const [lang, setLang] = useState<Lang>(startLang);
   const [selected, setSelected] = useState<Selection>(null);
   const [panel, setPanel] = useState<'alerts' | 'link' | MainPanel | null>(null);
@@ -160,6 +166,8 @@ export function App() {
     if (alert.declared.shelter) weather.shelter = alert.declared.shelter;
   }
   const { profile, now } = world;
+  // A recorded scenario's context card, before it plays (replay only).
+  if (recorded.intro && source instanceof RecordedSource) return <main><IntroCard intro={recorded.intro} lang={lang} s={s} onStart={() => source.begin()} /></main>;
   if (world.restarting) return <main><Loading message={s('settings.restartingAny')} quiet /></main>;
   if (!profile) return <main><Loading message={s(world.status === 'offline' ? 'hub.offline' : 'hub.connecting')} quiet={world.status !== 'offline'} /></main>;
 
@@ -214,7 +222,7 @@ export function App() {
     values.filter((r) => r.person === bodyPerson.id), s, bodyPerson.name, viewer === bodyPerson.id) : [];
 
   return (
-    <main className="hub">
+    <main className="hub" data-take={recorded.phone ? takeSide : undefined}>
       <Station weather={weather} rooms={profile.rooms} crew={profile.crew} where={where} lastSeen={lastPlace} roomStatus={roomStatuses} readRooms={[...new Set(values.filter((r) => r.room && !r.person && r.value !== null).map((r) => r.room as string))]} personStatus={personStatuses}
         asleep={asleep} activity={world.activity && Object.fromEntries(Object.entries(world.activity).map(([id, a]) => [id, a.what]))}
         s={s} selected={zoomed ? zoomTarget : selected} onSelect={(next) => { if (zoomed) return; setSelected(next); if (next) setPanel(null); }} mission={stationMission} body={bodyPerson ? { person: bodyPerson.id, states: statesOf(body) } : null}
@@ -280,10 +288,15 @@ export function App() {
         return <RoomView room={room} status={roomStatuses[room.id] ?? 'unknown'} rows={rows} people={people} now={now} s={s} />;
       })()}
 
+      {recorded.phone && <>
+        <TakeSwitch side={takeSide} onSide={setTakeSide} s={s} />
+        <PhoneView take={recorded.phone} now={now} playing={world.status === 'replay'} shown={takeSide === 'phone'} s={s} />
+      </>}
+
       {world.scenario && (
         <p ref={story} className="story">
           {s(world.scenario.label)}
-          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => { forgetSilenced(); source.restart(); }}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button> <a className="btn" href="../">{s('scenario.back')}</a></>}
+          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => { forgetSilenced(); source.restart(); }}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button>{recorded.choices > 1 && <> <button type="button" className="btn" onClick={() => source.another()}>{s('scenario.another')}</button></>} <a className="btn" href="../">{s('scenario.back')}</a></>}
         </p>
       )}
 

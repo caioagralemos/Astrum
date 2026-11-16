@@ -193,15 +193,55 @@ export class LiveSource implements DataSource {
 
 export type { Recording };
 
+/** The words a scenario shows before it plays (meta.intro): plain English, or English and Portuguese. */
+export type IntroText = string | { en: string; pt?: string };
+export interface Intro { title: IntroText; lines: IntroText[] }
+/** One entry of the scenario list (ui/public/scenario/index.json). */
+export interface ScenarioEntry { file: string; title: string }
+export interface PhoneTake { src: string; videoTime(now: number): number; endsAt: number }
+
+const LIST = 'scenario/index.json';
+const LAST_KEY = 'astrum.replay.last';
+
 /**
  * A recorded file played in the browser, at the speeds its meta asks for
  * (real time for files without one). The screen's clock is the recording's.
+ * `?replay=random` (or an empty `?replay`) picks one from the scenario list,
+ * never the one this browser played last. A file with an intro waits on its
+ * card until begin().
  */
 export class RecordedSource implements DataSource {
   private url: string;
   private controls: { restart(): void; skip(): void } | null = null;
+  private waiting: (() => void) | null = null;
+  private listeners = new Set<() => void>();
+  /** The intro card's words while it waits for Start, else null. */
+  intro: Intro | null = null;
+  /** How many scenarios the list offers (0 when there is no list): "Another scenario" shows for two or more. */
+  choices = 0;
+  /** The phone recording filmed in the same take, if the file has one: its address, and its time (s) at a moment of the replay. */
+  phone: PhoneTake | null = null;
   constructor(url: string) {
     this.url = url;
+  }
+
+  /** Calls `fn` whenever intro or choices change; returns the unsubscribe. */
+  subscribe(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => void this.listeners.delete(fn);
+  }
+
+  private changed(): void {
+    for (const fn of this.listeners) fn();
+  }
+
+  /** Starts the scenario waiting on its intro card. */
+  begin(): void {
+    const go = this.waiting;
+    this.waiting = null;
+    this.intro = null;
+    this.changed();
+    go?.();
   }
 
   /** Plays it again from the beginning. */
@@ -214,10 +254,43 @@ export class RecordedSource implements DataSource {
     this.controls?.skip();
   }
 
+  /** Loads a different scenario from the list. */
+  another(): void {
+    const params = new URLSearchParams(location.search);
+    params.set('replay', 'random');
+    params.set('after', this.url);
+    location.search = params.toString();
+  }
+
+  /** The file to play: the one asked for, or a random pick from the list. */
+  private async resolve(list: ScenarioEntry[]): Promise<string> {
+    if (this.url && this.url !== 'random') return this.url;
+    const params = new URLSearchParams(location.search);
+    let last = params.get('after');
+    if (!last) try { last = localStorage.getItem(LAST_KEY); } catch { /* no memory: any pick */ }
+    const others = list.filter((e) => `scenario/${e.file}` !== last);
+    const pool = others.length ? others : list;
+    if (!pool.length) throw new Error('no scenarios listed');
+    const file = `scenario/${pool[Math.floor(Math.random() * pool.length)].file}`;
+    // The address names the file, so a reload or the Astra sheet (its recorded answers sit beside it) finds the same one.
+    params.set('replay', file);
+    params.delete('after');
+    history.replaceState(null, '', `?${params.toString()}${location.hash}`);
+    return file;
+  }
+
   start(update: (change: (world: World) => World) => void): () => void {
     let stopped = false;
     let timer: ReturnType<typeof setInterval> | undefined;
-    void fetch(this.url).then((res) => res.json()).then((recording: Recording) => {
+    void fetch(LIST).then((res) => (res.ok ? res.json() : [])).catch(() => [])
+      .then(async (list: ScenarioEntry[]) => {
+        this.choices = Array.isArray(list) ? list.length : 0;
+        this.url = await this.resolve(Array.isArray(list) ? list : []);
+        try { localStorage.setItem(LAST_KEY, this.url); } catch { /* not remembered */ }
+        this.changed();
+        return (await fetch(this.url)).json();
+      })
+      .then((recording: Recording) => {
       const { messages } = recording;
       if (stopped || !messages.length) return;
       const startsAt = recording.meta?.startsAt ?? messages[0].at;
@@ -246,19 +319,43 @@ export class RecordedSource implements DataSource {
         },
         skip: () => from(realOffset(speed, startsAt, endsAt)),
       };
-      from(0);
+      const phone = recording.meta?.phone;
+      if (phone?.file && Number.isFinite(phone.offsetMs)) {
+        // The replay clock reaches `now` after realOffset(...) ms of playing; the video began offsetMs from startsAt
+        // on that played time (RecordingMeta.phone). Both scenarios with one play at real time.
+        this.phone = {
+          src: this.url.replace(/[^/]*$/, '') + phone.file,
+          videoTime: (now) => (realOffset(speed, startsAt, now) - phone.offsetMs) / 1000,
+          endsAt,
+        };
+        this.changed();
+      }
+      const intro = recording.meta?.intro as Intro | undefined;
+      if (intro?.title) {
+        this.intro = intro;
+        this.waiting = () => { if (!stopped) from(0); };
+        this.changed();
+      } else from(0);
     }).catch(() => update((w) => ({ ...w, status: 'offline' })));
     return () => {
       stopped = true;
       this.controls = null;
+      this.waiting = null;
       clearInterval(timer);
     };
   }
 }
 
 export function chooseSource(): DataSource {
-  const replay = new URLSearchParams(location.search).get('replay');
-  return replay ? new RecordedSource(replay) : new LiveSource();
+  const params = new URLSearchParams(location.search);
+  return params.has('replay') ? new RecordedSource(params.get('replay') ?? '') : new LiveSource();
+}
+
+/** A recorded source's intro card and list size, re-rendered when they change. */
+export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null } {
+  const [, bump] = useState(0);
+  useEffect(() => (source instanceof RecordedSource ? source.subscribe(() => bump((n) => n + 1)) : undefined), [source]);
+  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone } : { intro: null, choices: 0, phone: null };
 }
 
 export function useWorld(source: DataSource): World {

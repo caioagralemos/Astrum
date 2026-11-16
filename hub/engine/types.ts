@@ -254,6 +254,13 @@ export interface RecordingMeta {
   labels: Record<string, string>;
   /** The story's moments, in order, for captions and for people reading the file. */
   moments: { at: number; what: string }[];
+  /**
+   * A screen recording of the phone app filmed in the same take (web replay only). `file` sits beside the
+   * scenario; video time (ms) = realOffset(speed, startsAt, now) - offsetMs, where realOffset is how long the
+   * replay has played to reach `now` (engine/playback.ts). At real time (speed 1) that is now - startsAt - offsetMs:
+   * offsetMs is the video's first frame on the scenario's clock, minus startsAt (negative: filming began first).
+   */
+  phone?: { file: string; offsetMs: number };
   /** Anything else the file wants to state about where its values came from. */
   [key: string]: unknown;
 }

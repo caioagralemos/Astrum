@@ -56,7 +56,7 @@ function Model({ name, className, travel, whole }: { name: ModelName; className?
   return <div ref={ref} className={`ob-model ${className ?? ''}`} aria-hidden="true" />;
 }
 
-function Frame({ children, className }: { children: ReactNode; className?: string }) {
+export function Frame({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={`ob-frame ${className ?? ''}`}><i aria-hidden="true" />{children}</div>;
 }
 

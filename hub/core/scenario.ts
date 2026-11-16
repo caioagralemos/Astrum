@@ -353,6 +353,14 @@ function play(hub: Hub, store: Store, hubDir: string, profile: Profile): Recorde
       speed,
       labels: { scenario: 'scenario.simulated', title: 'scenario.reyes-night' },
       moments,
+      // The web replay's context card before it plays (ui/src/demo/Intro.tsx).
+      intro: {
+        title: { en: 'One night on a ship in Mars orbit.', pt: 'Uma noite numa nave em órbita de Marte.' },
+        lines: [
+          { en: 'Reyes is asleep in her quarters.', pt: 'Reyes dorme em seus aposentos.' },
+          { en: 'The air in her room is about to change.', pt: 'O ar do quarto dela está prestes a mudar.' },
+        ],
+      },
       stationOffsetMinutes: STATION_OFFSET_MINUTES,
       actOne: { person: 'reyes', pointsTo: actOne.pointsTo, focusRoom: actOne.focusRoom },
       record: {

@@ -24,8 +24,8 @@ const run = spawnSync('npm', ['run', 'build', '--', '--outDir', out, '--emptyOut
 if (run.status !== 0) process.exit(run.status ?? 1);
 
 // Leave out what the demo never loads: the 3D models the hub's preview pages export (astra.glb,
-// astrum-chip*.glb), the developer workbench (bench.html and the files only it uses), a draft
-// recording, and the copies iCloud makes ("index 2.html").
+// astrum-chip*.glb), the developer workbench (bench.html and the files only it uses), any scenario file
+// the list does not name (a draft recording), and the copies iCloud makes ("index 2.html").
 const remove = (file) => rmSync(join(out, file), { force: true, recursive: true });
 const bench = existsSync(join(out, 'bench.html')) ? readFileSync(join(out, 'bench.html'), 'utf8') : '';
 const keep = readFileSync(join(out, 'index.html'), 'utf8');
@@ -35,14 +35,24 @@ for (const [, asset] of bench.matchAll(/assets\/([^"'?#]+)/g)) {
   if (!usedElsewhere) remove(join('assets', asset));
 }
 remove('bench.html');
-remove(join('scenario', 'reyes-night.next.json'));
 for (const file of readdirSync(out)) if (file.endsWith('.glb')) remove(file);
 for (const file of readdirSync(out, { recursive: true })) if (/ \d+(\.[^./]+)?$/.test(String(file))) remove(String(file));
 
-for (const file of ['index.html', join('scenario', 'reyes-night.json')]) {
+// Every scenario the list names (vite copies hub/ui/public whole), with its recorded Astra answers and its
+// phone recording (meta.phone, <id>.phone.mp4) if it has them.
+const listFile = join(out, 'scenario', 'index.json');
+const list = existsSync(listFile) ? JSON.parse(readFileSync(listFile, 'utf8')) : [];
+if (!Array.isArray(list) || !list.length) {
+  console.error('public/demo/scenario/index.json is missing or lists no scenario.');
+  process.exit(1);
+}
+const listed = new Set(list.flatMap(({ file }) => [file, file.replace(/\.json$/, '.astra.json'), file.replace(/\.json$/, '.phone.mp4')]));
+listed.add('index.json');
+for (const file of readdirSync(join(out, 'scenario'))) if (!listed.has(file)) remove(join('scenario', file));
+for (const file of ['index.html', ...list.map(({ file }) => join('scenario', file))]) {
   if (!existsSync(join(out, file))) {
     console.error(`public/demo/${file} is missing after the build.`);
     process.exit(1);
   }
 }
-console.log('Demo ready: public/demo/index.html?replay=scenario/reyes-night.json');
+console.log(`Demo ready: public/demo/index.html?replay=random (${list.length} scenarios: ${list.map(({ file }) => file).join(', ')})`);
