@@ -56,6 +56,14 @@ export function App() {
   // `?demoAlert` lays a mock alarm and alerts over the live state, on this screen only (demo/mockAlert.ts).
   const world = useMockAlert(useWorld(source));
   const recorded = useRecordedState(source);
+  // The narrator leaves 10 s after the recording reaches its end; a replay from the start brings it back.
+  const [narratorDone, setNarratorDone] = useState(false);
+  const atEnd = recorded.endsAt !== null && world.now >= recorded.endsAt;
+  useEffect(() => {
+    if (!atEnd) { setNarratorDone(false); return; }
+    const t = setTimeout(() => setNarratorDone(true), 10_000);
+    return () => clearTimeout(t);
+  }, [atEnd]);
   // Replay only: a scenario filmed on the phone in the same take can show that side instead (demo/PhoneTake.tsx).
   const [takeSide, setTakeSide] = useState<TakeSide>('hub');
   const [lang, setLang] = useState<Lang>(startLang);
@@ -295,7 +303,7 @@ export function App() {
 
       {/* The narrator: the story's current beat in one plain line, so someone watching from outside knows what is happening. */}
       {(() => {
-        if (recorded.intro || world.status !== 'replay' || !recorded.captions.length) return null;
+        if (!recorded.started || recorded.intro || narratorDone || world.status !== 'replay' || !recorded.captions.length) return null;
         const line = [...recorded.captions].reverse().find((c) => c.at <= now);
         if (!line) return null;
         const text = typeof line.text === 'string' ? line.text : (lang === 'pt' && line.text.pt) || line.text.en;
@@ -308,13 +316,15 @@ export function App() {
       })()}
 
       {/* What reached a phone or a cabin board at this beat: a banner that slides in, stays a few seconds and goes. */}
-      {recorded.notices.length > 0 && world.status === 'replay' && !recorded.intro && (
+      {recorded.notices.length > 0 && recorded.started && world.status === 'replay' && !recorded.intro && (
         <div className="notices" aria-live="polite">
           {recorded.notices.filter((n) => n.at <= now && n.at >= Math.max(...recorded.notices.filter((m) => m.at <= now).map((m) => m.at))).map((n, i) => (
             <div key={`${n.at}-${i}`} className="notice" data-kind={n.kind} style={{ animationDelay: `${i * 0.35}s` }}>
               <p className="notice-on">{n.on}</p>
               <div className="notice-card">
-                <span className="notice-app" aria-hidden="true">{n.kind === 'phone' ? '✚' : '◉'}</span>
+                {n.kind === 'phone'
+                  ? <img className="notice-app notice-icon" src="brand/app-icon.png" alt="" aria-hidden="true" />
+                  : <span className="notice-app" aria-hidden="true">◉</span>}
                 <div><p className="notice-title">{n.title}</p><p className="notice-body">{n.body}</p></div>
               </div>
             </div>
@@ -325,7 +335,7 @@ export function App() {
       {world.scenario && (
         <p ref={story} className="story">
           {s(world.scenario.label)}
-          {source instanceof RecordedSource && <> <button type="button" className="btn" onClick={() => { forgetSilenced(); source.restart(); }}>{s('scenario.replay')}</button> <button type="button" className="btn" onClick={() => source.skip()}>{s('scenario.skip')}</button>{recorded.choices > 1 && <> <button type="button" className="btn" onClick={() => source.another()}>{s('scenario.another')}</button></>} <a className="btn" href="../">{s('scenario.back')}</a></>}
+          {/* The web replay's strip is the label alone (the owner's call): no Replay, Skip or Another scenario. */}
         </p>
       )}
 

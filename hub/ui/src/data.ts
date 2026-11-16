@@ -228,6 +228,10 @@ export class RecordedSource implements DataSource {
   captions: { at: number; text: IntroText }[] = [];
   /** What reached a phone or a cabin board at a beat (meta.moments[].notices), shown as a banner. */
   notices: Notice[] = [];
+  /** The viewer has pressed Start (or the file has no intro): the story is under way. */
+  started = false;
+  /** The recording's last moment, once loaded. */
+  endsAt: number | null = null;
   /** How many scenarios the list offers (0 when there is no list): "Another scenario" shows for two or more. */
   choices = 0;
   /** The phone recording filmed in the same take, if the file has one: its address, and its time (s) at a moment of the replay. */
@@ -254,6 +258,7 @@ export class RecordedSource implements DataSource {
     clearTimeout(this.introTimer);
     this.waiting = null;
     this.intro = null;
+    this.started = true;
     this.changed();
     go?.();
   }
@@ -306,6 +311,7 @@ export class RecordedSource implements DataSource {
       if (stopped || !messages.length) return;
       const startsAt = recording.meta?.startsAt ?? messages[0].at;
       const endsAt = recording.meta?.endsAt ?? messages[messages.length - 1].at;
+      this.endsAt = endsAt;
       const speed = speedProfile(recording.meta?.speed, startsAt);
       let next = 0;
       let begun = 0;
@@ -352,7 +358,7 @@ export class RecordedSource implements DataSource {
         play();
         this.waiting = () => { if (!stopped) from(0); };
         this.introTimer = setTimeout(() => { if (stopped || !this.waiting) return; this.intro = intro; this.changed(); }, INTRO_AFTER);
-      } else from(0);
+      } else { this.started = true; this.changed(); from(0); }
     }).catch(() => update((w) => ({ ...w, status: 'offline' })));
     return () => {
       stopped = true;
@@ -370,10 +376,10 @@ export function chooseSource(): DataSource {
 }
 
 /** A recorded source's intro card and list size, re-rendered when they change. */
-export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null; captions: { at: number; text: IntroText }[]; notices: Notice[] } {
+export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null; captions: { at: number; text: IntroText }[]; notices: Notice[]; started: boolean; endsAt: number | null } {
   const [, bump] = useState(0);
   useEffect(() => (source instanceof RecordedSource ? source.subscribe(() => bump((n) => n + 1)) : undefined), [source]);
-  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone, captions: source.captions, notices: source.notices } : { intro: null, choices: 0, phone: null, captions: [], notices: [] };
+  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone, captions: source.captions, notices: source.notices, started: source.started, endsAt: source.endsAt } : { intro: null, choices: 0, phone: null, captions: [], notices: [], started: false, endsAt: null };
 }
 
 export function useWorld(source: DataSource): World {
