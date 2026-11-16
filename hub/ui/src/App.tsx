@@ -139,7 +139,8 @@ export function App() {
   const seen = useRef(new Set<string>());
   const activeKey = active.join(',');
   useEffect(() => {
-    if (active.some((key) => !seen.current.has(key))) setPanel('alerts');
+    // In a recorded web demo the list stays closed: the viewer opens it when they want (the owner's call).
+    if (active.some((key) => !seen.current.has(key)) && !(source instanceof RecordedSource)) setPanel('alerts');
     seen.current = new Set(active);
   }, [activeKey]);
 
