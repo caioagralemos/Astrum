@@ -204,8 +204,51 @@ function start(fail: () => void): () => void {
     warm(current);
   }
 
+  // One fluid page from two habits: scrolling on and on plays straight through, but a scroll that stops
+  // in the middle of a handover is finished for you, in the direction it was going (a nudge of a few
+  // percent is enough), so a single flick always lands on a whole scene. The last scene and the footer
+  // scroll freely.
+  let lastY = scrollY, dir = 0, idle = 0, settlingTo = -1;
+  const settle = () => {
+    const y = scrollY;
+    const ours = settlingTo >= 0 && Math.abs(y - settlingTo) < 3;
+    settlingTo = -1;
+    if (ours) return;
+    const i = segs.findIndex((_, k) => k === n - 1 || y < segs[k + 1].a);
+    if (i < 0 || i >= n - 1) return;
+    const s = segs[i];
+    if (y <= s.b + 2) return;                                        // holding on a scene already
+    const t = (y - s.b) / (segs[i + 1].a - s.b);
+    const to = dir >= 0 ? (t > 0.06 ? i + 1 : i) : (t < 0.94 ? i : i + 1);
+    const top = segs[to].a + Math.min(4, segs[to].b - segs[to].a);
+    settlingTo = top;
+    glide(top);
+  };
+
+  // The finish: it carries on the motion the hand started and lands softly (ease-out), quicker for a short
+  // way than a long one. Any wheel, touch or key takes the page straight back.
+  let glideRaf = 0;
+  const stopGlide = () => { if (glideRaf) { cancelAnimationFrame(glideRaf); glideRaf = 0; } };
+  function glide(top: number) {
+    stopGlide();
+    const from = scrollY, d = top - from;
+    if (Math.abs(d) < 1) return;
+    const dur = Math.min(720, 320 + (Math.abs(d) / vh) * 520), t0 = performance.now();
+    const step = (now: number) => {
+      const f = Math.min(1, (now - t0) / dur), e = 1 - (1 - f) ** 3;
+      scrollTo({ top: from + d * e, behavior: 'instant' as ScrollBehavior });
+      glideRaf = f < 1 ? requestAnimationFrame(step) : 0;
+    };
+    glideRaf = requestAnimationFrame(step);
+  }
+  const onHand = () => { if (glideRaf) { stopGlide(); settlingTo = -1; } };
+
   let queued = false;
   const onScroll = () => {
+    const y = scrollY;
+    if (y !== lastY) { dir = Math.sign(y - lastY); lastY = y; }
+    clearTimeout(idle);
+    idle = window.setTimeout(settle, 140);
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => { queued = false; try { frame(); } catch (err) { console.error('scroll scenes off:', err); fail(); } });
@@ -262,12 +305,15 @@ function start(fail: () => void): () => void {
   if (startAt > 0) goTo(startAt, false);
   frame();
   addEventListener('scroll', onScroll, { passive: true });
+  for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) addEventListener(ev, onHand, { passive: true });
   addEventListener('resize', onResize);
   document.addEventListener('click', onClick);
   document.addEventListener('focusin', onFocus);
 
   return () => {
     removeEventListener('scroll', onScroll);
+    clearTimeout(idle); stopGlide();
+    for (const ev of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) removeEventListener(ev, onHand);
     removeEventListener('resize', onResize);
     document.removeEventListener('click', onClick);
     document.removeEventListener('focusin', onFocus);
