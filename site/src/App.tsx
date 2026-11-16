@@ -75,7 +75,7 @@ const PHONE_CLIPS: Footage[] = [{ src: ['./media/phone-heart.mp4', './media/phon
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** A silent recording. Plays only while on screen; under reduced motion it holds a still with controls. */
-function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor = false }: { src: string; label?: string; poster?: string; className?: string; w?: number; h?: number; decor?: boolean }) {
+function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor = false, always = false }: { src: string; label?: string; poster?: string; className?: string; w?: number; h?: number; decor?: boolean; always?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const v = ref.current;
@@ -86,6 +86,16 @@ function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor
       v.controls = !decor;
       if (!poster) v.addEventListener('loadedmetadata', () => { v.currentTime = Math.min(2, v.duration / 2); }, { once: true });
       return;
+    }
+    if (always) {
+      // In a sheet: it exists only while the sheet is open, so it simply plays, and keeps trying until it does
+      // (the on-screen check below proved unreliable inside a dialog: the clip sat on its first frame).
+      const go = () => { if (v.paused) v.play().catch(() => {}); };
+      v.preload = 'auto';
+      go();
+      v.addEventListener('loadeddata', go); v.addEventListener('canplay', go);
+      const timer = window.setInterval(go, 400);
+      return () => { window.clearInterval(timer); v.removeEventListener('loadeddata', go); v.removeEventListener('canplay', go); };
     }
     const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.1 });
     io.observe(v);
@@ -155,7 +165,7 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
   ];
   return (
     <svg className={narrow ? 'fits narrow' : 'fits wide'} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={narrow ? 'fits-alt-n' : 'fits-alt'}>
-      <title id={narrow ? 'fits-alt-n' : 'fits-alt'}>The hub in the centre, drawn as a ship’s console: a Mac or Windows app. iPhones connect to it over Wi-Fi and cabin boards over USB; other screens can show the same view. A dashed link to Earth carries messages, with the delay counted. Everything is stored and decided on the hub; nothing depends on a link to Earth.</title>
+      <title id={narrow ? 'fits-alt-n' : 'fits-alt'}>The hub in the centre, drawn as a ship’s console: a Mac or Windows app. iPhones connect to it over Wi-Fi, each bringing its owner’s Apple Watch readings through HealthKit, and cabin boards over USB; other screens can show the same view. A dashed link to Earth carries messages, with the delay counted. Everything is stored and decided on the hub; nothing depends on a link to Earth.</title>
       {ends.map((e) => {
         // Trim each link so it runs from the console's edge to the part's edge.
         const dx = e.x - C.x, dy = e.y - C.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
@@ -183,6 +193,22 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
           </g>
         );
       })}
+      {(() => {
+        // The Apple Watch reaches the hub through its owner's iPhone (Apple Health, HealthKit): drawn beside the phones.
+        const phone = ends[0];
+        const wx = narrow ? phone.x + 150 : phone.x - 118, wy = narrow ? phone.y - 6 : phone.y + 6, k = narrow ? 1.25 : 1;
+        const from = narrow ? phone.x + phone.w * 0.36 : phone.x - phone.w * 0.36, to = narrow ? wx - 26 * k : wx + 26 * k;
+        return (
+          <g>
+            <line className="fits-link" x1={from} y1={wy} x2={to} y2={wy} />
+            <g transform={`translate(${wx} ${wy}) scale(${k})`}>
+              <path className="fits-glyph" d="M-11 -18h22a6 6 0 0 1 6 6v24a6 6 0 0 1-6 6h-22a6 6 0 0 1-6-6v-24a6 6 0 0 1 6-6Z M-9 -18l2-12h14l2 12 M-9 18l2 12h14l2-12 M17 -6h3v8h-3" vectorEffect="non-scaling-stroke" />
+            </g>
+            <text className="fits-name" textAnchor="middle" x={wx} y={wy - 44 * k} fontSize={18 * f}>Apple Watch</text>
+            <text className="fits-via-text" textAnchor="middle" x={wx} y={wy + 52 * k} fontSize={13 * f}>HealthKit</text>
+          </g>
+        );
+      })()}
       <g transform={`translate(${C.x} ${C.y})`}>
         {art?.hub
           ? <image href={art.hub} x={-C.w / 2} y={-C.h / 2} width={C.w} height={C.h} />
@@ -266,7 +292,7 @@ function Sheet({ content: a, onClose }: { content: SheetContent | null; onClose:
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" /></svg>
           </button>
           <div className="sheet-body">
-            {a.video && <figure className="sheet-media"><Clip src={a.video} label={a.label} /></figure>}
+            {a.video && <figure className="sheet-media"><Clip key={a.video} src={a.video} label={a.label} always /></figure>}
             <div className="sheet-text">
               <h2 id="sheet-title">{a.title}</h2>
               {a.body.map((p) => <p key={p}>{p}</p>)}

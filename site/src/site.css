@@ -272,3 +272,16 @@ html.deck { scroll-behavior: auto; }
 .deck-brackets .c2 { border-right: 0; border-top: 0; border-bottom-left-radius: var(--w-radius); }
 .deck-brackets .c3 { border-left: 0; border-top: 0; border-bottom-right-radius: var(--w-radius); }
 
+
+/* The owner's call: no scene markers at the right edge and no scroll bar while the scroll scenes are on.
+   The page still scrolls as usual (wheel, trackpad, keys); only the indicators are not drawn. */
+.deck .deck-ticks { display: none !important; }
+html.deck { scrollbar-width: none; }
+html.deck::-webkit-scrollbar, html.deck body::-webkit-scrollbar { display: none; }
+
+/* On the plain scrolling page (phones, small windows) content passes under the top bar: give the bar a solid, blurred ground there. */
+html:not(.deck) .nav { background: rgb(11 12 14 / 0.82); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid rgb(255 255 255 / 0.06); }
+
+/* The sheets scroll inside when the window is short; their scroll bar is not drawn (the owner's call). */
+.sheet, .sheet-body, .sheet-frame { scrollbar-width: none; }
+.sheet::-webkit-scrollbar, .sheet-body::-webkit-scrollbar, .sheet-frame::-webkit-scrollbar { display: none; }

@@ -297,11 +297,12 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
   const views = await Promise.all(items.map((it) => view(it.kind, it, reduced, redraw)));
   ready = true;
 
+  let quality = 1.5;
   const size = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     // Drawn at one and a half times the screen's own density (at most 3) and scaled down by the browser: one-pixel lines come out smooth.
-    renderer.setPixelRatio(Math.min(devicePixelRatio * 1.5, 3));
+    renderer.setPixelRatio(Math.min(devicePixelRatio * quality, 3));
     renderer.setSize(w, h, false);
     if (!group) views[0].fit(w, h);
   };
@@ -326,7 +327,20 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
     canvas.addEventListener('pointercancel', up);
   }
 
+  // A slow computer gets a lighter picture: if frames take too long, the drawing density steps down
+  // (1.5x → 1x → 0.75x of the screen's own), once per step, and stays there.
+  let lastT = 0, slowFrames = 0, okFrames = 0;
+  function pace(t: number) {
+    const dt = t - lastT; lastT = t;
+    if (dt <= 0 || dt > 250) return;                // the first frame, or back from a hidden tab
+    if (dt > 30) slowFrames++; else okFrames++;
+    if (slowFrames + okFrames < 40) return;
+    if (slowFrames > 14 && quality > 0.75) { quality = quality > 1 ? 1 : 0.75; size(); }
+    slowFrames = okFrames = 0;
+  }
+
   function frame(t: number) {
+    pace(t);
     const s = (t - start) / 1000;
     if (!group) {
       views[0].tick(s); renderer.render(views[0].scene, views[0].camera);
