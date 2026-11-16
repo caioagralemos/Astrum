@@ -4,12 +4,46 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
 export type Kind = 'hub' | 'app' | 'board';
 
 const BG = 0x0b0c0e;
 const LINE = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.62 });
 const FAINT = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 });
+// What is actually drawn: every line as a thin ribbon of a set width (in CSS pixels), which the graphics chip smooths.
+// Plain one-pixel GL lines came out stepped and dashed on real screens.
+const WIDE = new LineMaterial({ color: 0xffffff, linewidth: 1.1, transparent: true, opacity: 0.62 });
+const WIDE_FAINT = new LineMaterial({ color: 0xffffff, linewidth: 1.1, transparent: true, opacity: 0.28 });
+
+/** Swaps every plain line under `root` (segments, strips, loops) for a ribbon line with the same points. */
+function widen(root: THREE.Object3D) {
+  const found: THREE.Line[] = [];
+  root.traverse((o) => { if ((o as THREE.Line).isLine) found.push(o as THREE.Line); });
+  for (const l of found) {
+    const pos = l.geometry.getAttribute('position'); const idx = l.geometry.getIndex();
+    if (!pos || !l.parent) continue;
+    const n = idx ? idx.count : pos.count;
+    const at = (i: number) => (idx ? idx.getX(i) : i);
+    const out: number[] = [];
+    const seg = (a: number, b: number) => out.push(pos.getX(a), pos.getY(a), pos.getZ(a), pos.getX(b), pos.getY(b), pos.getZ(b));
+    if ((l as THREE.LineSegments).isLineSegments) for (let i = 0; i + 1 < n; i += 2) seg(at(i), at(i + 1));
+    else {
+      for (let i = 0; i + 1 < n; i++) seg(at(i), at(i + 1));
+      if ((l as THREE.LineLoop).isLineLoop && n > 2) seg(at(n - 1), at(0));
+    }
+    if (!out.length) continue;
+    const w = new LineSegments2(new LineSegmentsGeometry().setPositions(out), l.material === FAINT ? WIDE_FAINT : WIDE);
+    w.position.copy(l.position); w.quaternion.copy(l.quaternion); w.scale.copy(l.scale); w.name = l.name; w.renderOrder = l.renderOrder;
+    const parent = l.parent, k = parent.children.indexOf(l);
+    parent.remove(l); parent.add(w);
+    parent.children.splice(k, 0, parent.children.pop()!);
+    l.geometry.dispose();
+  }
+}
+
 const SOLID = new THREE.MeshBasicMaterial({ color: BG, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
 
 /** A shape drawn as its edges, with a dark body that hides the lines behind it. */
@@ -215,7 +249,9 @@ function footage(f: Footage, screen: Screen, reduced: boolean, redraw: () => voi
 }
 
 async function build(kind: Kind): Promise<Built> {
-  return kind === 'hub' ? hub() : kind === 'app' ? app() : await board();
+  const built = kind === 'hub' ? hub() : kind === 'app' ? app() : await board();
+  widen(built.root);
+  return built;
 }
 
 /** One model with its camera, footage and motion. Shared by the single and the grouped canvases. */

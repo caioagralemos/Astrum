@@ -191,7 +191,7 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
     <svg className={narrow ? 'fits narrow' : 'fits wide'} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={narrow ? 'fits-alt-n' : 'fits-alt'}>
       <title id={narrow ? 'fits-alt-n' : 'fits-alt'}>The hub in the centre, drawn as a ship’s console: a Mac or Windows app. iPhones connect to it over Wi-Fi, each bringing its owner’s Apple Watch readings through HealthKit, and cabin boards over USB; other screens can show the same view. A dashed link to Earth carries messages, with the delay counted. Everything is stored and decided on the hub; nothing depends on a link to Earth.</title>
       {/* The models' stills are thin translucent lines: their strength is raised to match the drawn glyphs and links. */}
-      <defs><filter id={narrow ? 'fits-boost-n' : 'fits-boost'} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncA type="linear" slope="2.4" /></feComponentTransfer></filter></defs>
+      <defs><filter id={narrow ? 'fits-boost-n' : 'fits-boost'} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncA type="linear" slope="1.7" /></feComponentTransfer></filter></defs>
       {ends.map((e) => {
         // Trim each link so it runs from the console's edge to the part's edge.
         const dx = e.x - C.x, dy = e.y - C.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
