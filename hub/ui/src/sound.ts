@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from 'react';
 const KEY = 'astrum.sound';
 
 export function soundOn(): boolean {
+  // The recorded web demo always has its sound (a mute left from an earlier visit does not carry over).
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('replay')) return true;
   try { return localStorage.getItem(KEY) !== 'off'; } catch { return true; }
 }
 
@@ -147,8 +149,6 @@ export function useEmergencyTone(shown: string | null): boolean {
   const [locked, setLocked] = useState(false);
   useEffect(() => {
     if (!shown || !soundOn()) { setLocked(false); return; }
-    if (!audioReady()) { setLocked(true); return; }
-    setLocked(false);
     let timer: number | undefined;
     let stop: (() => void) | null = null;
     const ring = () => {
@@ -157,8 +157,15 @@ export function useEmergencyTone(shown: string | null): boolean {
       timer = window.setTimeout(ring, EMERGENCY_EVERY_MS);
     };
     const halt = () => { window.clearTimeout(timer); timer = undefined; stop?.(); stop = null; };
-    const onVisibility = () => { halt(); if (!document.hidden) ring(); };
-    if (!document.hidden) ring();
+    const onVisibility = () => { halt(); if (!document.hidden && audioReady()) ring(); };
+    // Audio may still be waking (the gesture that unlocked it was a moment ago): try again briefly before calling it locked.
+    let tries = 0;
+    const start = () => {
+      if (audioReady()) { setLocked(false); if (!document.hidden) ring(); return; }
+      unlock();
+      if (++tries < 10) timer = window.setTimeout(start, 200); else setLocked(true);
+    };
+    start();
     document.addEventListener('visibilitychange', onVisibility);
     return () => { document.removeEventListener('visibilitychange', onVisibility); halt(); };
   }, [shown]);

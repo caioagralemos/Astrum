@@ -132,6 +132,9 @@ function applyOne(world: World, message: HubMessage): World {
 }
 
 /** A recorded story playing in the browser (`?replay=`): there is no hub, so nothing is asked of one or sent to one. */
+/** Every reading a recorded story has played so far: the web demo's history, in place of the hub's. */
+export const playedRows: Row[] = [];
+
 export function isReplay(): boolean {
   return new URLSearchParams(location.search).has('replay');
 }
@@ -233,7 +236,9 @@ export class RecordedSource implements DataSource {
   /** The story waits at meta.holdAt (the emergency) until the viewer has been through the steps, 90 seconds at most. */
   private released = false;
   /** The viewer finished the steps: the story goes on from its hold. */
-  release(): void { this.released = true; }
+  release(): void { this.released = true; this.changed(); }
+  /** The viewer has been through the steps: the narrator and the banners are done for this run. */
+  get afterSteps(): boolean { return this.released; }
   /** The recording's last moment, once loaded. */
   endsAt: number | null = null;
   /** How many scenarios the list offers (0 when there is no list): "Another scenario" shows for two or more. */
@@ -319,6 +324,24 @@ export class RecordedSource implements DataSource {
       const speed = speedProfile(recording.meta?.speed, startsAt);
       let next = 0;
       let begun = 0;
+      // The recording is short, so each crewmate's heart-rate chart gets a simulated 12 hours before it, around their first value.
+      const seedHistory = () => {
+        playedRows.length = 0;
+        const first = new Map<string, Row>();
+        for (const m of messages) {
+          const mm = m.message as unknown as { type: string; rows?: Row[] };
+          if (mm.type !== 'rows') continue;
+          for (const r of mm.rows ?? []) if (r.person && r.signal === 'heart_rate' && !first.has(r.person)) first.set(r.person, r);
+        }
+        for (const [person, r] of first) {
+          const base = Number(r.value);
+          for (let t = startsAt - 12 * 3_600_000, i = 0; t < startsAt; t += 600_000, i++) {
+            const v = base + 3 * Math.sin(i / 7 + person.length) + 1.5 * Math.sin(i / 2.3);
+            playedRows.push({ ...r, t, value: Math.round(v), kind: 'simulated', source: 'sim:history' } as Row);
+          }
+        }
+      };
+      seedHistory();
       const holdAt = typeof recording.meta?.holdAt === 'number' ? recording.meta.holdAt : null;
       let heldFrom = 0, holdSpent = false;
       const play = () => {
@@ -333,6 +356,7 @@ export class RecordedSource implements DataSource {
         }
         const due: HubMessage[] = [];
         while (next < messages.length && messages[next].at <= now) due.push(messages[next++].message);
+        for (const m of due) if ((m as { type: string }).type === 'rows') playedRows.push(...((m as unknown as { rows: Row[] }).rows ?? []));
         update((w) => ({ ...due.reduce(apply, w), status: 'replay', now }));
         if (next >= messages.length && now >= endsAt) clearInterval(timer);
       };
@@ -347,6 +371,7 @@ export class RecordedSource implements DataSource {
           this.begin();
           heldFrom = 0; holdSpent = false; this.released = false;
           next = 0;
+          seedHistory();
           update(() => ({ ...empty, status: 'replay' }));
           from(0);
         },
@@ -391,10 +416,10 @@ export function chooseSource(): DataSource {
 }
 
 /** A recorded source's intro card and list size, re-rendered when they change. */
-export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null; captions: { at: number; text: IntroText }[]; notices: Notice[]; started: boolean; endsAt: number | null } {
+export function useRecordedState(source: DataSource): { intro: Intro | null; choices: number; phone: PhoneTake | null; captions: { at: number; text: IntroText }[]; notices: Notice[]; started: boolean; endsAt: number | null; afterSteps: boolean } {
   const [, bump] = useState(0);
   useEffect(() => (source instanceof RecordedSource ? source.subscribe(() => bump((n) => n + 1)) : undefined), [source]);
-  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone, captions: source.captions, notices: source.notices, started: source.started, endsAt: source.endsAt } : { intro: null, choices: 0, phone: null, captions: [], notices: [], started: false, endsAt: null };
+  return source instanceof RecordedSource ? { intro: source.intro, choices: source.choices, phone: source.phone, captions: source.captions, notices: source.notices, started: source.started, endsAt: source.endsAt, afterSteps: source.afterSteps } : { intro: null, choices: 0, phone: null, captions: [], notices: [], started: false, endsAt: null, afterSteps: false };
 }
 
 export function useWorld(source: DataSource): World {

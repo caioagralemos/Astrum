@@ -7,7 +7,7 @@
 // and every reading shows how it came to exist.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { RecordedSource, chooseSource, useRecordedState, useWorld } from './data.ts';
+import { RecordedSource, chooseSource, isReplay, useRecordedState, useWorld } from './data.ts';
 import { IntroCard } from './demo/Intro.tsx';
 import { PhoneView, TakeSwitch } from './demo/PhoneTake.tsx';
 import type { TakeSide } from './demo/PhoneTake.tsx';
@@ -86,6 +86,8 @@ export function App() {
   // its panel, until the alert ends, is settled, or Earth's reply is in and someone closes it. Each occurrence
   // (alert id and levelSince) is remembered for this tab, so a reload goes straight back to it.
   const [taken, setTaken] = useState<Record<string, 'open' | 'released'>>(() => {
+    // A recorded web demo starts with nothing taken, so every run shows the full emergency screen first.
+    if (isReplay()) return {};
     try { return JSON.parse(sessionStorage.getItem(TAKEN_KEY) ?? '{}') as Record<string, 'open' | 'released'>; } catch { return {}; }
   });
   const take = (alert: Alert, how: 'open' | 'released') => setTaken((prev) => {
@@ -323,7 +325,7 @@ export function App() {
       })()}
 
       {/* What reached a phone or a cabin board at this beat: a banner that slides in, stays a few seconds and goes. */}
-      {recorded.notices.length > 0 && recorded.started && world.status === 'replay' && !recorded.intro && (
+      {recorded.notices.length > 0 && recorded.started && !recorded.afterSteps && world.status === 'replay' && !recorded.intro && (
         <div className="notices" aria-live="polite">
           {recorded.notices.filter((n) => n.at <= now && n.at >= Math.max(...recorded.notices.filter((m) => m.at <= now).map((m) => m.at))).map((n, i) => (
             <div key={`${n.at}-${i}`} className="notice" data-kind={n.kind} style={{ animationDelay: `${i * 0.35}s` }}>

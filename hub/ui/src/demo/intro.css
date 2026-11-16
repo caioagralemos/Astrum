@@ -93,3 +93,6 @@ body:has(.emergency) .caption-hint { display: none; }
 .notice-icon { padding: 0; background: none; object-fit: cover; border-radius: 7px; }
 /* While the emergency screen or the steps are up, the narrator and its hint step aside. */
 body:has(.emergency) .caption-wrap, body:has(.beat2) .caption-wrap, body:has(.steps) .caption-wrap { display: none; }
+
+/* When the emergency screen (or what follows it) is up, the notification banners are gone. */
+body:has(.emergency) .notices, body:has(.beat2) .notices, body:has(.steps) .notices { display: none; }

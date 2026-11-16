@@ -19,7 +19,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHub } from '../hub.ts';
 import type { Load } from '../hub.ts';
-import { isReplay } from '../data.ts';
+import { isReplay, playedRows } from '../data.ts';
 import { isCurrentReading, personSummary } from '../../../engine/baseline.ts';
 import type { Judged, SignalBaseline } from '../../../engine/baseline.ts';
 import { CO2_LEVELS } from '../../../engine/exposure.ts';
@@ -105,7 +105,9 @@ export function PersonView({ person, rooms, crew, latest, room, lastSeen = null,
   const alert = [...alerts].sort((a, b) => b.level - a.level)[0];
   const airRoom = alert?.room ?? room ?? (evidence.state === 'ready' ? evidence.value.focusRoom : null);
 
-  const rows = useMemo(() => (history.state === 'ready' ? history.value.rows.filter((r) => r.person === person.id && !r.signal.startsWith('blood.')) : []), [history, person.id]);
+  // The web demo has no hub to ask: its history is the readings the recording has played so far.
+  const replay = isReplay();
+  const rows = useMemo(() => (replay ? playedRows : history.state === 'ready' ? history.value.rows : []).filter((r) => r.person === person.id && !r.signal.startsWith('blood.')), [replay, history, person.id, replay ? Math.floor(now / 60_000) : 0]);
   const summary = useMemo(() => personSummary(rows, person.id, now), [rows, person.id, Math.floor(now / 60_000)]);
   const baseline = new Map<string, SignalBaseline>(summary.signals.map((b) => [b.signal, b]));
   const mine = latest.filter((r) => r.person === person.id && !r.signal.startsWith('blood.'));
@@ -243,7 +245,7 @@ export function PersonView({ person, rooms, crew, latest, room, lastSeen = null,
             <span className="mod-value">{heroRow ? bigValue(heroRow) : '–'}<span className="unit">{heroRow ? unitOf(heroRow) : ''}</span></span>
             {(isUnusual(hero) || picked === hero) && <span className="hero-words">{headline(hero)}</span>}
           </p>
-          {history.state === 'ready' ? (
+          {replay || history.state === 'ready' ? (
             <Chart points={heroSeries.points} from={heroSeries.from} to={now} unit="" band={heroSeries.band}
               flag={isUnusual(hero)} bandLabel={s('person.usualRange')} tick={heroSeries.daily ? date : time} dots={heroSeries.daily}
               label={`${s(`signal.${hero}`)}, ${s(heroSeries.daily ? 'person.last14d' : 'person.last12h')}`} />
