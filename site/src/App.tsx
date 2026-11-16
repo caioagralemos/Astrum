@@ -126,7 +126,7 @@ const STILL: Record<Kind, string> = { hub: './media/model-hub.jpg', app: './medi
  * loads only when the scene comes near and then takes over. The picture stays, with no 3D at all, when there is
  * no WebGL, on a slow or metered connection, or when the computer cannot keep up even at the lightest setting.
  */
-function Model({ kind, className, speed, still, footage }: { kind: Kind; className?: string; speed?: number; still?: boolean; footage?: Footage[]; fallback?: ReactNode }) {
+function Model({ kind, className, speed, still, gentle, footage }: { kind: Kind; className?: string; speed?: number; still?: boolean; gentle?: number; footage?: Footage[]; fallback?: ReactNode }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<'still' | 'live' | 'off'>('still');
   const clips = JSON.stringify(footage ?? []);
@@ -141,13 +141,13 @@ function Model({ kind, className, speed, still, footage }: { kind: Kind; classNa
       if (!e.isIntersecting) return;
       io.disconnect();
       import('./scene3d.ts')
-        .then(({ mount }) => mount(c, kind, { speed, still, footage: JSON.parse(clips) as Footage[], onSlow: giveUp }))
+        .then(({ mount }) => mount(c, kind, { speed, still, gentle, footage: JSON.parse(clips) as Footage[], onSlow: giveUp }))
         .then((m) => { if (dead) m?.dispose(); else if (m) { dispose = m.dispose; setState('live'); } else setState('off'); })
         .catch(() => setState('off'));
     }, { rootMargin: '600px 0px' });
     io.observe(c);
     return () => { dead = true; io.disconnect(); dispose?.(); };
-  }, [kind, speed, still, clips]);
+  }, [kind, speed, still, gentle, clips]);
   const cls = `model${className ? ' ' + className : ''}`;
   return (
     <>
@@ -485,7 +485,7 @@ export function App() {
 
         {/* 3 · The hub */}
         <section className="scene pillar hub" aria-labelledby="hub-title">
-          <Model kind="hub" className="pillar-model" still footage={HUB_GYM} fallback={
+          <Model kind="hub" className="pillar-model" gentle={0.3} footage={HUB_GYM} fallback={
             <Frame as="figure" className="pillar-screen">
               <Clip src="./media/hub-gym.mp4" poster="./media/hub-gym-poster.jpg" label="The Astrum hub: the ship's exercise bay with two crewmates exercising, and the room's readings" />
             </Frame>
@@ -504,7 +504,7 @@ export function App() {
 
         {/* 4 · The app */}
         <section className="scene pillar app" aria-labelledby="app-title">
-          <Model kind="app" className="pillar-model" still footage={PHONE_CLIPS} fallback={
+          <Model kind="app" className="pillar-model" gentle={0.3} footage={PHONE_CLIPS} fallback={
             <div className="phones">
               <figure className="phone-frame"><Clip src="./media/phone-heart.mp4" label="The iPhone app showing a crewmate their own readings" w={480} h={1044} /></figure>
             </div>
@@ -524,7 +524,7 @@ export function App() {
 
         {/* 5 · The board */}
         <section className="scene pillar board" aria-labelledby="board-title">
-          <Model kind="board" className="pillar-model" />
+          <Model kind="board" className="pillar-model" speed={0.7} />
           <div className="pillar-copy">
             <span className="tag">03</span>
             <h2 id="board-title">The board.</h2>
