@@ -35,6 +35,15 @@ for (const [, asset] of bench.matchAll(/assets\/([^"'?#]+)/g)) {
   if (!usedElsewhere) remove(join('assets', asset));
 }
 remove('bench.html');
+// A filming aid (cue.html) may be in the hub's build on the owner's Mac: it never belongs in the public demo.
+if (existsSync(join(out, 'cue.html'))) {
+  const cue = readFileSync(join(out, 'cue.html'), 'utf8');
+  for (const [, asset] of cue.matchAll(/assets\/([^"'?#]+)/g)) {
+    const usedElsewhere = keep.includes(asset) || readdirSync(join(out, 'assets')).some((other) => other !== asset && !cue.includes(other) && readFileSync(join(out, 'assets', other), 'utf8').includes(asset));
+    if (!usedElsewhere) remove(join('assets', asset));
+  }
+  remove('cue.html');
+}
 for (const file of readdirSync(out)) if (file.endsWith('.glb')) remove(file);
 for (const file of readdirSync(out, { recursive: true })) if (/ \d+(\.[^./]+)?$/.test(String(file))) remove(String(file));
 

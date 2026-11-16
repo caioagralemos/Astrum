@@ -1,602 +1,529 @@
-// The product page. Every word lives in COPY below so it can be rewritten in
-// one place; every <Slot> is media that doesn't exist yet.
-//
-// Words wrapped in draft() are new and not yet the owner's: each renders with
-// data-draft="true" on its element, so `document.querySelectorAll('[data-draft]')`
-// lists everything still to rewrite. Blocks marked data-in-progress="true"
-// describe work that may not land; delete them if it doesn't.
+// The product page, drawn in the hub's own Projection look: near-black ground,
+// white line-drawn models, corner-bracket frames over a faint grid. Each part
+// of the system gets a full scene. Detail lives in docs/about.md in the repo.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import { LogoLight } from './Orbit.tsx';
+import type { Footage, Kind } from './scene3d.ts';
+import { initDeck } from './deck.ts';
 
 const REPO = 'https://github.com/caioagralemos/Astrum';
+const RELEASES = `${REPO}/releases`;
+const ABOUT = `${REPO}/blob/main/docs/about.md`;
+const MAC = `${RELEASES}/latest/download/Astrum-1.0.0-mac.zip`;
+const WIN = `${RELEASES}/latest/download/Astrum-1.0.0-win-x64.zip`;
+const PHONE = `${REPO}/tree/main/phone`;
+const CHIP = `${REPO}/tree/main/chip`;
+const FIRMWARE = `${RELEASES}/latest/download/Astrum-board-firmware-0.3-esp32.bin`;
 // The hub's own interface, built into public/demo/ by `npm run demo`, playing
-// the recorded story from static files. A plain link, not an iframe: the demo
-// is a full 3D interface with its own controls, and on a phone an embedded
-// frame would fight the page for scrolling and touch.
-const DEMO = './demo/index.html?replay=scenario/reyes-night.json';
+// the recorded story from static files. A plain link, not an iframe.
+const DEMO = './demo/index.html?replay=random';
 
-/** A line of copy: the owner's own (a string) or a new draft. */
-type Line = string | { draft: string };
-const draft = (s: string): Line => ({ draft: s });
-const text = (l: Line) => (typeof l === 'string' ? l : l.draft);
-const mark = (...lines: Line[]) => (lines.some((l) => typeof l !== 'string') ? { 'data-draft': 'true' } : {});
+const DOES = [
+  { title: 'It knows your normal.', body: 'Each reading is compared with that crewmate’s own usual range.', video: './media/normal.mp4', label: 'A crewmate’s readings shown against their own usual range' },
+  { title: 'It tells the right person.', body: 'First you, then the Crew Medical Officer, then everyone.', video: './media/tells.mp4', label: 'An alert stepping up from the crewmate to the medical officer to the crew' },
+  { title: 'It stays until it’s over.', body: 'First-aid steps, approved by our medical lead.', video: './media/steps.mp4', label: 'First-aid steps shown one at a time on the hub' },
+  { title: 'It answers on board.', body: 'Astra answers from the hub’s readings and NASA’s text.', video: './media/astra.mp4', label: 'Astra answering a question on the hub' },
+];
 
-type Media =
-  | { slot: string }
-  | { src: string; alt: string; caption: Line; width: number; height: number };
+// The sheets behind "Learn more". Owner-approved text, verbatim.
+type SheetContent = { title: string; body: string[]; links?: { label: string; href: string; note: string }[]; fine?: string; sources?: boolean; video?: string; label?: string };
 
-interface Pillar {
-  id: string;
-  title: Line;
-  body: Line;
-  more: Line[];
-  check: Line;
-  links: [Line, string][];
-  media: Media;
-  folder: string;
-}
+const ARTICLES: SheetContent[] = [
+  { title: "It knows your normal.", body: [
+    "Astrum keeps a baseline for every crewmate: their own usual range for each reading, built from their own history, asleep and awake.",
+    "A reading is flagged only when it leaves that person's range and stays out for at least 20 minutes. Then the hub shows what the flag is based on: the reading, the person's history, the air in the room, who else was there, and what they reported. It says where the evidence points: the room, the person or a sensor.",
+    "Where the readings come from: the iPhone app reads Apple Health on the crewmate's own phone, through Apple's HealthKit, with their permission. That includes what an Apple Watch records: heart rate, resting heart rate, heart rate variability, blood oxygen, breathing rate, sleep, steps, exercise minutes and sound level. The app sends them to the hub over the ship's Wi-Fi. The cabin board sends the room's readings by USB, and the daily check-in adds what the person reports.",
+    "In the demo the crew is simulated, and every simulated value is labelled on screen.",
+  ] },
+  { title: "It tells the right person.", body: [
+    "There are three levels.",
+    "Level 1 tells only the person, and never while they sleep.",
+    'Level 2 asks "Are you OK?" on their phone and tells the Crew Medical Officer. If the medical officer is the one affected, the commander is told instead.',
+    'Level 3 comes with "I need help" or 60 seconds without an answer. Everyone is told: on the hub, on every phone, and by the cabin board\'s buzzer.',
+    "In a psychological crisis the hub says only that the person needs someone with them. Their words are never shown.",
+  ] },
+  { title: "It stays until it's over.", body: [
+    'The emergency screen shows who, where, the reading against NASA\'s limit, and the first thing to do. "Start help" opens a card one step at a time, with the gesture drawn beside it and a page of what not to do.',
+    "There are 42 cards. Each was drafted with an AI tool, then reviewed, corrected and approved line by line by our medical lead. The on-board AI never writes a step. Most steps are not yet checked against a published source, and each card lists what is unchecked.",
+    "A top-level emergency files a report to Earth, and the hub counts the delay until a reply can arrive.",
+  ] },
+  { title: "It answers on board.", body: [
+    "Astra is a small language model, LFM3 with 1.7 billion parameters, running on the hub's own computer through llama.cpp. It needs no internet.",
+    "It answers from two things only: the facts the hub writes from its readings, and 90 passages from 26 NASA pages, quoted word for word with their source. Its own wording is shown only when it passes the hub's checks; otherwise the crew sees the hub's sentence.",
+    "In our test of 96 questions, no unsafe answer was shown. 84 passed, 6 were shown incomplete, and 6 were discarded and replaced with a fixed refusal. Astra answers in English only.",
+  ] },
+].map((a, i) => ({ ...a, sources: true, video: DOES[i].video, label: DOES[i].label }));
 
-const COPY = {
-  premise: draft('A health system that reads each crewmate’s body and the room they are in, on one timeline.'),
-  lead: draft('When someone feels unwell, its evidence card says whether the cause points to the room, the person or a sensor.'),
-  what: 'Astrum is a health system for crews on long missions. It runs on the station itself, with no help from Earth.',
-  count: 'Replays 12,087 real ISS cabin readings from NASA’s OSDR.',
-  heroShot: {
-    caption: draft('Simulated scenario. The hub’s own interface during Reyes’s night: her quarters are over NASA’s CO2 limit, and she is asked if she is OK.'),
-    alt: 'The Astrum hub: a cutaway 3D station in Mars orbit with the crew in their rooms. Quarters 2 is marked over the limit, and an alert reads: Reyes is in Quarters 2, where CO2 is over NASA’s limit. Are you OK? 9 seconds to answer.',
-  },
-  clipCaption: draft('The real board, phone and hub.'),
-
-  demo: {
-    title: draft('The demo, one tap away'),
-    body: draft('Reyes’s night, recorded from the hub and played in the hub’s own interface, in your browser. Nothing to install and no server. It runs about two minutes, with Replay and Skip at the bottom of the screen.'),
-    label: 'Simulated scenario',
-    steps: [
-      draft('Night on a station in Mars orbit. Reyes is asleep in Quarters 2. No alarm.'),
-      draft('The air in her quarters stops moving, and the room plays the climb in NASA’s ISS record.'),
-      draft('The room’s 1-hour CO2 average passes NASA’s 3 mmHg limit. Reyes is asked “Are you OK?” and the Crew Medical Officer is told.'),
-      draft('No answer in 60 seconds: everyone is told, the alert names the high-CO2 steps card, and a message goes to Earth with the delay counted.'),
-      draft('Okafor, the Crew Medical Officer, reaches her and takes her to the galley. The alerts end; the message to Earth stays listed until its reply can arrive.'),
-    ],
-    note: draft('The rooms’ CO2, temperature and humidity are NASA’s ISS record, replayed unchanged. The crew, their bodies and where they are are simulated.'),
-  },
-
-  problem: {
-    title: 'From Mars, a message to Earth takes up to 22 minutes. The reply takes just as long.',
-    body: 'Astronauts aren’t doctors. They have a crewmate with basic medical training, checklists, and flight surgeons on the ground. On a long mission the ground is too far away to help in the moment, so the help has to be on board.',
-  },
-
-  how: {
-    title: 'How it works',
-    body: draft('On three mornings in a row Reyes reports a headache. The CO2 in her quarters is below NASA’s limit, so no alarm sounds. The hub lines up her own normal, the rooms she has been in and her crewmates, and its evidence card points to her room. Tonight the air in her quarters stops moving and the CO2 climbs past the limit: she is asked if she is OK, the Crew Medical Officer is told, and when she doesn’t answer, everyone is.'),
-  },
-
-  pillars: [
-    {
-      id: 'phone',
-      title: 'The phone and Watch',
-      body: draft('Each crewmate wears an Apple Watch. Their iPhone reads heart rate, sleep and activity from it, sends them to the hub, and buzzes them when the hub raises an alert, even with the phone locked.'),
-      more: [
-        draft('There is no Watch app. The Watch is worn and read through the phone, and shows the phone’s alerts.'),
-        draft('The app is a native SwiftUI app: it finds the hub on the local Wi-Fi, sends the readings, and shows its owner’s own body, check-ins, questions to the model and the station, and its blood-panel reader reads the analyser’s screen with the camera; it is not a connection to the device.'),
-      ],
-      check: draft('Check: HealthSync.swift lists the ten Health readings it sends; AlarmNotifier.swift turns the hub’s alerts into time-sensitive notifications.'),
-      links: [],
-      media: { slot: 'Screenshot from Caio’s phone, with the body figure' },
-      folder: 'phone',
-    },
-    {
-      id: 'chip',
-      title: 'The cabin chip',
-      body: 'A small board in the room measures temperature, humidity, pressure, light, noise and vibration, and sends every reading to the hub.',
-      more: [
-        draft('It is a real ESP32 board, connected to the hub by USB. Its buzzer is the room alarm.'),
-        draft('CO2, oxygen and radiation are empty slots. This board has no working part for them, so it lists them as missing in every line it sends. It never makes a value up.'),
-      ],
-      check: draft('Check: the wiring blueprint, four sheets: the board as built, the schematic, the pin table, and the slots with no part.'),
-      links: [[draft('Wiring blueprint (PDF)'), `${REPO}/blob/main/chip/wiring-blueprint.pdf`]],
-      media: { slot: 'Photo of the real board' },
-      folder: 'chip',
-    },
-    {
-      id: 'hub',
-      title: 'The hub',
-      body: 'An app on the station’s computer. It keeps everyone’s readings and compares each person with their own normal, the rooms they’ve been in and the rest of the crew. When something is wrong, it shows what it found and the steps to take.',
-      more: [
-        draft('One timeline holds every reading, from bodies, rooms and the crew, so anything lines up with anything by time, person and room.'),
-        draft('NASA’s limit: a room alarm when a room’s 1-hour CO2 average passes 3 mmHg. CO2 is the only alarm, because it is the only limit verified in NASA’s text so far.'),
-        draft('Three alert levels. Level 1 tells only the person, never while they sleep. Level 2 asks “Are you OK?” and tells the Crew Medical Officer. Level 3, after 60 seconds with no answer or on “I need help”, tells everyone, names the steps card and messages Earth.'),
-        draft('The evidence card asks four questions: is this unusual for the person, is anyone else in the same room affected, where have they been, and what did they report. Then it says where it points: the room, the person, or the sensor.'),
-        draft('A small language model runs on the same computer, with no connection. It explains NASA’s text and the readings, and its words are shown only when they pass every check.'),
-      ],
-      check: draft('Check: the rules are plain code with tests in hub/engine: alerts.ts, cabin.ts, evidence.ts.'),
-      links: [],
-      media: {
-        src: './shots/demo-level-3.jpg',
-        width: 1440,
-        height: 900,
-        alt: 'The Astrum hub at alert level 3: Reyes is in Quarters 2, where CO2 is over NASA’s limit. Told: everyone. Steps card: high-co2. Message to Earth sent; a reply can arrive in 38 minutes.',
-        caption: draft('Simulated scenario. Level 3: everyone is told, the steps card is named, and a message to Earth is sent with the reply time counted.'),
-      },
-      folder: 'hub',
-    },
-  ] satisfies Pillar[],
-
-  sources: {
-    title: 'The NASA data behind it',
-    body: draft('NASA’s data is what the hub computes with. For each source: what it is, how the hub uses it, and any caveat.'),
-    rows: [
-      [
-        draft('NASA OSDR, Environmental Data Application'),
-        draft('ISS cabin telemetry recorded during Rodent Research-1 (SpaceX-4), 20 Sep to 1 Nov 2014: 12,087 readings each of CO2, temperature and humidity, one every 5 minutes.'),
-        draft('Replayed unchanged, shifted in time, as the air of the station’s rooms. The hub computes each room’s 1-hour CO2 average and each person’s hours above 2.8 mmHg from it.'),
-        draft('NASA does not state the CO2 unit. Astrum reads it as ppm and converts it at a cabin pressure of 760 mmHg. Where on the station the sensor was is not stated.'),
-      ],
-      [
-        draft('NASA-STD-3001 CO2 Technical Brief (OCHMO-TB-004)'),
-        draft('NASA’s CO2 limit for crews, and what crews report below it.'),
-        draft('The room alarm’s limit, a 1-hour average of “no more than 3 mmHg”, and the band where NASA reports “Headaches at levels between 2.8-4.5 mmHg”, used to count each person’s exposure.'),
-        draft('None.'),
-      ],
-      [
-        draft('NASA passage library'),
-        draft('90 passages from 26 NASA pages: the 24 hazard and risk pages linked from the challenge, and NASA-STD-3001 briefs on CO2 and bone loss. Quoted unchanged.'),
-        draft('The text the hub quotes word for word beside an answer, and the only NASA text the model is given.'),
-        draft('Picking the right passage is a search, and it misses some questions (see the safety results).'),
-      ],
-      [
-        draft('NASA Life Sciences Portal: STS-40 and STS-58'),
-        draft('Resting heart rate and blood pressure of astronauts, measured in flight (Shykoff, Farhi et al., 1996).'),
-        draft('Each simulated crewmate’s usual heart rate and blood pressure is one astronaut’s in-flight row.'),
-        draft('The movement around these values is invented, and every row it makes is labelled Simulated.'),
-      ],
-      [
-        draft('NASA Life Sciences Portal: sleep on Mir'),
-        draft('Sleep recorded on 109 in-flight nights on Mir: 307 minutes, 65.8 % efficiency, 6.5 awakenings a night.'),
-        draft('The centre of the simulated crew’s sleep.'),
-        draft('Same as above.'),
-      ],
-      [
-        draft('NASA Life Sciences Portal: STS-89 mood'),
-        draft('Mood ratings of the STS-89 crew in flight: stress, fatigue and sleepiness.'),
-        draft('The centre of the simulated crew’s morning mood.'),
-        draft('Group means, not individuals.'),
-      ],
-      [
-        draft('NASA Human Research Program'),
-        draft('Exercise on the ISS: “1.5 hours per day”, resistance and aerobic together.'),
-        draft('The exercise each crewmate’s minutes are compared with.'),
-        draft('None.'),
-      ],
-      [
-        draft('NASA OSDR: Inspiration4 blood panels (OSD-569, OSD-575)'),
-        draft('Complete blood count and metabolic panel of the four Inspiration4 private astronauts, 2021, with the lab’s own ranges.'),
-        draft('In demo mode, one subject’s values play as one simulated crewmate’s blood results, labelled Replayed, each naming the subject and the day.'),
-        draft('Taken before and after flight only, none in flight. Hemoglobin’s unit in the file does not match its values, so it is left out.'),
-      ],
-      [
-        draft('NASA Life Sciences Portal: radiation on Mir'),
-        draft('Radiation dose rates measured in six places on Mir, 1995 (Badhwar et al.).'),
-        draft('The centres of the demo’s per-room radiation readings.'),
-        draft('Mir flew inside Earth’s magnetic field. The values shown are simulated.'),
-      ],
-    ] satisfies Line[][],
-  },
-
-  real: {
-    title: 'What’s real and what’s simulated',
-    body: 'The demo tells a made-up story, and the screen says so the whole time.',
-    bodyMore: draft('The NASA data in it is real. The hardware is real too, and runs outside the demo.'),
-    rows: [
-      ['Cabin chip sensors', 'real', 'Measured live on the board'],
-      [draft('Phone and Watch'), 'real', draft('The iPhone app reads its owner’s own Watch through Health and sends those readings to the hub')],
-      [draft('NASA’s records and text'), 'real', draft('Quoted and replayed unchanged, each with its source')],
-      ['ISS cabin CO2', 'replayed', 'NASA’s recorded readings, replayed'],
-      [draft('The rules'), 'real', draft('Limits, alert levels and the evidence card, as plain code with tests')],
-      [draft('The local model'), 'real', draft('Runs on the hub’s computer with no connection. It is not part of the web demo')],
-      ['The crew', 'sim', 'Built from published astronaut numbers, each one cited'],
-      ['Which room each person is in', 'sim', 'Set by the story'],
-      [draft('The scenario'), 'sim', draft('Written for the demo. The screen says “Simulated scenario” throughout')],
-    ] satisfies [Line, 'real' | 'replayed' | 'sim', Line][],
-    labelsTitle: draft('The five labels'),
-    labelsBody: draft('The interface puts one of these on every reading.'),
-    labels: [
-      ['Measured', draft('A sensor read it, here and now.')],
-      ['Estimated', draft('Worked out from something measured.')],
-      ['Reported', draft('Said by the person, like a check-in answer.')],
-      ['Replayed', draft('A real measurement from somewhere else, NASA’s ISS record, played back here.')],
-      ['Simulated', draft('Made up for the demo.')],
-    ] satisfies [string, Line][],
-    labelsNote: draft('Outside demo mode the hub keeps only the first three.'),
-  },
-
-  safety: {
-    title: 'What it won’t do',
-    cards: [
-      ['It doesn’t diagnose.', 'It points at what changed. Deciding is up to the crew and their flight surgeon.'],
-      ['The AI doesn’t write emergency steps.', draft('Steps come only from cards our medical lead has approved, picked by rules, never by the model. The cards’ text was drafted with an AI tool and reviewed and approved line by line by our medical lead; most steps are not yet checked against a source.')],
-      [draft('The AI only answers from NASA’s text and the readings.'), 'If NASA’s pages don’t cover a question, it says it doesn’t know.'],
-    ] satisfies [Line, Line][],
-    note: draft('Built during NASA Space Apps 2026. Astrum is not a medical device.'),
-    howTitle: draft('How an answer is built'),
-    how: [
-      draft('The hub writes the facts: sentences built by code from the readings and the evidence card, each with its label, and NASA’s passage quoted word for word.'),
-      draft('The model’s own words are shown only when they pass every check: no orders or advice, no medicine or dose, no diagnosis. Otherwise the crew sees the hub’s sentences and NASA’s quote.'),
-      draft('A steps card is picked by rules: the limit that is broken, the check-in answers given, the words the crewmate typed. The hub shows only cards marked approved.'),
-      draft('A question that names a medicine or a dose gets a fixed answer from the hub, and never reaches the model. A crisis phrase the hub recognises goes to a person, and the words are not repeated.'),
-      draft('On the demo story’s questions, the checks currently discard everything the model writes, so the crew sees the hub’s sentences and NASA’s quote.'),
-    ],
-    resultsTitle: draft('Measured, 15 Nov 2026'),
-    resultsBody: draft('The local model, temperature 0, one run per case. The weak results are listed with the strong ones.'),
-    results: [
-      [draft('Unsafe answers shown to the crew, all 96 single questions to the model'), draft('0')],
-      [draft('Routing: steps card, fixed answer or model, as expected'), draft('31 of 31')],
-      [draft('Explaining, with hand-picked NASA passages'), draft('20 passed, 5 failed, 2 discarded by the checks (of 27)')],
-      [draft('Explaining, with the hub’s own search'), draft('25 passed, 0 failed, 2 discarded by the checks (of 27)')],
-      [draft('Questions about the demo story'), draft('6 passed, 4 discarded (of 10). The model’s own words were shown in none (eval of 14 Nov; not in the 15 Nov run)')],
-      [draft('Crisis phrases, word list, no model'), draft('3 of 10 crisis phrases caught; 4 of 4 ordinary phrases left alone. The weakest piece')],
-      [draft('The medical lead’s 96 test cases, run on the hub’s rules, no model'), draft('79 passed, 17 failed')],
-      [draft('Search, questions it was never tuned on'), draft('Right passage in the top 3 for 17 of 20')],
-      [draft('Search, full sentences written after the last fix'), draft('5 of 8')],
-    ] satisfies [Line, Line][],
-    resultsNote: draft('“Failed” means what the crew saw missed a point the case required; unsafe answers are counted on their own. A crisis phrase the list misses reaches the model as an ordinary question, where every check still applies. Sources: hub/ai-eval/results (the eval of 15 Nov, 08:29 UTC), hub/medical/CASES-RESULTS.md and hub/engine/search.test.ts.'),
-  },
-
-  missions: {
-    title: draft('Set up for another mission'),
-    body: draft('A place is a mission file. The default, hub/profiles/missions/ship-mars-orbit.json, is a station in Mars orbit: the place, the mission’s start date, the delay to Earth (20 minutes each way), its eight rooms, its four crew and their roles, and which chip sits in which room. Another mission is another file, chosen on screen in Settings.'),
-    // Delete this block if the other places don't land before submission.
-    inProgress: draft('Four mission files exist, each with its rooms, crew and 3D layout: the station in Mars orbit, the ISS, a base on Mars and a base on the Moon. The crew can also make their own.'),
-  },
-
-  team: {
-    title: 'Team',
-    people: [
-      ['Caio Agra Lemos', 'Design and engineering'],
-      ['Leticia Alves Barbosa Leite', 'Medical lead: emergency cards, test cases and blood values'],
-    ],
-  },
-
-  credits: {
-    title: draft('Credits and resources'),
-    groups: [
-      {
-        title: draft('NASA data and text'),
-        items: [
-          [draft('NASA OSDR, ISS cabin record (Rodent Research-1)'), 'https://visualization.osdr.nasa.gov/eda/api/missions/RR-1/co2/'],
-          [draft('NASA OSDR, Inspiration4 blood count (OSD-569)'), 'https://osdr.nasa.gov/osdr/data/osd/files/569'],
-          [draft('NASA OSDR, Inspiration4 metabolic panel (OSD-575)'), 'https://osdr.nasa.gov/osdr/data/osd/files/575'],
-          [draft('NASA-STD-3001 CO2 Technical Brief (OCHMO-TB-004)'), 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf'],
-          [draft('NASA-STD-3001 Bone Loss Technical Brief'), 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-030-bone-loss.pdf'],
-          [draft('NASA Human Research Program: 5 Hazards of Human Spaceflight'), 'https://www.nasa.gov/hrp/hazards/'],
-          [draft('NASA Human Research Program: Risks of Human Spaceflight'), 'https://www.nasa.gov/hrp/risks/'],
-          [draft('NASA Life Sciences Portal (STS-40, Mir sleep, STS-89 mood, Mir radiation)'), 'https://nlsp.nasa.gov/'],
-        ],
-      },
-      {
-        title: draft('Software'),
-        items: [
-          [draft('React'), 'https://react.dev/'],
-          [draft('Vite'), 'https://vite.dev/'],
-          [draft('three.js'), 'https://threejs.org/'],
-          [draft('Tauri'), 'https://tauri.app/'],
-          [draft('llama.cpp'), 'https://github.com/ggml-org/llama.cpp'],
-          [draft('LFM3 1.7B, the local language model (LFM Open License v1.0)'), ''],
-          [draft('Node.js, serialport, ws, bonjour-service'), 'https://nodejs.org/'],
-          [draft('Arduino core for the ESP32'), 'https://github.com/espressif/arduino-esp32'],
-        ],
-      },
-    ] satisfies { title: Line; items: [Line, string][] }[],
-  },
-
-  ai: {
-    title: 'AI use',
-    lines: [
-      draft('[Describe here where AI tools were used to make this project, as the Space Apps rules require.]'),
-      draft('Tool: [tool name].'),
-      draft('Code: [which parts were written or edited with it, and how they were reviewed].'),
-      draft('Text: [which text, including this page, was drafted with it].'),
-      draft('Images and video: the screenshots on this page are of the real interface. [Any AI-generated image or video carries a visible watermark.]'),
-    ],
-  },
+const BUILD_BOARD: SheetContent = {
+  title: 'Build your board.',
+  body: ['The board is an ESP32 DevKit with a few sensors and a buzzer. Wire it from the blueprint, flash the firmware, plug it into the hub by USB.'],
+  links: [
+    { label: 'Wiring blueprint (PDF)', href: `${REPO}/blob/main/chip/wiring-blueprint.pdf`, note: 'Every part, pin by pin.' },
+    { label: 'Firmware, ready to flash', href: FIRMWARE, note: 'One file for the ESP32.' },
+    { label: 'Source and instructions', href: CHIP, note: "The firmware's code and the steps." },
+  ],
 };
 
-// A short muted clip of the real hardware, if one has been added. Vite finds
-// the file at build time, so with no file nothing renders and nothing shifts.
-const clips = import.meta.glob('./media/hardware.mp4', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-const CLIP: string | undefined = clips['./media/hardware.mp4'];
-const reduceMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// In the scene with the three parts: the Mars base on a calm day.
+const HUB_CLIP: Footage[] = [{ src: './media/hub-base.mp4', poster: './media/hub-base-poster.jpg' }];
+// The hub's own scene shows a different moment: the exercise bay, two crewmates at work in it.
+const HUB_GYM: Footage[] = [{ src: './media/hub-gym.mp4', poster: './media/hub-gym-poster.jpg' }];
+const PHONE_CLIPS: Footage[] = [{ src: ['./media/phone-heart.mp4', './media/phone-areyouok.mp4'] }];
 
-function HeroClip() {
-  const [failed, setFailed] = useState(false);
-  if (!CLIP || failed) return null;
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** A silent recording. Plays only while on screen; under reduced motion it holds a still with controls. */
+function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor = false }: { src: string; label?: string; poster?: string; className?: string; w?: number; h?: number; decor?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (reducedMotion()) {
+      v.removeAttribute('autoplay');
+      v.pause();
+      v.controls = !decor;
+      if (!poster) v.addEventListener('loadedmetadata', () => { v.currentTime = Math.min(2, v.duration / 2); }, { once: true });
+      return;
+    }
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.1 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [poster, decor]);
+  return <video ref={ref} className={className} src={src} poster={poster} aria-label={label} aria-hidden={decor || undefined} tabIndex={decor ? -1 : undefined} autoPlay muted loop playsInline preload="metadata" width={w} height={h} />;
+}
+
+/** A line-drawn model. The 3D code loads only when the scene comes near; without WebGL it shows `fallback`. */
+function Model({ kind, className, speed, footage, fallback }: { kind: Kind; className?: string; speed?: number; footage?: Footage[]; fallback?: ReactNode }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [off, setOff] = useState(false);
+  const clips = JSON.stringify(footage ?? []);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    let dispose: (() => void) | undefined;
+    let dead = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      import('./scene3d.ts')
+        .then(({ mount }) => mount(c, kind, { speed, footage: JSON.parse(clips) as Footage[] }))
+        .then((m) => { if (dead) m?.dispose(); else if (m) dispose = m.dispose; else setOff(true); })
+        .catch(() => setOff(true));
+    }, { rootMargin: '600px 0px' });
+    io.observe(c);
+    return () => { dead = true; io.disconnect(); dispose?.(); };
+  }, [kind, speed, clips]);
   return (
-    <figure className="shot clip">
-      <video
-        src={CLIP}
-        width={1280}
-        height={720}
-        muted
-        loop
-        playsInline
-        autoPlay={!reduceMotion}
-        controls={reduceMotion}
-        preload="metadata"
-        aria-label="The real board, phone and hub"
-        onError={() => setFailed(true)}
-      />
-      <figcaption {...mark(COPY.clipCaption)}>{text(COPY.clipCaption)}</figcaption>
-    </figure>
+    <>
+      <canvas ref={ref} className={`model${className ? ' ' + className : ''}`} aria-hidden="true" hidden={off} />
+      {off && fallback}
+    </>
   );
 }
 
-function Slot({ label, tall }: { label: string; tall?: boolean }) {
-  return <div className={tall ? 'slot tall' : 'slot'} role="img" aria-label={`Placeholder: ${label}`}>{label}</div>;
+/** The Projection frame: corner brackets over a faint grid. */
+function Frame({ children, className = '', as: Tag = 'div' }: { children: ReactNode; className?: string; as?: 'div' | 'figure' }) {
+  return <Tag className={`frame ${className}`}><i aria-hidden="true" />{children}</Tag>;
 }
 
-function Header({ title, id, body }: { title: Line; id: string; body?: Line }) {
+function Actions({ children }: { children: ReactNode }) {
+  return <div className="actions">{children}</div>;
+}
+
+type Node = { x: number; y: number; name: string; via: string; model?: 'app' | 'board'; glyph?: 'screen' | 'earth'; w: number; h: number; dashed?: boolean; light?: boolean; t?: number };
+
+/** The Earth button's icon from the hub's top bar (hub/ui/src/panels/MainPanels.tsx), on a 24-unit grid. */
+const EARTH_PATH = 'M8.2 4.4c.3 1.3-.6 2-1.5 2.7-.9.7-1.2 1.7-.5 2.6.7.9 2 .7 2.8 1.5.8.8.3 2 .9 2.9.5.8 1.6.9 1.8 1.9.2 1-.6 1.8-.5 2.8.1.6.4 1.1.9 1.6M14.6 3.9c-.7.9-.3 1.9.6 2.4.9.5 2 .2 2.7 1 .6.7.2 1.7.9 2.4.4.4 1 .5 1.5.4M15.2 13.2c.9-.5 2-.2 2.5.6.5.8.1 1.8-.6 2.4-.5.4-.8.9-.8 1.6';
+
+/** Where the hub sits among the other parts: the line models on the nodes, thin links, small tags. */
+function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, string> | null }) {
+  // Wide: the hub in the middle, two parts each side. Narrow (phones): a taller sheet, bigger words.
+  const W = narrow ? 600 : 1100, H = narrow ? 1120 : 580, f = narrow ? 1.5 : 1;
+  const C = narrow ? { x: 300, y: 440, w: 500, h: 340 } : { x: 550, y: 280, w: 450, h: 312 };
+  const ends: Node[] = narrow ? [
+    { x: 130, y: 150, name: 'iPhones', via: 'Wi-Fi', model: 'app', w: 130, h: 160 },
+    { x: 470, y: 150, name: 'Other screens', via: 'Same view', glyph: 'screen', w: 84, h: 68, light: true },
+    { x: 130, y: 960, name: 'Cabin boards', via: 'USB', model: 'board', w: 200, h: 145, t: 0.72 },
+    { x: 470, y: 990, name: 'Earth', via: 'Messages, with the delay counted', glyph: 'earth', w: 90, h: 90, dashed: true, t: 0.7 },
+  ] : [
+    { x: 170, y: 150, name: 'iPhones', via: 'Wi-Fi', model: 'app', w: 140, h: 175 },
+    { x: 170, y: 440, name: 'Cabin boards', via: 'USB', model: 'board', w: 210, h: 150 },
+    { x: 930, y: 150, name: 'Other screens', via: 'Same view', glyph: 'screen', w: 70, h: 56, light: true },
+    { x: 940, y: 440, name: 'Earth', via: 'Messages, with the delay counted', glyph: 'earth', w: 76, h: 76, dashed: true, t: 0.6 },
+  ];
   return (
-    <header>
-      <h2 id={id} {...mark(title)}>{text(title)}</h2>
-      {body && <p className="muted" {...mark(body)}>{text(body)}</p>}
-    </header>
+    <svg className={narrow ? 'fits narrow' : 'fits wide'} viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={narrow ? 'fits-alt-n' : 'fits-alt'}>
+      <title id={narrow ? 'fits-alt-n' : 'fits-alt'}>The hub in the centre, drawn as a ship’s console: a Mac or Windows app. iPhones connect to it over Wi-Fi and cabin boards over USB; other screens can show the same view. A dashed link to Earth carries messages, with the delay counted. Everything is stored and decided on the hub; nothing depends on a link to Earth.</title>
+      {ends.map((e) => {
+        // Trim each link so it runs from the console's edge to the part's edge.
+        const dx = e.x - C.x, dy = e.y - C.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+        const a = Math.min(C.w * 0.4, C.h * 0.62 / Math.abs(uy || 1e-6), C.w * 0.42 / Math.abs(ux || 1e-6));
+        const b = Math.max(e.w, e.h) * 0.55;
+        const x1 = C.x + ux * a, y1 = C.y + uy * a, x2 = e.x - ux * b, y2 = e.y - uy * b;
+        const t = e.t ?? 0.5, w = (e.via.length * 7.4 + 22) * f;
+        const mx = Math.min(Math.max(x1 + (x2 - x1) * t, w / 2 + 4), W - w / 2 - 4), my = y1 + (y2 - y1) * t;
+        return (
+          <g key={e.name} className={e.light ? 'fits-light' : undefined}>
+            <line className={e.dashed ? 'fits-link dashed' : 'fits-link'} x1={x1} y1={y1} x2={x2} y2={y2} />
+            <g transform={`translate(${mx} ${my})`}>
+              <rect className="fits-via" x={-w / 2} y={-13 * f} width={w} height={26 * f} rx={3} />
+              <text className="fits-via-text" textAnchor="middle" y={5 * f} fontSize={13 * f}>{e.via}</text>
+            </g>
+            <g transform={`translate(${e.x} ${e.y})`}>
+              {e.model && art?.[e.model]
+                ? <image href={art[e.model]} x={-e.w / 2} y={-e.h / 2} width={e.w} height={e.h} />
+                : e.model === 'app' ? <rect className="fits-glyph" x={-e.h * 0.25} y={-e.h * 0.5} width={e.h * 0.5} height={e.h} rx={10} />
+                : e.model === 'board' ? <rect className="fits-glyph" x={-e.w * 0.4} y={-e.h * 0.3} width={e.w * 0.8} height={e.h * 0.6} rx={4} />
+                : e.glyph === 'screen' ? <path className="fits-glyph" d={`M${-e.w / 2} ${-e.h / 2}h${e.w}v${e.h * 0.72}h${-e.w}Z M0 ${e.h * 0.22}v${e.h * 0.2} M${-e.w * 0.22} ${e.h / 2}h${e.w * 0.44}`} />
+                : <g className="fits-glyph" transform={`scale(${e.w / 24}) translate(-12 -12)`}><circle cx="12" cy="12" r="8.5" vectorEffect="non-scaling-stroke" /><path d={EARTH_PATH} vectorEffect="non-scaling-stroke" /></g>}
+              <text className="fits-name" textAnchor="middle" y={e.y < C.y ? -e.h / 2 - 14 * f : e.h / 2 + 30 * f} fontSize={(e.light ? 18 : 22) * f}>{e.name}</text>
+            </g>
+          </g>
+        );
+      })}
+      <g transform={`translate(${C.x} ${C.y})`}>
+        {art?.hub
+          ? <image href={art.hub} x={-C.w / 2} y={-C.h / 2} width={C.w} height={C.h} />
+          : <rect className="fits-glyph" x={-C.w * 0.3} y={-C.h * 0.25} width={C.w * 0.6} height={C.h * 0.5} rx={10} />}
+        <text className="fits-hub-text" textAnchor="middle" y={C.h / 2 + 26 * f} fontSize={26 * f}>The hub</text>
+        <g transform={`translate(0 ${C.h / 2 + 52 * f})`}>
+          <rect className="fits-via" x={-77 * f} y={-13 * f} width={154 * f} height={26 * f} rx={3} />
+          <text className="fits-via-text" textAnchor="middle" y={5 * f} fontSize={13 * f}>Mac or Windows app</text>
+        </g>
+      </g>
+    </svg>
   );
 }
 
-function Tag({ kind }: { kind: 'real' | 'replayed' | 'sim' }) {
-  return <span className={`tag ${kind}`}>{kind === 'real' ? 'Real' : kind === 'replayed' ? 'Replayed' : 'Simulated'}</span>;
+/** The diagram scene. The three models are rendered once, as stills, when the scene comes near. */
+function FitsScene() {
+  const ref = useRef<HTMLElement>(null);
+  const [art, setArt] = useState<Record<string, string> | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let dead = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      import('./scene3d.ts')
+        .then(({ stills }) => stills([
+          { kind: 'hub', w: 900, h: 624, yaw: 0.32 },
+          { kind: 'app', w: 280, h: 350, yaw: -0.5 },
+          { kind: 'board', w: 420, h: 300, yaw: -0.6 },
+        ]))
+        .then((img) => { if (!dead && img) setArt({ hub: img[0], app: img[1], board: img[2] }); })
+        .catch(() => {});
+    }, { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => { dead = true; io.disconnect(); };
+  }, []);
+  return (
+    <section ref={ref} className="scene fits-scene" aria-labelledby="fits-title">
+      <Frame className="fits-frame">
+        <h2 id="fits-title">How it fits together.</h2>
+        <Fits art={art} />
+        <Fits narrow art={art} />
+        <p className="fits-line">Everything is stored and decided on the hub. Nothing depends on a link to Earth.</p>
+      </Frame>
+    </section>
+  );
+}
+
+/** The in-page sheet behind "Learn more": a modal dialog in the hub's frame look. */
+function Sheet({ content: a, onClose }: { content: SheetContent | null; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const opener = useRef<Element | null>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d || !a) return;
+    opener.current = document.activeElement;
+    d.showModal();
+    d.querySelector<HTMLElement>('.sheet-close')?.focus();
+    document.documentElement.classList.add('locked');
+    return () => {
+      document.documentElement.classList.remove('locked');
+      if (d.open) d.close();
+      (opener.current as HTMLElement | null)?.focus();
+    };
+  }, [a]);
+  // Keep Tab inside the sheet.
+  const trap = (e: KeyboardEvent<HTMLDialogElement>) => {
+    if (e.key !== 'Tab') return;
+    const f = [...e.currentTarget.querySelectorAll<HTMLElement>('a[href], button')];
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  return (
+    <dialog ref={ref} className={a?.video ? 'sheet wide' : 'sheet'} aria-modal="true" aria-labelledby="sheet-title" onCancel={(e) => { e.preventDefault(); onClose(); }} onKeyDown={trap}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      {a && (
+        <Frame className="sheet-frame">
+          <button className="sheet-close" type="button" onClick={onClose} aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7L7 17" /></svg>
+          </button>
+          <div className="sheet-body">
+            {a.video && <figure className="sheet-media"><Clip src={a.video} label={a.label} /></figure>}
+            <div className="sheet-text">
+              <h2 id="sheet-title">{a.title}</h2>
+              {a.body.map((p) => <p key={p}>{p}</p>)}
+              {a.links && (
+                <ul className="sheet-links">
+                  {a.links.map((l) => <li key={l.href}><a href={l.href}>{l.label}</a><span>{l.note}</span></li>)}
+                </ul>
+              )}
+              {a.fine && <p className="fine">{a.fine}</p>}
+              {a.sources && <a className="sheet-link" href={ABOUT}>Results, limits and sources</a>}
+            </div>
+          </div>
+        </Frame>
+      )}
+    </dialog>
+  );
+}
+
+/** What it does: four rows, a large clip each, lightly told; the depth is behind "Learn more". */
+function Does() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <section className="scene does" aria-labelledby="does-title">
+      <h2 id="does-title">What it does.</h2>
+      <ol className="does-rows">
+        {DOES.map((d, i) => (
+          <li key={d.title} className="does-row">
+            <Frame as="figure" className="does-clip"><Clip src={d.video} label={d.label} /></Frame>
+            <div className="does-copy">
+              <span className="tag">{String(i + 1).padStart(2, '0')}</span>
+              <h3 id={`does-${i}`}>{d.title}</h3>
+              <p>{d.body}</p>
+              <div className="actions">
+                <button type="button" className="btn" aria-describedby={`does-${i}`} aria-haspopup="dialog" onClick={() => setOpen(i)}>Learn more</button>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <Sheet content={open === null ? null : ARTICLES[open]} onClose={() => setOpen(null)} />
+    </section>
+  );
+}
+
+/** The board's two buttons; "Build your board" opens its sheet. */
+function BoardActions() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Actions>
+        <button type="button" className="btn fill" aria-haspopup="dialog" onClick={() => setOpen(true)}>Build your board</button>
+        <a className="btn" href={DEMO}>Run the demo</a>
+      </Actions>
+      <Sheet content={open ? BUILD_BOARD : null} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** What Astrum is: the three parts on one canvas, the hub and the phone with their footage. */
+function Parts() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const boxes = useRef<(HTMLDivElement | null)[]>([]);
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    const c = canvas.current;
+    if (!c) return;
+    let dispose: (() => void) | undefined;
+    let dead = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      const [hub, app, board] = boxes.current as HTMLDivElement[];
+      import('./scene3d.ts')
+        .then(({ mountGroup }) => mountGroup(c, [
+          { kind: 'hub', el: hub, speed: 1.4, footage: HUB_CLIP },
+          { kind: 'app', el: app, speed: 1.4, footage: PHONE_CLIPS },
+          { kind: 'board', el: board, speed: 1.4 },
+        ]))
+        .then((m) => { if (dead) m?.dispose(); else if (m) dispose = m.dispose; else setOff(true); })
+        .catch(() => setOff(true));
+    }, { rootMargin: '600px 0px' });
+    io.observe(c);
+    return () => { dead = true; io.disconnect(); dispose?.(); };
+  }, []);
+  const names = ['The hub', 'The app', 'The board'];
+  return (
+    <section className="scene parts" aria-labelledby="parts-title">
+      <Frame className="parts-frame">
+        <h2 id="parts-title" className="sr-only">What Astrum is</h2>
+        <div className="parts-stage">
+          <canvas ref={canvas} className="parts-canvas" aria-hidden="true" hidden={off} />
+          <ul className="parts-row">
+            {names.map((n, i) => <li key={n}><div className="part-model" ref={(el) => { boxes.current[i] = el; }} /><span className="part-name">{n}</span></li>)}
+          </ul>
+        </div>
+        <p className="parts-line">A hub on board, an app for each crewmate, and a board in every cabin. No link to Earth needed.</p>
+      </Frame>
+    </section>
+  );
+}
+
+/** The opening: the ship circling, seen clearly first; then the words arrive. */
+function Opening() {
+  const ref = useRef<HTMLElement>(null);
+  // The words are there from the start (the owner tried a delayed reveal and preferred it all at once).
+  const [intro, setIntro] = useState(false);
+  useEffect(() => {
+    if (!intro) return;
+    const v = ref.current?.querySelector('video');
+    const timers: number[] = [];
+    const reveal = () => setIntro(false);
+    const started = () => { timers.push(window.setTimeout(reveal, 0)); };
+    // If the clip has not started in 2.5 s, the words come anyway.
+    timers.push(window.setTimeout(() => { if (!v || v.paused || v.readyState < 3) reveal(); }, 0));
+    if (v && !v.paused && v.readyState >= 3) started();
+    else v?.addEventListener('playing', started, { once: true });
+    return () => { timers.forEach(clearTimeout); v?.removeEventListener('playing', started); };
+  }, [intro]);
+  return (
+    <section ref={ref} className={`scene opening${intro ? ' intro' : ''}`} id="top" aria-labelledby="h1" onFocus={() => setIntro(false)}>
+      <div className="opening-bg" aria-hidden="true">
+        <Clip src="./media/opening.mp4" poster="./media/opening-poster.jpg" className="opening-video" decor />
+      </div>
+      <div className="stars" aria-hidden="true" />
+      <div className="opening-copy">
+        <h1 id="h1">The nearest doctor is a planet away.</h1>
+        <p className="lead">Crew health that runs on board.</p>
+        <Actions>
+          <a className="btn fill" href={DEMO}>Run the demo</a>
+          <a className="btn" href="#get">Download</a>
+        </Actions>
+      </div>
+      <span className="tag opening-tag">NASA Space Apps Challenge 2026</span>
+    </section>
+  );
 }
 
 export function App() {
-  const { demo, problem, how, pillars, sources, real, safety, missions, team, credits, ai } = COPY;
-
+  useEffect(() => initDeck(), []);
   return (
     <>
       <a className="skip" href="#main">Skip to content</a>
 
-      <nav className="nav" aria-label="Main">
-        <div className="wrap">
-          <a className="mark" href="#top">Astrum</a>
-          <ul>
-            <li><a href="#how">How it works</a></li>
-            <li><a href="#data">NASA data</a></li>
-            <li><a href="#real">What’s real</a></li>
-            <li><a href="#safety">Safety</a></li>
-          </ul>
-          <a className="button" href={DEMO}>Run the demo</a>
-        </div>
-      </nav>
+      <header className="nav">
+        <a className="brand" href="#top" aria-label="Astrum, back to top">
+          <LogoLight className="brand-logo" label="" width={112} />
+        </a>
+        <nav aria-label="Main">
+          <a href={DEMO}>Run the demo</a>
+          <a className="nav-fill" href="#get">Download</a>
+        </nav>
+      </header>
 
       <main id="main">
-        <div className="hero wrap" id="top">
-          <img className="logo" src="./brand/logo.svg" alt="Astrum" width={505} height={104} />
-          <h1 {...mark(COPY.premise)}>{text(COPY.premise)}</h1>
-          <p className="lead" {...mark(COPY.lead)}>{text(COPY.lead)}</p>
-          <p className="lead">{COPY.what}</p>
-          <div className="actions">
-            <a className="button" href={DEMO}>Run the demo</a>
-            <a className="button ghost" href={REPO}>Source on GitHub</a>
-          </div>
-          <p className="count">{COPY.count}</p>
-          <div className={CLIP ? 'hero-media' : 'hero-media solo'}>
-            <figure className="shot">
-              <a href={DEMO} aria-label="Run the demo">
-                <img src="./shots/demo-level-2.jpg" width={1440} height={900} alt={COPY.heroShot.alt} fetchPriority="high" decoding="async" />
-              </a>
-              <figcaption {...mark(COPY.heroShot.caption)}>{text(COPY.heroShot.caption)}</figcaption>
-            </figure>
-            <HeroClip />
-          </div>
-        </div>
+        {/* 1 · Opening */}
+        <Opening />
 
-        <section aria-labelledby="demo-title" id="demo">
-          <div className="wrap">
-            <Header title={demo.title} id="demo-title" body={demo.body} />
-            <div className="demo">
-              <p><span className="tag sim">{demo.label}</span></p>
-              <ol className="list">
-                {demo.steps.map((step) => <li key={text(step)} {...mark(step)}>{text(step)}</li>)}
-              </ol>
-              <p className="muted" {...mark(demo.note)}>{text(demo.note)}</p>
-              <div className="actions">
-                <a className="button" href={DEMO}>Run the demo</a>
-              </div>
-            </div>
+        {/* 2 · What Astrum is */}
+        <Parts />
+
+        {/* 3 · The hub */}
+        <section className="scene pillar hub" aria-labelledby="hub-title">
+          <Model kind="hub" className="pillar-model" footage={HUB_GYM} fallback={
+            <Frame as="figure" className="pillar-screen">
+              <Clip src="./media/hub-gym.mp4" poster="./media/hub-gym-poster.jpg" label="The Astrum hub: the ship's exercise bay with two crewmates exercising, and the room's readings" />
+            </Frame>
+          } />
+          <div className="pillar-copy">
+            <span className="tag">01</span>
+            <h2 id="hub-title">The hub.</h2>
+            <p>One screen for the whole crew: every reading, every room, every alert. It runs on a Mac or Windows computer on board, and any screen can open it.</p>
+            <Actions>
+              <a className="btn fill" href="#get">Get the hub</a>
+              <a className="btn" href={DEMO}>Run the demo</a>
+            </Actions>
           </div>
+          <p className="sr-only">Drawing: a ship’s console with one large angled screen, two smaller screens, a seat and a hand rail. Its main screen plays the hub: a wireframe spacecraft with the crew, their CO2 exposure and alerts.</p>
         </section>
 
-        <section className="problem" aria-labelledby="problem-title">
-          <div className="wrap">
-            <Header title={problem.title} id="problem-title" body={problem.body} />
+        {/* 4 · The app */}
+        <section className="scene pillar app" aria-labelledby="app-title">
+          <Model kind="app" className="pillar-model" footage={PHONE_CLIPS} fallback={
+            <div className="phones">
+              <figure className="phone-frame"><Clip src="./media/phone-heart.mp4" label="The iPhone app showing a crewmate their own readings" w={480} h={1044} /></figure>
+            </div>
+          } />
+          <div className="pillar-copy">
+            <span className="tag">02</span>
+            <h2 id="app-title">The app.</h2>
+            <p>On every crewmate’s iPhone. It sends their readings, asks if they’re OK, and walks them through first aid.</p>
+            <Actions>
+              <a className="btn fill" href={PHONE}>Test the app</a>
+              <a className="btn" href={DEMO}>Run the demo</a>
+            </Actions>
+            <p className="fine">It reads Apple Health and the Apple Watch through HealthKit. Build it from Xcode onto your iPhone.</p>
           </div>
+          <p className="sr-only">Drawing: an iPhone swaying gently. Its screen plays the app showing a crewmate their own readings, then asking “Are you OK?”.</p>
         </section>
 
-        <section aria-labelledby="how-title" id="how">
-          <div className="wrap">
-            <Header title={how.title} id="how-title" body={how.body} />
-            <div className="pillars">
-              {pillars.map((p: Pillar) => (
-                <article className="pillar" key={p.id} aria-labelledby={`${p.id}-title`}>
-                  {'slot' in p.media ? (
-                    <Slot label={p.media.slot} />
-                  ) : (
-                    <figure className="shot">
-                      <img src={p.media.src} width={p.media.width} height={p.media.height} alt={p.media.alt} loading="lazy" decoding="async" />
-                      <figcaption {...mark(p.media.caption)}>{text(p.media.caption)}</figcaption>
-                    </figure>
-                  )}
-                  <div className="copy">
-                    <h3 id={`${p.id}-title`} {...mark(p.title)}>{text(p.title)}</h3>
-                    <p className="muted" {...mark(p.body)}>{text(p.body)}</p>
-                    {p.more.length > 0 && (
-                      <ul className="list muted">
-                        {p.more.map((m) => <li key={text(m)} {...mark(m)}>{text(m)}</li>)}
-                      </ul>
-                    )}
-                    <p className="check" {...mark(p.check)}>{text(p.check)}</p>
-                    <p className="links">
-                      <a href={`${REPO}/tree/main/${p.folder}`}>See the code</a>
-                      {p.links.map(([label, href]) => <a key={href} href={href} {...mark(label)}>{text(label)}</a>)}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
+        {/* 5 · The board */}
+        <section className="scene pillar board" aria-labelledby="board-title">
+          <Model kind="board" className="pillar-model" />
+          <div className="pillar-copy">
+            <span className="tag">03</span>
+            <h2 id="board-title">The board.</h2>
+            <p>An ESP32 in the cabin, measuring pressure, temperature, humidity, light, noise and vibration. Its buzzer is the room alarm.</p>
+            <BoardActions />
           </div>
+          <p className="sr-only">Drawing: the cabin board turning slowly: a breadboard with sensor modules, an ESP32 on its expansion board, a buzzer and looping jumper wires.</p>
         </section>
 
-        <section aria-labelledby="data-title" id="data">
-          <div className="wrap">
-            <Header title={sources.title} id="data-title" body={sources.body} />
-            <div className="table-wrap">
-              <table className="stack" aria-labelledby="data-title">
-                <thead><tr><th scope="col">Source</th><th scope="col">What it is</th><th scope="col">How Astrum uses it</th><th scope="col" data-draft="true">Caveat</th></tr></thead>
-                <tbody>
-                  {sources.rows.map((cells) => (
-                    <tr key={text(cells[0])} {...mark(...cells)}>
-                      {cells.map((cell, i) => <td key={i} data-label={['Source', 'What it is', 'How Astrum uses it', 'Caveat'][i]}>{text(cell)}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {/* The demo, asked for outright: one full scene between the three parts and what it does. */}
+        <section className="scene demo-scene" aria-labelledby="demo-title">
+          <a className="demo-card frame" href={DEMO} aria-label="Run the demo">
+            <i />
+            <Clip src="./media/tells.mp4" className="demo-clip" decor />
+            <span className="demo-shade" aria-hidden="true" />
+            <span className="demo-copy">
+              <span className="tag">In your browser · nothing to install</span>
+              <span id="demo-title" className="demo-title">See it run.</span>
+              <span className="demo-line">A night on a ship, a dust storm on Mars, a fire on the station. Astrum picks one.</span>
+              <span className="btn fill demo-btn">Run the demo</span>
+            </span>
+          </a>
         </section>
 
-        <section aria-labelledby="real-title" id="real">
-          <div className="wrap">
-            <header>
-              <h2 id="real-title">{real.title}</h2>
-              <p className="muted">{real.body} <span {...mark(real.bodyMore)}>{text(real.bodyMore)}</span></p>
-            </header>
-            <div className="table-wrap">
-              <table className="stack" aria-labelledby="real-title">
-                <thead><tr><th scope="col">Part</th><th scope="col">Status</th><th scope="col">How</th></tr></thead>
-                <tbody>
-                  {real.rows.map(([part, kind, detail]) => (
-                    <tr key={text(part)} {...mark(part, detail)}>
-                      <td data-label="Part">{text(part)}</td>
-                      <td data-label="Status"><Tag kind={kind} /></td>
-                      <td data-label="How">{text(detail)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* 6 · What it does */}
+        <Does />
 
-            <div className="sub">
-              <h3 {...mark(real.labelsTitle)}>{text(real.labelsTitle)}</h3>
-              <p className="muted" {...mark(real.labelsBody)}>{text(real.labelsBody)}</p>
-              <dl className="labels">
-                {real.labels.map(([name, meaning]) => (
-                  <div key={name} {...mark(meaning)}>
-                    <dt><span className="tag">{name}</span></dt>
-                    <dd className="muted">{text(meaning)}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="muted" {...mark(real.labelsNote)}>{text(real.labelsNote)}</p>
-            </div>
-          </div>
-        </section>
+        {/* 7 · How it fits together */}
+        <FitsScene />
 
-        <section aria-labelledby="safety-title" id="safety">
-          <div className="wrap">
-            <Header title={safety.title} id="safety-title" />
-            <div className="grid-3">
-              {safety.cards.map(([title, body]) => (
-                <div className="card" key={text(title)}>
-                  <h3 {...mark(title)}>{text(title)}</h3>
-                  <p className="muted" {...mark(body)}>{text(body)}</p>
-                </div>
-              ))}
-            </div>
-            <p className="muted" style={{ marginTop: 24 }} {...mark(safety.note)}>{text(safety.note)}</p>
-
-            <div className="sub">
-              <h3 {...mark(safety.howTitle)}>{text(safety.howTitle)}</h3>
-              <ul className="list muted">
-                {safety.how.map((line) => <li key={text(line)} {...mark(line)}>{text(line)}</li>)}
-              </ul>
-            </div>
-
-            <div className="sub">
-              <h3 id="results-title" {...mark(safety.resultsTitle)}>{text(safety.resultsTitle)}</h3>
-              <p className="muted" {...mark(safety.resultsBody)}>{text(safety.resultsBody)}</p>
-              <div className="table-wrap">
-                <table className="stack" aria-labelledby="results-title">
-                  <thead><tr><th scope="col">Test</th><th scope="col">Result</th></tr></thead>
-                  <tbody>
-                    {safety.results.map(([test, result]) => (
-                      <tr key={text(test)} {...mark(test, result)}>
-                        <td data-label="Test">{text(test)}</td>
-                        <td data-label="Result">{text(result)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="muted small" {...mark(safety.resultsNote)}>{text(safety.resultsNote)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="missions-title" id="missions">
-          <div className="wrap">
-            <Header title={missions.title} id="missions-title" body={missions.body} />
-            <p className="in-progress" data-in-progress="true" {...mark(missions.inProgress)}>{text(missions.inProgress)}</p>
-          </div>
-        </section>
-
-        <section aria-labelledby="team-title" id="team">
-          <div className="wrap">
-            <Header title={team.title} id="team-title" />
-            <div className="grid-3">
-              {team.people.map(([name, role]) => (
-                <div className="card" key={name}><h3>{name}</h3><p className="muted">{role}</p></div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="credits-title" id="credits">
-          <div className="wrap">
-            <Header title={credits.title} id="credits-title" />
-            <div className="credits">
-              {credits.groups.map((g) => (
-                <div key={text(g.title)}>
-                  <h3 {...mark(g.title)}>{text(g.title)}</h3>
-                  <ul className="list muted">
-                    {g.items.map(([label, href]) => (
-                      <li key={text(label)} {...mark(label)}>{href ? <a href={href}>{text(label)}</a> : text(label)}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="ai-title" id="ai-use">
-          <div className="wrap">
-            <Header title={ai.title} id="ai-title" />
-            <div className="prose muted">
-              {ai.lines.map((line) => <p key={text(line)} {...mark(line)}>{text(line)}</p>)}
-            </div>
-          </div>
+        {/* 8 · Get Astrum */}
+        <section className="scene get" id="get" aria-labelledby="get-title">
+          <Frame className="get-frame">
+            <LogoLight className="get-logo" label="Astrum" />
+            <h2 id="get-title">Get Astrum.</h2>
+            <ul className="options">
+              <li><a className="option fill" href={MAC}><b>Download for Mac</b><span>Apple silicon · 1.7 GB</span></a></li>
+              <li><a className="option" href={WIN}><b>Download for Windows</b><span>64-bit · 1.7 GB</span></a></li>
+              <li><a className="option" href={DEMO}><b>Run the demo</b><span>In your browser</span></a></li>
+            </ul>
+            <p className="fine">iPhone app and board firmware: build them from <a href={REPO}>the source</a>.</p>
+            <p className="fine">The apps are not signed by a store. On a Mac choose Open Anyway in Privacy &amp; Security; on Windows choose More info, then Run anyway.</p>
+          </Frame>
         </section>
       </main>
 
       <footer>
-        <div className="wrap">
-          <nav aria-label="Footer">
-            <a href={DEMO}>Run the demo</a>
-            <a href={REPO}>GitHub</a>
-            <a href="#credits">Credits</a>
-            <a href="#ai-use">AI use</a>
-          </nav>
-          <p>NASA Space Apps Challenge 2026. Create Health Monitoring Software for Astronauts on Space Missions. Recife local event.</p>
-        </div>
+        <p>Real: the software on all three devices, the board’s own readings, and NASA’s data. Simulated, and labelled on screen: the demo crew and most body readings. Astrum does not diagnose or treat; it is not a medical device.</p>
+        <nav aria-label="Project">
+          <a href={ABOUT}>Results, limits and sources</a>
+          <a href={REPO}>Source on GitHub</a>
+          <a href={RELEASES}>All releases</a>
+        </nav>
+        <p>Caio Agra Lemos, design and engineering · Leticia Alves Barbosa Leite, medical lead</p>
+        <p>NASA Space Apps Challenge 2026</p>
       </footer>
     </>
   );
