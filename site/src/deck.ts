@@ -228,8 +228,29 @@ function start(fail: () => void): () => void {
     if (i < 0) return;
     e.preventDefault();
     history.replaceState(null, '', `#${id}`);
-    goTo(i);
+    slideTo(i);
   };
+
+  /**
+   * A link to another scene (Download, Get the hub): one swift slide straight there, not a ride through every
+   * scene between. A panel in the page's colour sweeps up over the screen, the page jumps under it, and it sweeps on off the top.
+   */
+  let sliding = false;
+  function slideTo(i: number) {
+    if (sliding) return;
+    if (i === current) { goTo(i, false); return; }
+    sliding = true;
+    const cover = document.createElement('div');
+    cover.className = 'deck-cover';
+    document.body.append(cover);
+    const ease = 'cubic-bezier(0.6, 0, 0.2, 1)';
+    const done = () => { cover.remove(); sliding = false; };
+    try {
+      cover.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 220, easing: ease, fill: 'forwards' }).finished
+        .then(() => { goTo(i, false); frame(); return cover.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-100%)' }], { duration: 300, easing: ease, fill: 'forwards' }).finished; })
+        .then(done, done);
+    } catch { goTo(i, false); done(); }
+  }
   // Keyboard focus landing in another scene brings that scene on screen.
   const onFocus = (e: FocusEvent) => {
     const i = all.findIndex((s) => s.contains(e.target as Node));

@@ -285,3 +285,10 @@ html:not(.deck) .nav { background: rgb(11 12 14 / 0.82); -webkit-backdrop-filter
 /* The sheets scroll inside when the window is short; their scroll bar is not drawn (the owner's call). */
 .sheet, .sheet-body, .sheet-frame { scrollbar-width: none; }
 .sheet::-webkit-scrollbar, .sheet-body::-webkit-scrollbar, .sheet-frame::-webkit-scrollbar { display: none; }
+
+/* The panel that sweeps over the screen when a link jumps to another scene (deck.ts slideTo). Under the top bar. */
+.deck-cover { position: fixed; inset: 0; z-index: 15; background: var(--bg); transform: translateY(100%); will-change: transform; pointer-events: none; }
+
+/* The still picture of a model, in the model's own box: before the 3D takes over, or in its place on a slow computer or connection. */
+img.model-still { object-fit: cover; object-position: center; pointer-events: none; cursor: default; }
+.part-still { width: 100%; height: 100%; object-fit: cover; display: block; }

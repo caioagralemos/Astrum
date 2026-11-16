@@ -278,7 +278,7 @@ async function view(kind: Kind, opts: { speed?: number; footage?: Footage[] }, r
   };
 }
 
-type Item = { kind: Kind; speed?: number; footage?: Footage[]; el?: HTMLElement };
+type Item = { kind: Kind; speed?: number; footage?: Footage[]; el?: HTMLElement; /** Called once if the computer cannot keep up even at the lightest picture. */ onSlow?: () => void };
 
 /** Runs one renderer on `canvas`: one model filling it, or several, each in the box of its `el`. Plays only on screen. */
 async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolean): Promise<Mounted | null> {
@@ -329,13 +329,14 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
 
   // A slow computer gets a lighter picture: if frames take too long, the drawing density steps down
   // (1.5x → 1x → 0.75x of the screen's own), once per step, and stays there.
-  let lastT = 0, slowFrames = 0, okFrames = 0;
+  let lastT = 0, slowFrames = 0, okFrames = 0, gaveUp = false;
   function pace(t: number) {
     const dt = t - lastT; lastT = t;
     if (dt <= 0 || dt > 250) return;                // the first frame, or back from a hidden tab
     if (dt > 30) slowFrames++; else okFrames++;
     if (slowFrames + okFrames < 40) return;
     if (slowFrames > 14 && quality > 0.75) { quality = quality > 1 ? 1 : 0.75; size(); }
+    else if (slowFrames > 20 && quality <= 0.75 && !gaveUp) { gaveUp = true; items[0].onSlow?.(); }
     slowFrames = okFrames = 0;
   }
 
@@ -392,7 +393,7 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
 }
 
 /** Draws `kind` into `canvas`. Resolves to null when WebGL is unavailable. */
-export function mount(canvas: HTMLCanvasElement, kind: Kind, opts: { speed?: number; footage?: Footage[] } = {}) {
+export function mount(canvas: HTMLCanvasElement, kind: Kind, opts: { speed?: number; footage?: Footage[]; onSlow?: () => void } = {}) {
   return run(canvas, [{ kind, ...opts }], true);
 }
 

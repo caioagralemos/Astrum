@@ -77,9 +77,15 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 /** A silent recording. Plays only while on screen; under reduced motion it holds a still with controls. */
 function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor = false, always = false }: { src: string; label?: string; poster?: string; className?: string; w?: number; h?: number; decor?: boolean; always?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const still = poster ?? src.replace(/\.mp4$/, '-poster.jpg');
+  const [slow] = useState(slowLink);
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
+    if (slow) return;                                  // its still picture only: the clip is not fetched
+    const stop = () => { v.pause(); v.removeAttribute('autoplay'); };
+    window.addEventListener('astrum-lite', stop);
+    if (lite) { stop(); return () => window.removeEventListener('astrum-lite', stop); }
     if (reducedMotion()) {
       v.removeAttribute('autoplay');
       v.pause();
@@ -95,40 +101,58 @@ function Clip({ src, label, poster, className = 'clip', w = 1600, h = 900, decor
       go();
       v.addEventListener('loadeddata', go); v.addEventListener('canplay', go);
       const timer = window.setInterval(go, 400);
-      return () => { window.clearInterval(timer); v.removeEventListener('loadeddata', go); v.removeEventListener('canplay', go); };
+      return () => { window.clearInterval(timer); v.removeEventListener('loadeddata', go); v.removeEventListener('canplay', go); window.removeEventListener('astrum-lite', stop); };
     }
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.1 });
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting && !lite ? v.play().catch(() => {}) : v.pause()), { threshold: 0.1 });
     io.observe(v);
-    return () => io.disconnect();
-  }, [poster, decor]);
-  return <video ref={ref} className={className} src={src} poster={poster} aria-label={label} aria-hidden={decor || undefined} tabIndex={decor ? -1 : undefined} autoPlay muted loop playsInline preload="metadata" width={w} height={h} />;
+    return () => { io.disconnect(); window.removeEventListener('astrum-lite', stop); };
+  }, [poster, decor, slow]);
+  if (slow) return <img className={className} src={still} alt={decor ? '' : label ?? ''} aria-hidden={decor || undefined} width={w} height={h} decoding="async" loading="lazy" />;
+  return <video ref={ref} className={className} src={src} poster={still} aria-label={label} aria-hidden={decor || undefined} tabIndex={decor ? -1 : undefined} autoPlay muted loop playsInline preload="metadata" width={w} height={h} />;
 }
 
-/** A line-drawn model. The 3D code loads only when the scene comes near; without WebGL it shows `fallback`. */
-function Model({ kind, className, speed, footage, fallback }: { kind: Kind; className?: string; speed?: number; footage?: Footage[]; fallback?: ReactNode }) {
+/** A slow or metered connection (the browser says so): the page then keeps to pictures. */
+const slowLink = () => {
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  return Boolean(c && (c.saveData || /(^|-)2g$|^3g$/.test(c.effectiveType ?? '')));
+};
+let lite = false;
+/** Pictures instead of motion from now on: clips stop where they are, nothing new is fetched. */
+const goLite = () => { if (lite) return; lite = true; window.dispatchEvent(new Event('astrum-lite')); };
+const STILL: Record<Kind, string> = { hub: './media/model-hub.jpg', app: './media/model-app.jpg', board: './media/model-board.jpg' };
+
+/**
+ * A line-drawn model. A still picture of it (taken from the 3D itself, facing front) shows first; the 3D code
+ * loads only when the scene comes near and then takes over. The picture stays, with no 3D at all, when there is
+ * no WebGL, on a slow or metered connection, or when the computer cannot keep up even at the lightest setting.
+ */
+function Model({ kind, className, speed, footage }: { kind: Kind; className?: string; speed?: number; footage?: Footage[]; fallback?: ReactNode }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [off, setOff] = useState(false);
+  const [state, setState] = useState<'still' | 'live' | 'off'>('still');
   const clips = JSON.stringify(footage ?? []);
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
+    if (slowLink()) { setState('off'); return; }
     let dispose: (() => void) | undefined;
     let dead = false;
+    const giveUp = () => { dispose?.(); dispose = undefined; if (!dead) setState('off'); goLite(); };
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       io.disconnect();
       import('./scene3d.ts')
-        .then(({ mount }) => mount(c, kind, { speed, footage: JSON.parse(clips) as Footage[] }))
-        .then((m) => { if (dead) m?.dispose(); else if (m) dispose = m.dispose; else setOff(true); })
-        .catch(() => setOff(true));
+        .then(({ mount }) => mount(c, kind, { speed, footage: JSON.parse(clips) as Footage[], onSlow: giveUp }))
+        .then((m) => { if (dead) m?.dispose(); else if (m) { dispose = m.dispose; setState('live'); } else setState('off'); })
+        .catch(() => setState('off'));
     }, { rootMargin: '600px 0px' });
     io.observe(c);
     return () => { dead = true; io.disconnect(); dispose?.(); };
   }, [kind, speed, clips]);
+  const cls = `model${className ? ' ' + className : ''}`;
   return (
     <>
-      <canvas ref={ref} className={`model${className ? ' ' + className : ''}`} aria-hidden="true" hidden={off} />
-      {off && fallback}
+      {state !== 'live' && <img className={`${cls} model-still`} src={STILL[kind]} alt="" aria-hidden="true" decoding="async" loading="lazy" />}
+      <canvas ref={ref} className={cls} aria-hidden="true" hidden={state === 'off'} />
     </>
   );
 }
@@ -231,6 +255,7 @@ function FitsScene() {
     const el = ref.current;
     if (!el) return;
     let dead = false;
+    if (slowLink() || lite) return;                    // plain outlines stand in for the models; no 3D is fetched
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       io.disconnect();
@@ -298,11 +323,11 @@ function Sheet({ content: a, onClose }: { content: SheetContent | null; onClose:
               {a.body.map((p) => <p key={p}>{p}</p>)}
               {a.links && (
                 <ul className="sheet-links">
-                  {a.links.map((l) => <li key={l.href}><a href={l.href}>{l.label}</a><span>{l.note}</span></li>)}
+                  {a.links.map((l) => <li key={l.href}><a href={l.href} {...(l.href === FIRMWARE ? {} : { target: '_blank', rel: 'noopener' })}>{l.label}</a><span>{l.note}</span></li>)}
                 </ul>
               )}
               {a.fine && <p className="fine">{a.fine}</p>}
-              {a.sources && <a className="sheet-link" href={ABOUT}>Results, limits and sources</a>}
+              {a.sources && <a className="sheet-link" href={ABOUT} target="_blank" rel="noopener">Results, limits and sources</a>}
             </div>
           </div>
         </Frame>
@@ -359,6 +384,7 @@ function Parts() {
   useEffect(() => {
     const c = canvas.current;
     if (!c) return;
+    if (slowLink()) { setOff(true); return; }
     let dispose: (() => void) | undefined;
     let dead = false;
     const io = new IntersectionObserver(([e]) => {
@@ -385,7 +411,7 @@ function Parts() {
         <div className="parts-stage">
           <canvas ref={canvas} className="parts-canvas" aria-hidden="true" hidden={off} />
           <ul className="parts-row">
-            {names.map((n, i) => <li key={n}><div className="part-model" ref={(el) => { boxes.current[i] = el; }} /><span className="part-name">{n}</span></li>)}
+            {names.map((n, i) => <li key={n}><div className="part-model" ref={(el) => { boxes.current[i] = el; }}>{off && <img className="part-still" src={STILL[(['hub', 'app', 'board'] as Kind[])[i]]} alt="" decoding="async" />}</div><span className="part-name">{n}</span></li>)}
           </ul>
         </div>
         <p className="parts-line">A hub on board, an app for each crewmate, and a board in every cabin. No link to Earth needed.</p>
@@ -484,7 +510,7 @@ export function App() {
             <h2 id="app-title">The app.</h2>
             <p>On every crewmate’s iPhone. It sends their readings, asks if they’re OK, and walks them through first aid.</p>
             <Actions>
-              <a className="btn fill" href={PHONE}>Test the app</a>
+              <a className="btn fill" href={PHONE} target="_blank" rel="noopener">Test the app</a>
               <a className="btn" href={DEMO}>Run the demo</a>
             </Actions>
             <p className="fine">It reads Apple Health and the Apple Watch through HealthKit. Build it from Xcode onto your iPhone.</p>
@@ -535,7 +561,7 @@ export function App() {
               <li><a className="option" href={WIN}><b>Download for Windows</b><span>64-bit · 1.7 GB</span></a></li>
               <li><a className="option" href={DEMO}><b>Run the demo</b><span>In your browser</span></a></li>
             </ul>
-            <p className="fine">iPhone app and board firmware: build them from <a href={REPO}>the source</a>.</p>
+            <p className="fine">iPhone app and board firmware: build them from <a href={REPO} target="_blank" rel="noopener">the source</a>.</p>
             <p className="fine">The apps are not signed by a store. On a Mac choose Open Anyway in Privacy &amp; Security; on Windows choose More info, then Run anyway.</p>
           </Frame>
         </section>
@@ -544,9 +570,9 @@ export function App() {
       <footer>
         <p>Real: the software on all three devices, the board’s own readings, and NASA’s data. Simulated, and labelled on screen: the demo crew and most body readings. Astrum does not diagnose or treat; it is not a medical device.</p>
         <nav aria-label="Project">
-          <a href={ABOUT}>Results, limits and sources</a>
-          <a href={REPO}>Source on GitHub</a>
-          <a href={RELEASES}>All releases</a>
+          <a href={ABOUT} target="_blank" rel="noopener">Results, limits and sources</a>
+          <a href={REPO} target="_blank" rel="noopener">Source on GitHub</a>
+          <a href={RELEASES} target="_blank" rel="noopener">All releases</a>
         </nav>
         <p>Caio Agra Lemos, design and engineering · Leticia Alves Barbosa Leite, medical lead</p>
         <p>NASA Space Apps Challenge 2026</p>
