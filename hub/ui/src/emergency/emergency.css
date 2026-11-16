@@ -5,8 +5,8 @@
   inset: 0;
   z-index: 20;
   background: rgb(0 0 0 / 0.5);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   animation: emergency-in var(--motion-enter) var(--motion-ease) both;
 }
 .emergency-frame {
@@ -78,5 +78,5 @@
   .emergency-sign { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .emergency { background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .emergency { background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

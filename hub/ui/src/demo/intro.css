@@ -8,8 +8,8 @@
   place-items: center;
   padding: 24px;
   background: rgb(0 0 0 / 0.5);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   animation: intro-dim var(--motion-enter) var(--motion-ease) both;
 }
 .intro-sheet {
@@ -47,4 +47,4 @@
 @keyframes intro-dim { from { opacity: 0; } }
 @keyframes intro-rise { from { opacity: 0; transform: translateY(var(--motion-rise)) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .intro, .intro-sheet { animation-duration: 1ms; animation-delay: 0ms; } }
-@media (prefers-reduced-transparency: reduce) { .intro { background: rgb(0 0 0 / 0.8); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .intro { background: rgb(0 0 0 / 0.8); -webkit-backdrop-filter: none; backdrop-filter: none; } }

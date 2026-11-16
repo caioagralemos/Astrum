@@ -447,8 +447,8 @@ button { font: inherit; }
   border: 0;
   border-radius: var(--w-radius);
   background: var(--w-bg);
-  backdrop-filter: var(--w-blur);
   -webkit-backdrop-filter: var(--w-blur);
+  backdrop-filter: var(--w-blur);
   box-shadow: none;
 }
 .panel.frame { border-radius: var(--w-radius); }
@@ -471,7 +471,7 @@ button { font: inherit; }
   .frame, .widget-card, .tag-pill { --text-muted: #fff; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .frame { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .frame { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 .panel {
@@ -819,13 +819,13 @@ button { font: inherit; }
   padding: 16px 18px;
   border-radius: var(--w-radius);
   background: var(--w-bg);
-  backdrop-filter: var(--w-blur);
   -webkit-backdrop-filter: var(--w-blur);
+  backdrop-filter: var(--w-blur);
   box-shadow: none;
   overflow: hidden;
 }
 .widget-card p, .widget-card h2, .widget-card ul { margin: 0; }
-@media (prefers-reduced-transparency: reduce) { .widget-card { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .widget-card { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 .w-head { display: flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(var(--ink) / calc(0.55 * var(--ink-k))); }
 .w-head .icon { width: 0.9rem; height: 0.9rem; stroke-width: 2; }
 
@@ -962,7 +962,7 @@ button { font: inherit; }
    alone with crisp corners: the surface and the top and bottom edges stretch sideways (a flat tint
    and level lines take that without a trace); the two bracket caps only slide. The content sits
    over it, laid out once at the card's size; the previous layout fades out in .dw-was. */
-.dock-row > .dw { background: none; border-image: none; backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; }
+.dock-row > .dw { background: none; border-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; overflow: visible; }
 .dock-row > .dw[data-leaving] { position: absolute; top: 0; bottom: 0; pointer-events: none; }
 /* A card that leaves goes at once: its 0.2 s fade sat over the cards gliding into its place (a half card's
    bars across two empty quarter frames). The others' glide and the new cards' fade-in carry the change. */
@@ -971,7 +971,7 @@ button { font: inherit; }
 .dw-frame > i { position: absolute; top: 0; bottom: 0; box-sizing: border-box; transform-origin: 0 0; }
 .dw-frame > i:nth-child(1) {
   left: 0; right: 0; border-radius: var(--w-radius);
-  background: var(--w-bg); backdrop-filter: var(--w-blur); -webkit-backdrop-filter: var(--w-blur);
+  background: var(--w-bg); -webkit-backdrop-filter: var(--w-blur); backdrop-filter: var(--w-blur);
 }
 .dw-frame > i:nth-child(2) { left: 0; width: 18px; border: 0 solid; border-image: var(--w-frame) 18 / 18px 0 18px 18px stretch; border-radius: var(--w-radius) 0 0 var(--w-radius); }
 /* The top and bottom lines, as the frame image draws them (1 px at 72%, from the brackets' slice edge),
@@ -985,7 +985,7 @@ button { font: inherit; }
 .dw[data-problem] .dw-frame > i:nth-child(2) { box-shadow: inset 1px 0 0 var(--dw-problem), inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
 .dw[data-problem] .dw-frame > i:nth-child(3) { box-shadow: inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
 .dw[data-problem] .dw-frame > i:nth-child(4) { box-shadow: inset -1px 0 0 var(--dw-problem), inset 0 1px 0 var(--dw-problem), inset 0 -1px 0 var(--dw-problem); }
-@media (prefers-reduced-transparency: reduce) { .dw-frame > i:nth-child(1) { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .dw-frame > i:nth-child(1) { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 .dw-body, .dw-was > .dw-body {
   position: absolute; inset: 0; box-sizing: border-box; padding: inherit; overflow: hidden; border-radius: var(--w-radius);
   display: flex; flex-direction: column; gap: 8px;
