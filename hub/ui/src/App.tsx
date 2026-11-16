@@ -75,6 +75,12 @@ export function App() {
     const demo = import.meta.env.DEV ? new URLSearchParams(location.search).get('demoSteps') : null;
     return demo ? { alert: null, card: demo } : null;
   });
+  // A recorded story waits at its emergency until the viewer has been through the steps (data.ts, meta.holdAt).
+  const stepsWereOpen = useRef(false);
+  useEffect(() => {
+    if (steps) stepsWereOpen.current = true;
+    else if (stepsWereOpen.current) { stepsWereOpen.current = false; if (source instanceof RecordedSource) source.release(); }
+  }, [source, steps]);
 
   // The takeover's second screen (emergency/Beat2Zoom.tsx): after the tap, the camera on the alert's room and
   // its panel, until the alert ends, is settled, or Earth's reply is in and someone closes it. Each occurrence

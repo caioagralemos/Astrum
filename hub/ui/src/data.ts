@@ -230,6 +230,10 @@ export class RecordedSource implements DataSource {
   notices: Notice[] = [];
   /** The viewer has pressed Start (or the file has no intro): the story is under way. */
   started = false;
+  /** The story waits at meta.holdAt (the emergency) until the viewer has been through the steps, 90 seconds at most. */
+  private released = false;
+  /** The viewer finished the steps: the story goes on from its hold. */
+  release(): void { this.released = true; }
   /** The recording's last moment, once loaded. */
   endsAt: number | null = null;
   /** How many scenarios the list offers (0 when there is no list): "Another scenario" shows for two or more. */
@@ -315,8 +319,18 @@ export class RecordedSource implements DataSource {
       const speed = speedProfile(recording.meta?.speed, startsAt);
       let next = 0;
       let begun = 0;
+      const holdAt = typeof recording.meta?.holdAt === 'number' ? recording.meta.holdAt : null;
+      let heldFrom = 0, holdSpent = false;
       const play = () => {
-        const now = Math.min(momentAfter(speed, startsAt, performance.now() - begun), endsAt);
+        let now = Math.min(momentAfter(speed, startsAt, performance.now() - begun), endsAt);
+        // The viewer is in the steps when the story reaches its hold: it waits there until they finish (or 90 seconds).
+        if (holdAt !== null && !holdSpent && now >= holdAt) {
+          if (!this.released && (!heldFrom || performance.now() - heldFrom < 90_000)) {
+            if (!heldFrom) heldFrom = performance.now();
+            begun = performance.now() - realOffset(speed, startsAt, holdAt);
+            now = holdAt;
+          } else holdSpent = true; // steps done or 90 seconds up: it never waits again
+        }
         const due: HubMessage[] = [];
         while (next < messages.length && messages[next].at <= now) due.push(messages[next++].message);
         update((w) => ({ ...due.reduce(apply, w), status: 'replay', now }));
@@ -331,6 +345,7 @@ export class RecordedSource implements DataSource {
       this.controls = {
         restart: () => {
           this.begin();
+          heldFrom = 0; holdSpent = false; this.released = false;
           next = 0;
           update(() => ({ ...empty, status: 'replay' }));
           from(0);
