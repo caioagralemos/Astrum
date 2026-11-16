@@ -195,20 +195,24 @@ export type { Recording };
 
 /** The words a scenario shows before it plays (meta.intro): plain English, or English and Portuguese. */
 export type IntroText = string | { en: string; pt?: string };
-export interface Intro { title: IntroText; lines: IntroText[] }
+export interface Intro { title: IntroText; lines: IntroText[]; /** The sheet's line icon: what kind of story it is. */ icon?: 'moon' | 'wind' | 'flame' }
+
+/** How long the hub runs as it is before a scenario's intro sheet comes up, ms. */
+const INTRO_AFTER = 6000;
 /** One entry of the scenario list (ui/public/scenario/index.json). */
 export interface ScenarioEntry { file: string; title: string }
 export interface PhoneTake { src: string; videoTime(now: number): number; endsAt: number }
 
 const LIST = 'scenario/index.json';
-const LAST_KEY = 'astrum.replay.last';
 
 /**
  * A recorded file played in the browser, at the speeds its meta asks for
  * (real time for files without one). The screen's clock is the recording's.
- * `?replay=random` (or an empty `?replay`) picks one from the scenario list,
- * never the one this browser played last. A file with an intro waits on its
- * card until begin().
+ * `?replay=random` (or an empty `?replay`) plays the scenario list in order:
+ * the first one on arrival, so every visitor starts with the same story, and
+ * "Another scenario" the next one along (back to the first after the last). A file with an intro waits on its
+ * card until begin(): the hub shows the recording's first moment, as it is, and the
+ * card comes up over it after INTRO_AFTER.
  */
 export class RecordedSource implements DataSource {
   private url: string;
@@ -235,9 +239,12 @@ export class RecordedSource implements DataSource {
     for (const fn of this.listeners) fn();
   }
 
+  private introTimer: ReturnType<typeof setTimeout> | undefined;
+
   /** Starts the scenario waiting on its intro card. */
   begin(): void {
     const go = this.waiting;
+    clearTimeout(this.introTimer);
     this.waiting = null;
     this.intro = null;
     this.changed();
@@ -262,16 +269,14 @@ export class RecordedSource implements DataSource {
     location.search = params.toString();
   }
 
-  /** The file to play: the one asked for, or a random pick from the list. */
+  /** The file to play: the one asked for, else the list's first, or the one after `after`. */
   private async resolve(list: ScenarioEntry[]): Promise<string> {
     if (this.url && this.url !== 'random') return this.url;
     const params = new URLSearchParams(location.search);
-    let last = params.get('after');
-    if (!last) try { last = localStorage.getItem(LAST_KEY); } catch { /* no memory: any pick */ }
-    const others = list.filter((e) => `scenario/${e.file}` !== last);
-    const pool = others.length ? others : list;
-    if (!pool.length) throw new Error('no scenarios listed');
-    const file = `scenario/${pool[Math.floor(Math.random() * pool.length)].file}`;
+    if (!list.length) throw new Error('no scenarios listed');
+    const last = params.get('after');
+    const at = last ? list.findIndex((e) => `scenario/${e.file}` === last) : -1;
+    const file = `scenario/${list[(at + 1) % list.length].file}`;
     // The address names the file, so a reload or the Astra sheet (its recorded answers sit beside it) finds the same one.
     params.set('replay', file);
     params.delete('after');
@@ -286,7 +291,6 @@ export class RecordedSource implements DataSource {
       .then(async (list: ScenarioEntry[]) => {
         this.choices = Array.isArray(list) ? list.length : 0;
         this.url = await this.resolve(Array.isArray(list) ? list : []);
-        try { localStorage.setItem(LAST_KEY, this.url); } catch { /* not remembered */ }
         this.changed();
         return (await fetch(this.url)).json();
       })
@@ -313,11 +317,12 @@ export class RecordedSource implements DataSource {
       };
       this.controls = {
         restart: () => {
+          this.begin();
           next = 0;
           update(() => ({ ...empty, status: 'replay' }));
           from(0);
         },
-        skip: () => from(realOffset(speed, startsAt, endsAt)),
+        skip: () => { this.begin(); from(realOffset(speed, startsAt, endsAt)); },
       };
       const phone = recording.meta?.phone;
       if (phone?.file && Number.isFinite(phone.offsetMs)) {
@@ -332,13 +337,16 @@ export class RecordedSource implements DataSource {
       }
       const intro = recording.meta?.intro as Intro | undefined;
       if (intro?.title) {
-        this.intro = intro;
+        // The hub as it is at the recording's first moment, then the card over it.
+        begun = performance.now();
+        play();
         this.waiting = () => { if (!stopped) from(0); };
-        this.changed();
+        this.introTimer = setTimeout(() => { if (stopped || !this.waiting) return; this.intro = intro; this.changed(); }, INTRO_AFTER);
       } else from(0);
     }).catch(() => update((w) => ({ ...w, status: 'offline' })));
     return () => {
       stopped = true;
+      clearTimeout(this.introTimer);
       this.controls = null;
       this.waiting = null;
       clearInterval(timer);

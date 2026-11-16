@@ -166,8 +166,6 @@ export function App() {
     if (alert.declared.shelter) weather.shelter = alert.declared.shelter;
   }
   const { profile, now } = world;
-  // A recorded scenario's context card, before it plays (replay only).
-  if (recorded.intro && source instanceof RecordedSource) return <main><IntroCard intro={recorded.intro} lang={lang} s={s} onStart={() => source.begin()} /></main>;
   if (world.restarting) return <main><Loading message={s('settings.restartingAny')} quiet /></main>;
   if (!profile) return <main><Loading message={s(world.status === 'offline' ? 'hub.offline' : 'hub.connecting')} quiet={world.status !== 'offline'} /></main>;
 
@@ -223,6 +221,8 @@ export function App() {
 
   return (
     <main className="hub" data-take={recorded.phone ? takeSide : undefined}>
+      {/* A recorded scenario's context card, over the hub before it plays (replay only). */}
+      {recorded.intro && source instanceof RecordedSource && <IntroCard intro={recorded.intro} lang={lang} s={s} onStart={() => source.begin()} />}
       <Station weather={weather} rooms={profile.rooms} crew={profile.crew} where={where} lastSeen={lastPlace} roomStatus={roomStatuses} readRooms={[...new Set(values.filter((r) => r.room && !r.person && r.value !== null).map((r) => r.room as string))]} personStatus={personStatuses}
         asleep={asleep} activity={world.activity && Object.fromEntries(Object.entries(world.activity).map(([id, a]) => [id, a.what]))}
         s={s} selected={zoomed ? zoomTarget : selected} onSelect={(next) => { if (zoomed) return; setSelected(next); if (next) setPanel(null); }} mission={stationMission} body={bodyPerson ? { person: bodyPerson.id, states: statesOf(body) } : null}

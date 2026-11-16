@@ -241,7 +241,15 @@ function start(fail: () => void): () => void {
     };
     glideRaf = requestAnimationFrame(step);
   }
-  const onHand = () => { if (glideRaf) { stopGlide(); settlingTo = -1; } };
+  // A real touch takes the page back, and once things go quiet again the page settles again. The faint wheel
+  // events a trackpad's momentum keeps sending after the page has stopped are not a hand: counting them
+  // cancelled the glide just as it began and left the page between two scenes.
+  const onHand = (e: Event) => {
+    if (!glideRaf) return;
+    if (e.type === 'wheel' && Math.abs((e as WheelEvent).deltaY) < 4) return;
+    stopGlide(); settlingTo = -1;
+    clearTimeout(idle); idle = window.setTimeout(settle, 140);
+  };
 
   let queued = false;
   const onScroll = () => {
