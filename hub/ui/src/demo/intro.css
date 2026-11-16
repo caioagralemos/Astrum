@@ -52,11 +52,6 @@
 /* The narrator line (App.tsx): one sentence for the story's current beat, under the top bar, over everything
    but the intro sheet, so it still reads during the emergency screen. Each new line fades in. */
 .caption {
-  position: fixed;
-  top: calc(max(20px, env(safe-area-inset-top)) + 64px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 25;
   width: max-content;
   max-width: min(640px, calc(100vw - 32px));
   margin: 0;
@@ -74,3 +69,24 @@
 .caption > span { display: block; animation: caption-in 420ms var(--motion-ease) both; }
 @keyframes caption-in { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .caption > span { animation: none; } }
+
+/* The narrator and, under it, a smaller hint that stays. */
+.caption-wrap { position: fixed; top: calc(max(20px, env(safe-area-inset-top)) + 64px); left: 50%; transform: translateX(-50%); z-index: 25; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.caption-wrap .caption { position: static; transform: none; }
+.caption-hint { margin: 0; padding: 4px 12px; border-radius: 8px; background: rgb(0 0 0 / 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-size: 12px; color: rgb(255 255 255 / 0.75); }
+
+/* Banners for what reached a phone or a board: in from the right, a few seconds, out again. */
+.notices { position: fixed; top: calc(max(20px, env(safe-area-inset-top)) + 64px); right: 20px; z-index: 26; display: flex; flex-direction: column; gap: 10px; width: min(360px, calc(100vw - 40px)); pointer-events: none; right: auto; left: 20px; }
+.notice { animation: notice-life 7s var(--motion-ease) both; }
+.notice-on { margin: 0 0 4px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(255 255 255 / 0.7); }
+.notice-card { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 18px; background: rgb(40 42 46 / 0.78); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: #fff; }
+.notice[data-kind='board'] .notice-card { border-radius: 10px; }
+.notice-app { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: #fff; color: #000; font-size: 18px; font-weight: 700; }
+.notice[data-kind='board'] .notice-app { background: #c0392b; color: #fff; font-size: 14px; }
+.notice-title { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.3; }
+.notice-body { margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: rgb(255 255 255 / 0.85); }
+@keyframes notice-life { 0% { opacity: 0; transform: translateX(-24px); } 6% { opacity: 1; transform: none; } 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(-24px); } }
+@media (prefers-reduced-motion: reduce) { .notice { animation: notice-fade 7s linear both; } @keyframes notice-fade { 0%, 100% { opacity: 0; } 4%, 92% { opacity: 1; } } }
+
+/* The emergency screen has its own "tap anywhere": the explore hint steps aside while it is up. */
+body:has(.emergency) .caption-hint { display: none; }

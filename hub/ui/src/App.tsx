@@ -299,8 +299,28 @@ export function App() {
         const line = [...recorded.captions].reverse().find((c) => c.at <= now);
         if (!line) return null;
         const text = typeof line.text === 'string' ? line.text : (lang === 'pt' && line.text.pt) || line.text.en;
-        return <p className="caption" role="status" aria-live="polite"><span key={text}>{text}</span></p>;
+        return (
+          <div className="caption-wrap">
+            <p className="caption" role="status" aria-live="polite"><span key={text}>{text}</span></p>
+            <p className="caption-hint">{s('scenario.explore')}</p>
+          </div>
+        );
       })()}
+
+      {/* What reached a phone or a cabin board at this beat: a banner that slides in, stays a few seconds and goes. */}
+      {recorded.notices.length > 0 && world.status === 'replay' && !recorded.intro && (
+        <div className="notices" aria-live="polite">
+          {recorded.notices.filter((n) => n.at <= now && n.at >= Math.max(...recorded.notices.filter((m) => m.at <= now).map((m) => m.at))).map((n, i) => (
+            <div key={`${n.at}-${i}`} className="notice" data-kind={n.kind} style={{ animationDelay: `${i * 0.35}s` }}>
+              <p className="notice-on">{n.on}</p>
+              <div className="notice-card">
+                <span className="notice-app" aria-hidden="true">{n.kind === 'phone' ? '✚' : '◉'}</span>
+                <div><p className="notice-title">{n.title}</p><p className="notice-body">{n.body}</p></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {world.scenario && (
         <p ref={story} className="story">

@@ -488,6 +488,7 @@ const table = {
   'scenario.replay': { en: 'Replay', pt: 'Repetir' },
   'scenario.skip': { en: 'Skip', pt: 'Pular' },
   'scenario.back': { en: 'Back to the site', pt: 'Voltar ao site' },
+  'scenario.explore': { en: 'Tap anywhere to explore the ship.', pt: 'Toque em qualquer lugar para explorar a nave.' },
   'scenario.another': { en: 'Another scenario', pt: 'Outro cenário' },
   'scenario.view': { en: 'Show', pt: 'Mostrar' },
   'scenario.view.hub': { en: 'Hub', pt: 'Hub' },
