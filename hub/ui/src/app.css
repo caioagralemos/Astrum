@@ -964,6 +964,9 @@ button { font: inherit; }
    over it, laid out once at the card's size; the previous layout fades out in .dw-was. */
 .dock-row > .dw { background: none; border-image: none; backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; }
 .dock-row > .dw[data-leaving] { position: absolute; top: 0; bottom: 0; pointer-events: none; }
+/* A card that leaves goes at once: its 0.2 s fade sat over the cards gliding into its place (a half card's
+   bars across two empty quarter frames). The others' glide and the new cards' fade-in carry the change. */
+.dock-row > .dw[data-leaving] { visibility: hidden; }
 .dw-frame { position: absolute; inset: 0; pointer-events: none; }
 .dw-frame > i { position: absolute; top: 0; bottom: 0; box-sizing: border-box; transform-origin: 0 0; }
 .dw-frame > i:nth-child(1) {
