@@ -182,9 +182,9 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
     { x: 130, y: 960, name: 'Cabin boards', via: 'USB', model: 'board', w: 200, h: 145, t: 0.72 },
     { x: 470, y: 990, name: 'Earth', via: 'Messages, with the delay counted', glyph: 'earth', w: 90, h: 90, dashed: true, t: 0.7 },
   ] : [
-    { x: 170, y: 150, name: 'iPhones', via: 'Wi-Fi', model: 'app', w: 140, h: 175 },
+    { x: 112, y: 166, name: 'iPhones', via: 'Wi-Fi', model: 'app', w: 140, h: 175 },
     { x: 170, y: 440, name: 'Cabin boards', via: 'USB', model: 'board', w: 210, h: 150 },
-    { x: 930, y: 150, name: 'Other screens', via: 'Same view', glyph: 'screen', w: 70, h: 56, light: true },
+    { x: 940, y: 150, name: 'Other screens', via: 'Same view', glyph: 'screen', w: 92, h: 74, light: true },
     { x: 940, y: 440, name: 'Earth', via: 'Messages, with the delay counted', glyph: 'earth', w: 76, h: 76, dashed: true, t: 0.6 },
   ];
   return (
@@ -222,7 +222,7 @@ function Fits({ narrow = false, art }: { narrow?: boolean; art: Record<string, s
       {(() => {
         // The Apple Watch reaches the hub through its owner's iPhone (Apple Health, HealthKit): drawn beside the phones.
         const phone = ends[0];
-        const wx = narrow ? phone.x + 150 : phone.x + 144, wy = narrow ? phone.y - 6 : phone.y - 82, k = narrow ? 1.25 : 1;
+        const wx = narrow ? phone.x + 150 : phone.x + 128, wy = narrow ? phone.y - 6 : phone.y - 62, k = narrow ? 1.25 : 1;
         // The link: level on the narrow drawing; on the wide one the watch sits up and to the right of the phone, so it runs at a slant.
         const from = phone.x + phone.w * 0.36, to = wx - 26 * k;
         const y1 = narrow ? wy : phone.y - 34, y2 = narrow ? wy : wy + 14;

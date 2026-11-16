@@ -332,11 +332,14 @@ async function run(canvas: HTMLCanvasElement, items: Item[], interactive: boolea
   let lastT = 0, slowFrames = 0, okFrames = 0, gaveUp = false;
   function pace(t: number) {
     const dt = t - lastT; lastT = t;
-    if (dt <= 0 || dt > 250) return;                // the first frame, or back from a hidden tab
-    if (dt > 30) slowFrames++; else okFrames++;
-    if (slowFrames + okFrames < 40) return;
-    if (slowFrames > 14 && quality > 0.75) { quality = quality > 1 ? 1 : 0.75; size(); }
-    else if (slowFrames > 20 && quality <= 0.75 && !gaveUp) { gaveUp = true; items[0].onSlow?.(); }
+    // Only a steady crawl counts (under about 20 frames a second for most of a second and a half). A scene change,
+    // a clip starting or a busy moment makes a few long frames on any computer, and stepping down for those cost
+    // a good machine its smooth lines.
+    if (dt <= 0 || dt > 150) return;                // the first frame, a scene change, or back from a hidden tab
+    if (dt > 50) slowFrames++; else okFrames++;
+    if (slowFrames + okFrames < 60) return;
+    if (slowFrames > 40 && quality > 0.75) { quality = quality > 1 ? 1 : 0.75; size(); }
+    else if (slowFrames > 45 && quality <= 0.75 && !gaveUp) { gaveUp = true; items[0].onSlow?.(); }
     slowFrames = okFrames = 0;
   }
 
