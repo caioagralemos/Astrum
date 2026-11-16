@@ -6,7 +6,7 @@
 //   npm run build:all     the above, then the site itself
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,5 +63,13 @@ for (const file of ['index.html', ...list.map(({ file }) => join('scenario', fil
     console.error(`public/demo/${file} is missing after the build.`);
     process.exit(1);
   }
+}
+// Opened as /demo (no ?replay), the public copy plays a recording rather than looking for a live hub
+// that is not there: astrum.caioagralemos.com/demo goes straight to the demo.
+{
+  const page = join(out, 'index.html');
+  const html = readFileSync(page, 'utf8');
+  const go = `<script>if(!new URLSearchParams(location.search).has('replay'))location.replace(location.pathname+'?replay=random'+location.hash)</script>`;
+  if (!html.includes(go)) writeFileSync(page, html.replace('<head>', `<head>${go}`));
 }
 console.log(`Demo ready: public/demo/index.html?replay=random (${list.length} scenarios: ${list.map(({ file }) => file).join(', ')})`);
